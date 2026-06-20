@@ -6,18 +6,26 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 /**
  * Per-client general settings, persisted alongside the tabs.
  *
- * @param resetFilterOnOpen if true, opening a terminal clears the active tab
- *                          (always starts on "All"); if false, the last active
- *                          tab is remembered across opens.
- * @param showTabLabels     if true, the tab bar shows each tab's name as a wide
- *                          label button; if false, icon-only cells (name on hover).
+ * @param resetFilterOnOpen clear the active tab when opening a terminal.
+ * @param showTabLabels     show tab names as labels (vs icon-only).
+ * @param tabScale          size multiplier for the tab-bar rows (icons + text).
  */
-public record Settings(boolean resetFilterOnOpen, boolean showTabLabels) {
+public record Settings(boolean resetFilterOnOpen, boolean showTabLabels, double tabScale) {
 
-    public static final Settings DEFAULT = new Settings(false, false);
+    public static final double MIN_SCALE = 0.7;
+    public static final double MAX_SCALE = 1.8;
+
+    public static final double DEFAULT_SCALE = 1.15;
+    public static final Settings DEFAULT = new Settings(false, false, DEFAULT_SCALE);
 
     public static final Codec<Settings> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.BOOL.optionalFieldOf("resetFilterOnOpen", false).forGetter(Settings::resetFilterOnOpen),
-            Codec.BOOL.optionalFieldOf("showTabLabels", false).forGetter(Settings::showTabLabels)
+            Codec.BOOL.optionalFieldOf("showTabLabels", false).forGetter(Settings::showTabLabels),
+            Codec.DOUBLE.optionalFieldOf("tabScale", DEFAULT_SCALE).forGetter(Settings::tabScale)
     ).apply(i, Settings::new));
+
+    /** Clamped scale safe for layout math. */
+    public double clampedScale() {
+        return Math.max(MIN_SCALE, Math.min(tabScale, MAX_SCALE));
+    }
 }

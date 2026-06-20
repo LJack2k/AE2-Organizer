@@ -4,7 +4,6 @@ import appeng.client.gui.style.BackgroundGenerator;
 import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.StyleManager;
-import appeng.client.gui.widgets.AETextField;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -12,11 +11,10 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Renders our client-only screens through AE2's own GUI pipeline (background,
- * palette, widgets) so they match AE2 and inherit AE2 "dark mode" resource packs
- * — which retheme by overriding {@code textures/guis/*.png} and
- * {@code screens/common/palette.json}. Doing this without an AE2 container screen
- * keeps the editor purely client-side (works on vanilla-AE2 servers).
+ * Renders our client-only screens through AE2's own GUI pipeline (background +
+ * palette) so they match AE2 and inherit AE2 "dark mode" resource packs, which
+ * retheme by overriding {@code textures/guis/background.png} and
+ * {@code screens/common/palette.json}.
  */
 public final class Ae2Style {
     private Ae2Style() {}
@@ -43,7 +41,7 @@ public final class Ae2Style {
                         break;
                     }
                 } catch (Throwable ignored) {
-                    // Try next candidate; remain null otherwise.
+                    // remain null
                 }
             }
         }
@@ -79,17 +77,54 @@ public final class Ae2Style {
         return FALLBACK_SELECTION_COLOR;
     }
 
-    /** An AE2-styled text field when the style is available, else a vanilla EditBox. */
+    /**
+     * A plain (vanilla) text box. AE2's AETextField rendered stray border
+     * artifacts when used outside an AE2 container screen, so we use a clean
+     * EditBox; it's readable on the themed panel.
+     */
     public static EditBox textField(Font font, int x, int y, int width, int height, Component message) {
-        ScreenStyle style = style();
-        if (style != null) {
-            try {
-                return new AETextField(style, font, x, y, width, height);
-            } catch (Throwable ignored) {
-                // fall back to vanilla
-            }
-        }
         return new EditBox(font, x, y, width, height, message);
+    }
+
+    /**
+     * A bevelled button face: raised when inactive, sunken when active. Translucent
+     * so it reads on both light and dark panels.
+     */
+    public static void bevelButton(GuiGraphics graphics, int x, int y, int w, int h, boolean active, boolean hovered) {
+        int hi = 0x70FFFFFF;
+        int lo = 0x70000000;
+        int face = active ? 0x33000000 : hovered ? 0x33FFFFFF : 0x14FFFFFF;
+        graphics.fill(x, y, x + w, y + h, face);
+        if (active) { // sunken
+            graphics.fill(x, y, x + w, y + 1, lo);
+            graphics.fill(x, y, x + 1, y + h, lo);
+            graphics.fill(x, y + h - 1, x + w, y + h, hi);
+            graphics.fill(x + w - 1, y, x + w, y + h, hi);
+        } else { // raised
+            graphics.fill(x, y, x + w, y + 1, hi);
+            graphics.fill(x, y, x + 1, y + h, hi);
+            graphics.fill(x, y + h - 1, x + w, y + h, lo);
+            graphics.fill(x + w - 1, y, x + w, y + h, lo);
+        }
+    }
+
+    /** Renders an item icon scaled to {@code size} pixels (vanilla renderItem is fixed 16px). */
+    public static void scaledItem(GuiGraphics graphics, net.minecraft.world.item.ItemStack stack, int x, int y, int size) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0);
+        float s = size / 16f;
+        graphics.pose().scale(s, s, 1f);
+        graphics.renderItem(stack, 0, 0);
+        graphics.pose().popPose();
+    }
+
+    /** Draws text at a given scale (vanilla font is fixed 8px tall). */
+    public static void scaledText(GuiGraphics graphics, Font font, String text, int x, int y, int color, float scale) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0);
+        graphics.pose().scale(scale, scale, 1f);
+        graphics.drawString(font, text, 0, 0, color, false);
+        graphics.pose().popPose();
     }
 
     /** A subtle recessed slot. Translucent so it reads on both light and dark panels. */

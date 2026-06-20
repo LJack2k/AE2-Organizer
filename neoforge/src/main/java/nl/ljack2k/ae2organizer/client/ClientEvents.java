@@ -17,8 +17,14 @@ import java.util.function.Predicate;
 /**
  * Game-bus screen hooks. Registered (client-only) from the mod constructor.
  * <p>
- * The tab bar is attached as a renderable on {@code ScreenEvent.Init.Post}, but
- * its <em>input</em> is driven through the cancelable {@code ScreenEvent} mouse
+ * The tab bar is <em>rendered every frame</em> on {@code ScreenEvent.Render.Post}
+ * and held in our own field — it is deliberately <em>not</em> added as a screen
+ * widget. A window resize or returning from AE2's settings sub-screen re-lays-out
+ * the terminal via {@code repositionElements()}, which clears the screen's widgets
+ * but never fires {@code Init.Post}; a child widget would be wiped and never
+ * re-added (the tabs would vanish). Rendering it ourselves makes it immune to that.
+ * <p>
+ * Its <em>input</em> is driven through the cancelable {@code ScreenEvent} mouse
  * events: AE2's terminal screen overrides {@code mouseScrolled}/{@code mouseDragged}
  * and consumes them before added widgets see them, so routing through the
  * pre-events (which fire first) is the reliable way to get scrollbar drag and
@@ -43,11 +49,32 @@ public final class ClientEvents {
         if (TabManager.getSettings().resetFilterOnOpen()) {
             TabManager.setActive(null);
         }
-        TabBarWidget bar = new TabBarWidget(terminal);
-        event.addListener(bar);
-        activeBar = bar;
+        activeBar = new TabBarWidget(terminal);
         activeBarScreen = terminal;
         applyFilter(terminal, TabManager.activePredicate());
+    }
+
+    /**
+     * Renders the bar every frame for the current terminal, independent of the
+     * screen's widget list, so a resize or settings-return (which clear widgets
+     * without firing {@code Init.Post}) can't make the tabs disappear. Re-creates
+     * the bar if the terminal screen instance changed — e.g. a brand-new terminal
+     * window — so it picks up that terminal and re-applies the active filter.
+     */
+    @SubscribeEvent
+    public static void onScreenRender(ScreenEvent.Render.Post event) {
+        if (!(event.getScreen() instanceof MEStorageScreen<?> terminal)) {
+            return;
+        }
+        if (activeBar == null || activeBarScreen != terminal) {
+            if (!TabManager.isLoaded()) {
+                TabManager.load();
+            }
+            activeBar = new TabBarWidget(terminal);
+            activeBarScreen = terminal;
+            applyFilter(terminal, TabManager.activePredicate());
+        }
+        activeBar.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
     }
 
     private static boolean isActive(Screen screen) {

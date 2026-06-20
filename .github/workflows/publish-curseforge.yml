@@ -1,0 +1,70 @@
+name: Publish to CurseForge
+
+# Same trigger model as publish-modrinth.yml — runs after "Release" succeeds on a
+# tag, or manually via Actions → Publish to CurseForge → Run workflow → enter the
+# tag to retry just CurseForge.
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.0.5)'
+        required: true
+        type: string
+
+permissions:
+  contents: read    # for `gh release download`
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' ||
+            (github.event.workflow_run.conclusion == 'success' &&
+             startsWith(github.event.workflow_run.head_branch, 'v')) }}
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          TAG="${{ inputs.tag || github.event.workflow_run.head_branch }}"
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}"  >> "$GITHUB_OUTPUT"
+
+      - name: Download jar from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          mkdir -p dist
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dist --pattern '*.jar'
+          ls -la dist
+
+      - name: Publish to CurseForge
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          # CurseForge needs the NUMERIC project id (project page sidebar →
+          # "Project ID"), NOT the slug. Set it as the CURSEFORGE_ID repo
+          # variable (Settings → Secrets and variables → Actions → Variables).
+          # If unset, mc-publish skips CurseForge with no error.
+          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          files: dist/*.jar
+
+          name: AE2Organizer-neoforge-1.21.1-${{ steps.tag.outputs.version }}.jar
+          version: ${{ steps.tag.outputs.version }}
+          version-type: release
+
+          loaders: neoforge
+          game-versions: 1.21.1
+          java: 21
+
+          # AE2 is required; JEI is optional. Numbers are CurseForge project ids.
+          dependencies: |
+            applied-energistics-2(required){curseforge:223794}
+            jei(optional){curseforge:238222}
+
+          changelog: |
+            See the [release notes on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.tag }}).

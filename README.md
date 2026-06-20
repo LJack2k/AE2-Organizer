@@ -2,6 +2,8 @@
 
 A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to Applied Energistics 2 terminals. Create tabs that narrow the ME/Crafting terminal to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
 
+![AE2Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
+
 - **Minecraft** 1.21.1 · **NeoForge** 21.1.x · **AE2** 19.2.x (required)
 - **JEI** optional (adds drag-and-drop in the editor)
 

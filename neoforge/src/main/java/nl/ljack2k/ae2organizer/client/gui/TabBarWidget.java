@@ -40,7 +40,8 @@ public final class TabBarWidget extends AbstractWidget {
     private static final int PAD = 4;
     private static final int TITLE_H = 16;
     private static final int GEAR_SZ = 16;
-    private static final int GAP = 1;
+    private static final int GAP = 2;
+    private static final int SLOT_FRAME = 18;   // a slot's drawn frame is 18px (16px item + 1px border)
     private static final int SB_W = 8;
     private static final int SB_GAP = 2;
 
@@ -80,7 +81,7 @@ public final class TabBarWidget extends AbstractWidget {
         int bottom = guiTop + imageHeight();
         int right = guiLeft + imageWidth();
         for (Slot slot : terminal.getMenu().slots) {
-            int slotRight = guiLeft + slot.x + ICON;
+            int slotRight = guiLeft + slot.x - 1 + SLOT_FRAME;   // -1: frame starts a pixel before the item
             int slotY = guiTop + slot.y;
             if (slotRight > right && slotY < bottom && slotY + ICON > guiTop) {
                 right = slotRight;

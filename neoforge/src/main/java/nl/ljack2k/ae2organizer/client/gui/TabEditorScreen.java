@@ -3,7 +3,6 @@ package nl.ljack2k.ae2organizer.client.gui;
 import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,35 +30,35 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
- * Windowed, client-only tab editor, drawn with AE2's themed panel and widgets
- * ({@link Ae2Style}, {@link AE2Button}, AE2 text fields) so it matches AE2 and
- * inherits AE2 dark-mode packs. Items are assigned via the built-in
- * {@link ItemPickerScreen}, by dragging from JEI (the JEI plugin registers this
- * screen so its overlay appears), or by dragging from the player inventory shown
- * at the bottom — all resolving to the same {@link GhostTarget} areas.
+ * Windowed, client-only tab editor, themed via {@link Ae2Style}. The tab list on
+ * the left lives in its own scrollable region with the Add/Del/reorder buttons
+ * beneath it; the right pane edits the selected tab; the player inventory along
+ * the bottom can be dragged onto the icon/condition targets (as can JEI).
  */
 public final class TabEditorScreen extends Screen {
 
-    /** Neutral drop target consumed by the JEI ghost handler and inventory drag. */
     public record GhostTarget(Rect2i area, Consumer<ItemStack> accept) {}
+
+    private static final int ROW_HE = 18;
+    private static final int SBW = 8;
+    private static final int ICON = 16;
 
     private final Screen parent;
     private final List<TabDraft> drafts = new ArrayList<>();
     private final List<GhostTarget> ghostTargets = new ArrayList<>();
     private int selected = -1;
 
-    private int left;
-    private int top;
-    private int panelW;
-    private int panelH;
-    private int contentTop;
-    private int iconX;
-    private int iconY;
-    private int invX;
-    private int invY;
-
     @Nullable
     private ItemStack draggingStack;
+    private int listScroll = 0;
+    private boolean draggingListScrollbar = false;
+
+    private int left, top, panelW, panelH, contentTop;
+    private int leftX, leftW, leftListTop, leftListVisible, listBtnW, listSbX, leftMgmtY;
+    private boolean listNeedScroll;
+    private int listMaxScroll;
+    private int rightX, rightW, nameY, iconX, iconY, condLabelY;
+    private int invX, invY;
 
     public TabEditorScreen(Screen parent) {
         super(Component.translatable("ae2organizer.editor.title"));
@@ -81,7 +80,6 @@ public final class TabEditorScreen extends Screen {
         return ghostTargets;
     }
 
-    // Panel bounds — used by the JEI screen handler to place its overlay.
     public int panelLeft() {
         return left;
     }
@@ -101,78 +99,72 @@ public final class TabEditorScreen extends Screen {
     @Override
     protected void init() {
         ghostTargets.clear();
-        panelW = Math.min(460, this.width - 20);
-        panelH = Math.min(330, this.height - 20);
+        panelW = Math.min(480, this.width - 20);
+        panelH = Math.min(346, this.height - 20);
         left = (this.width - panelW) / 2;
         top = (this.height - panelH) / 2;
-        contentTop = top + 22;
+        contentTop = top + 24;
 
         int invBlockH = 3 * 18 + 4 + 18;
         invX = left + (panelW - 9 * 18) / 2;
         invY = top + panelH - 8 - invBlockH;
-        int actionY = invY - 24;
+        int bottomY = invY - 24;
 
-        int listX = left + 10;
-        int listW = 116;
-        for (int i = 0; i < drafts.size(); i++) {
-            final int idx = i;
-            TabDraft draft = drafts.get(i);
-            String label = (i == selected ? "▶ " : "") + (draft.name.isBlank() ? draft.id : draft.name);
-            addRenderableWidget(new AE2Button(listX, contentTop + i * 20, listW, 18,
-                    Component.literal(label), b -> select(idx)));
-        }
+        // Left column: scrollable tab list, then management buttons beneath it.
+        leftX = left + 10;
+        leftW = 118;
+        leftMgmtY = bottomY;
+        leftListTop = contentTop;
+        int leftListH = Math.max(ROW_HE, (leftMgmtY - 6) - leftListTop);
+        leftListVisible = Math.max(1, leftListH / ROW_HE);
+        listNeedScroll = drafts.size() > leftListVisible;
+        listMaxScroll = Math.max(0, drafts.size() - leftListVisible);
+        listScroll = Math.max(0, Math.min(listScroll, listMaxScroll));
+        listBtnW = leftW - (listNeedScroll ? SBW + 2 : 0);
+        listSbX = leftX + leftW - SBW;
 
-        addRenderableWidget(new AE2Button(listX, actionY, 38, 18, Component.literal("Add"), b -> addTab()));
-        addRenderableWidget(new AE2Button(listX + 40, actionY, 38, 18, Component.literal("Del"), b -> deleteTab()));
-        addRenderableWidget(new AE2Button(listX + 80, actionY, 16, 18, Component.literal("▲"), b -> moveTab(-1)));
-        addRenderableWidget(new AE2Button(listX + 98, actionY, 16, 18, Component.literal("▼"), b -> moveTab(1)));
+        addRenderableWidget(new AE2Button(leftX, leftMgmtY, 38, 18, Component.literal("Add"), b -> addTab()));
+        addRenderableWidget(new AE2Button(leftX + 40, leftMgmtY, 38, 18, Component.literal("Del"), b -> deleteTab()));
+        addRenderableWidget(new AE2Button(leftX + 80, leftMgmtY, 16, 18, Component.literal("▲"), b -> moveTab(-1)));
+        addRenderableWidget(new AE2Button(leftX + 98, leftMgmtY, 16, 18, Component.literal("▼"), b -> moveTab(1)));
 
-        int rightX = left + 134;
-        int rightW = panelW - 144;
+        rightX = leftX + leftW + 12;
+        rightW = left + panelW - 10 - rightX;
         if (selected >= 0 && selected < drafts.size()) {
-            buildRightPanel(rightX, rightW, drafts.get(selected));
-        } else {
-            addRenderableWidget(new StringWidget(rightX, contentTop + 16, rightW, 12,
-                    Component.literal("Select a tab, or click Add."), this.font).alignLeft()
-                    .setColor(Ae2Style.textColor()));
+            buildRightPanel(drafts.get(selected));
         }
 
-        addRenderableWidget(new AE2Button(left + panelW - 202, actionY, 72, 18,
+        addRenderableWidget(new AE2Button(left + panelW - 202, bottomY, 72, 18,
                 Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this))));
-        addRenderableWidget(new AE2Button(left + panelW - 128, actionY, 58, 18,
+        addRenderableWidget(new AE2Button(left + panelW - 128, bottomY, 58, 18,
                 Component.literal("Done"), b -> commitAndClose()));
-        addRenderableWidget(new AE2Button(left + panelW - 68, actionY, 58, 18,
+        addRenderableWidget(new AE2Button(left + panelW - 68, bottomY, 58, 18,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
-    private void buildRightPanel(int rightX, int rightW, TabDraft draft) {
-        addRenderableWidget(new StringWidget(rightX, contentTop + 5, 36, 10, Component.literal("Name"), this.font)
-                .alignLeft().setColor(Ae2Style.textColor()));
-        EditBox name = Ae2Style.textField(this.font, rightX + 40, contentTop + 2, rightW - 40, 16, Component.literal("Name"));
+    private void buildRightPanel(TabDraft draft) {
+        nameY = contentTop;
+        EditBox name = Ae2Style.textField(this.font, rightX + 40, nameY, rightW - 40, 16, Component.literal("Name"));
         name.setMaxLength(64);
         name.setValue(draft.name);
         name.setResponder(s -> draft.name = s);
         addRenderableWidget(name);
 
-        addRenderableWidget(new StringWidget(rightX, contentTop + 29, 34, 10, Component.literal("Icon"), this.font)
-                .alignLeft().setColor(Ae2Style.textColor()));
         iconX = rightX + 40;
         iconY = contentTop + 24;
-        addRenderableWidget(new AE2Button(rightX + 62, contentTop + 24, 50, 18,
+        addRenderableWidget(new AE2Button(rightX + 62, iconY, 50, 18,
                 Component.literal("Pick…"), b -> openIconPicker(draft)));
-        ghostTargets.add(new GhostTarget(new Rect2i(iconX, iconY, 18, 18),
-                stack -> draft.icon = idOf(stack)));
+        ghostTargets.add(new GhostTarget(new Rect2i(iconX, iconY, 18, 18), stack -> draft.icon = idOf(stack)));
 
-        addRenderableWidget(new AE2Button(rightX, contentTop + 48, 120, 18,
+        int modeY = contentTop + 48;
+        addRenderableWidget(new AE2Button(rightX, modeY, 130, 18,
                 Component.literal("Mode: Match " + (draft.mode == MatchMode.ALL ? "ALL" : "ANY")),
                 b -> {
                     draft.mode = draft.mode == MatchMode.ALL ? MatchMode.ANY : MatchMode.ALL;
                     rebuildWidgets();
                 }));
 
-        addRenderableWidget(new StringWidget(rightX, contentTop + 74, rightW, 10,
-                Component.literal("Conditions:"), this.font).alignLeft().setColor(Ae2Style.textColor()));
-
+        condLabelY = contentTop + 74;
         int rowTop = contentTop + 86;
         int typeW = 96;
         for (int j = 0; j < draft.conditions.size(); j++) {
@@ -191,10 +183,10 @@ public final class TabEditorScreen extends Screen {
 
             if (cond.type == ConditionType.COMPONENT) {
                 if (cond.componentMatch.usesArg()) {
-                    int matchW = 96;
-                    addRenderableWidget(matchButton(cond, fieldX, rowY, matchW));
-                    EditBox arg = Ae2Style.textField(this.font, fieldX + matchW + 2, rowY + 1,
-                            removeX - (fieldX + matchW + 2) - 2, 16, Component.literal("Arg"));
+                    int cycleW = 92;
+                    addRenderableWidget(matchButton(cond, fieldX, rowY, cycleW));
+                    EditBox arg = Ae2Style.textField(this.font, fieldX + cycleW + 2, rowY + 1,
+                            removeX - (fieldX + cycleW + 2) - 2, 16, Component.literal("Arg"));
                     arg.setMaxLength(128);
                     arg.setValue(cond.value);
                     arg.setResponder(s -> cond.value = s);
@@ -242,6 +234,92 @@ public final class TabEditorScreen extends Screen {
         return values[(value.ordinal() + 1) % values.length];
     }
 
+    // ---- Rendering ---------------------------------------------------------
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
+        Ae2Style.panel(graphics, left, top, panelW, panelH);
+        int tc = Ae2Style.textColor();
+        graphics.drawString(this.font, getTitle(), left + 10, top + 8, tc, false);
+        if (selected >= 0 && selected < drafts.size()) {
+            graphics.drawString(this.font, "Name", rightX, nameY + 4, tc, false);
+            graphics.drawString(this.font, "Icon", rightX, iconY + 5, tc, false);
+            graphics.drawString(this.font, "Conditions:", rightX, condLabelY, tc, false);
+        } else {
+            graphics.drawString(this.font, "Select a tab, or click Add.", rightX, contentTop + 4, tc, false);
+        }
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+        drawLeftList(graphics, mouseX, mouseY);
+
+        if (selected >= 0 && selected < drafts.size()) {
+            Ae2Style.slot(graphics, iconX, iconY);
+            ItemStack icon = iconStack(drafts.get(selected).icon);
+            if (!icon.isEmpty()) {
+                graphics.renderItem(icon, iconX + 1, iconY + 1);
+                if (inRect(mouseX, mouseY, iconX, iconY, 18, 18) && draggingStack == null) {
+                    graphics.renderTooltip(this.font, icon, mouseX, mouseY);
+                }
+            }
+        }
+
+        drawInventory(graphics, mouseX, mouseY);
+
+        if (draggingStack != null && !draggingStack.isEmpty()) {
+            graphics.renderItem(draggingStack, mouseX - 8, mouseY - 8);
+        }
+    }
+
+    private void drawLeftList(GuiGraphics graphics, int mouseX, int mouseY) {
+        int rows = Math.min(leftListVisible, drafts.size() - listScroll);
+        for (int i = 0; i < rows; i++) {
+            int idx = listScroll + i;
+            int y = leftListTop + i * ROW_HE;
+            TabDraft draft = drafts.get(idx);
+            boolean active = idx == selected;
+            boolean hovered = inRect(mouseX, mouseY, leftX, y, listBtnW, ROW_HE - 1);
+            Ae2Style.bevelButton(graphics, leftX, y, listBtnW, ROW_HE - 1, active, hovered);
+            int off = active ? 1 : 0;
+            String label = draft.name.isBlank() ? draft.id : draft.name;
+            String text = this.font.plainSubstrByWidth(label, listBtnW - 6);
+            graphics.drawString(this.font, text, leftX + 3 + off, y + 4 + off, Ae2Style.textColor(), false);
+        }
+        if (listNeedScroll) {
+            int sbH = leftListVisible * ROW_HE;
+            graphics.fill(listSbX, leftListTop, listSbX + SBW, leftListTop + sbH, 0x66000000);
+            int thumbH = Math.max(12, sbH * leftListVisible / drafts.size());
+            int travel = sbH - thumbH;
+            int thumbY = leftListTop + (listMaxScroll == 0 ? 0 : travel * listScroll / listMaxScroll);
+            Ae2Style.bevelButton(graphics, listSbX, thumbY, SBW, thumbH, false, draggingListScrollbar);
+        }
+    }
+
+    private void drawInventory(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (this.minecraft == null || this.minecraft.player == null) {
+            return;
+        }
+        ItemStack hovered = ItemStack.EMPTY;
+        for (int i = 0; i < 36; i++) {
+            int[] p = invSlotPos(i);
+            Ae2Style.slot(graphics, p[0], p[1]);
+            ItemStack stack = this.minecraft.player.getInventory().getItem(i);
+            if (!stack.isEmpty()) {
+                graphics.renderItem(stack, p[0] + 1, p[1] + 1);
+                graphics.renderItemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
+                if (inRect(mouseX, mouseY, p[0], p[1], 18, 18)) {
+                    hovered = stack;
+                }
+            }
+        }
+        if (!hovered.isEmpty() && draggingStack == null) {
+            graphics.renderTooltip(this.font, hovered, mouseX, mouseY);
+        }
+    }
+
     // ---- Item-picking ------------------------------------------------------
 
     private void openIconPicker(TabDraft draft) {
@@ -269,7 +347,7 @@ public final class TabEditorScreen extends Screen {
                         cond.value = tag;
                         this.minecraft.setScreen(this);
                     }))));
-            case COMPONENT -> { /* no item picker for component conditions */ }
+            case COMPONENT -> { /* no item picker */ }
         }
     }
 
@@ -287,7 +365,7 @@ public final class TabEditorScreen extends Screen {
                 cond.value = tag;
                 this.minecraft.setScreen(this);
             }));
-            case COMPONENT -> { /* component conditions have no ghost target */ }
+            case COMPONENT -> { /* none */ }
         }
     }
 
@@ -301,10 +379,10 @@ public final class TabEditorScreen extends Screen {
         return new ItemStack(item);
     }
 
-    // ---- Inventory rendering + drag ---------------------------------------
+    // ---- Inventory + list geometry ----------------------------------------
 
     private int[] invSlotPos(int index) {
-        if (index < 9) { // hotbar row, below the main grid
+        if (index < 9) {
             return new int[]{invX + index * 18, invY + 3 * 18 + 4};
         }
         int main = index - 9;
@@ -314,36 +392,27 @@ public final class TabEditorScreen extends Screen {
     private int invSlotAt(double mouseX, double mouseY) {
         for (int i = 0; i < 36; i++) {
             int[] p = invSlotPos(i);
-            if (mouseX >= p[0] && mouseX < p[0] + 18 && mouseY >= p[1] && mouseY < p[1] + 18) {
+            if (inRect(mouseX, mouseY, p[0], p[1], 18, 18)) {
                 return i;
             }
         }
         return -1;
     }
 
-    private void drawInventory(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (this.minecraft == null || this.minecraft.player == null) {
-            return;
-        }
-        ItemStack hovered = ItemStack.EMPTY;
-        for (int i = 0; i < 36; i++) {
-            int[] p = invSlotPos(i);
-            Ae2Style.slot(graphics, p[0], p[1]);
-            ItemStack stack = this.minecraft.player.getInventory().getItem(i);
-            if (!stack.isEmpty()) {
-                graphics.renderItem(stack, p[0] + 1, p[1] + 1);
-                graphics.renderItemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
-                if (mouseX >= p[0] && mouseX < p[0] + 18 && mouseY >= p[1] && mouseY < p[1] + 18) {
-                    hovered = stack;
-                }
-            }
-        }
-        if (!hovered.isEmpty() && draggingStack == null) {
-            graphics.renderTooltip(this.font, hovered, mouseX, mouseY);
-        }
+    private static boolean inRect(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-    // ---- Tab list actions --------------------------------------------------
+    private void listScrollTo(double mouseY) {
+        if (listMaxScroll == 0) {
+            listScroll = 0;
+            return;
+        }
+        double fraction = (mouseY - leftListTop) / Math.max(1, leftListVisible * ROW_HE);
+        listScroll = Math.max(0, Math.min((int) Math.round(fraction * listMaxScroll), listMaxScroll));
+    }
+
+    // ---- Tab actions -------------------------------------------------------
 
     private void select(int index) {
         selected = index;
@@ -403,24 +472,45 @@ public final class TabEditorScreen extends Screen {
                     return true;
                 }
             }
-            if (selected >= 0 && selected < drafts.size()
-                    && mouseX >= iconX && mouseX < iconX + 18 && mouseY >= iconY && mouseY < iconY + 18) {
+            if (selected >= 0 && selected < drafts.size() && inRect(mouseX, mouseY, iconX, iconY, 18, 18)) {
                 openIconPicker(drafts.get(selected));
                 return true;
+            }
+            if (listNeedScroll && inRect(mouseX, mouseY, listSbX, leftListTop, SBW, leftListVisible * ROW_HE)) {
+                draggingListScrollbar = true;
+                listScrollTo(mouseY);
+                return true;
+            }
+            int rows = Math.min(leftListVisible, drafts.size() - listScroll);
+            if (inRect(mouseX, mouseY, leftX, leftListTop, listBtnW, rows * ROW_HE)) {
+                int row = (int) ((mouseY - leftListTop) / ROW_HE);
+                if (row >= 0 && row < rows) {
+                    select(listScroll + row);
+                    return true;
+                }
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+        if (draggingListScrollbar) {
+            listScrollTo(mouseY);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+    }
+
+    @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        draggingListScrollbar = false;
         if (draggingStack != null) {
             ItemStack dropped = draggingStack;
             draggingStack = null;
             for (GhostTarget target : ghostTargets) {
                 Rect2i area = target.area();
-                if (mouseX >= area.getX() && mouseX < area.getX() + area.getWidth()
-                        && mouseY >= area.getY() && mouseY < area.getY() + area.getHeight()) {
+                if (inRect(mouseX, mouseY, area.getX(), area.getY(), area.getWidth(), area.getHeight())) {
                     target.accept().accept(dropped);
                     break;
                 }
@@ -431,29 +521,12 @@ public final class TabEditorScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 7, Ae2Style.textColor(), false);
-        super.render(graphics, mouseX, mouseY, partialTick);
-
-        if (selected >= 0 && selected < drafts.size()) {
-            Ae2Style.slot(graphics, iconX, iconY);
-            ItemStack icon = iconStack(drafts.get(selected).icon);
-            if (!icon.isEmpty()) {
-                graphics.renderItem(icon, iconX + 1, iconY + 1);
-            }
-            if (mouseX >= iconX && mouseX < iconX + 18 && mouseY >= iconY && mouseY < iconY + 18
-                    && !icon.isEmpty() && draggingStack == null) {
-                graphics.renderTooltip(this.font, icon, mouseX, mouseY);
-            }
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (listNeedScroll && inRect(mouseX, mouseY, leftX, leftListTop, leftW, leftListVisible * ROW_HE)) {
+            listScroll = Math.max(0, Math.min(listScroll + (scrollY < 0 ? 1 : -1), listMaxScroll));
+            return true;
         }
-
-        drawInventory(graphics, mouseX, mouseY);
-
-        if (draggingStack != null && !draggingStack.isEmpty()) {
-            graphics.renderItem(draggingStack, mouseX - 8, mouseY - 8);
-        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     // ---- Mutable working copies -------------------------------------------

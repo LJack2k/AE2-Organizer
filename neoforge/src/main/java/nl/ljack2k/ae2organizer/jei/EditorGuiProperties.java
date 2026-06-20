@@ -1,6 +1,7 @@
 package nl.ljack2k.ae2organizer.jei;
 
 import mezz.jei.api.gui.handlers.IGuiProperties;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 
@@ -37,13 +38,15 @@ public record EditorGuiProperties(TabEditorScreen screen) implements IGuiPropert
         return screen.panelHeight();
     }
 
+    // The live gui-scaled window size — never 0, unlike screen.width/height which
+    // JEI may read during the screen-open transition before Minecraft sizes it.
     @Override
     public int screenWidth() {
-        return screen.width;
+        return Minecraft.getInstance().getWindow().getGuiScaledWidth();
     }
 
     @Override
     public int screenHeight() {
-        return screen.height;
+        return Minecraft.getInstance().getWindow().getGuiScaledHeight();
     }
 }

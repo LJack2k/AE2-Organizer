@@ -1,0 +1,47 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+logoFile = "icon.png"
+logoBlur = true
+# Client-only mod: it does nothing server-side and must not break the version
+# handshake when joining a server that doesn't have it installed.
+displayTest = "IGNORE_ALL_VERSION"
+
+# Mixin config — applies our client-side filter hooks into AE2. FML reads this
+# entry at load time (dev and production); no extra Gradle wiring is required.
+[[mixins]]
+config = "ae2organizer.mixins.json"
+
+# --- Required ---
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+# AE2 — required and CLIENT-side. The whole mod hooks AE2's client terminal
+# internals, so without AE2 on the client it has nothing to do (and its mixins
+# would have no target). The tight version range is deliberate: AE2 internals
+# are not public API, so we refuse to load against an untested AE2 line and
+# fail loudly rather than silently mis-filtering.
+[[dependencies.${mod_id}]]
+modId = "ae2"
+type = "required"
+versionRange = "${ae2_version_range}"
+ordering = "AFTER"
+side = "CLIENT"

@@ -1,0 +1,95 @@
+plugins {
+    id 'java-library'
+    // ModDevGradle — the modern way to develop NeoForge mods.
+    id 'net.neoforged.moddev' version '1.0.20'
+}
+
+version = mod_version
+group = mod_group_id
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+base {
+    archivesName = "${mod_name}-neoforge-${minecraft_version}"
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
+    }
+    // CurseMaven — single source for AE2 + guideme. Coordinate format:
+    //   curse.maven:<slug>-<projectId>:<fileId>
+    maven {
+        name = 'CurseMaven'
+        url = 'https://www.cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
+    // Local jars fallback.
+    flatDir { dirs 'libs' }
+}
+
+neoForge {
+    version = neo_version
+
+    runs {
+        client {
+            client()
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            programArguments.addAll '--width', '1920', '--height', '1000'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    // AE2 is required — we hook its client terminal internals. guideme is a
+    // transitive runtime dep AE2 needs but our code never touches, so it's
+    // runtimeOnly with no compileOnly counterpart.
+    compileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+    runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+    runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+
+    // JEI — OPTIONAL integration. compileOnly builds the @JeiPlugin ghost-drag
+    // handler (drag items from JEI onto the tab editor); the plugin class stays
+    // dormant unless JEI is actually present at runtime, and JEI is not declared
+    // as a dependency in neoforge.mods.toml. runtimeOnly also puts JEI on the dev
+    // client for item search / cheat-spawn / drag testing.
+    compileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        minecraft_version       : minecraft_version,
+        minecraft_version_range : minecraft_version_range,
+        neo_version             : neo_version,
+        neo_version_range       : neo_version_range,
+        loader_version_range    : loader_version_range,
+        ae2_version_range       : ae2_version_range,
+        mod_id                  : mod_id,
+        mod_name                : mod_name,
+        mod_license             : mod_license,
+        mod_version             : mod_version,
+        mod_authors             : mod_authors,
+        mod_description         : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

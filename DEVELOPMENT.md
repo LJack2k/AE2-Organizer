@@ -22,6 +22,23 @@ The output jar contains only this mod's classes/resources — AE2, guideme and J
 
 Set in `gradle.properties` (`mod_version`, `minecraft_version`, `neo_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; JEI is `jei_curse_file_id`. Both resolve via the CurseMaven repo.
 
+## Publishing (CurseForge + Modrinth)
+
+`.github/workflows/publish.yml` builds and publishes to **Modrinth**, **CurseForge**, and a
+**GitHub Release** whenever a GitHub Release is *published* (or run manually via Actions → Publish).
+It uses [mc-publish](https://github.com/Kir-Antipov/mc-publish); a platform is skipped if its
+id/token isn't set, so you can enable them one at a time. Loader, MC version, and the required AE2
+dependency are read from `neoforge.mods.toml`; the release body becomes the changelog.
+
+One-time setup — repo → **Settings → Secrets and variables → Actions**:
+
+- **Secrets:** `MODRINTH_TOKEN`, `CURSEFORGE_TOKEN`.
+- **Variables:** `MODRINTH_ID` (project id or slug), `CURSEFORGE_ID` (numeric project id).
+- GitHub releases need no extra token (`GITHUB_TOKEN` is automatic).
+
+To cut a release: bump `mod_version`, commit, then publish a GitHub Release with a tag like
+`v0.0.5`. The workflow runs `:neoforge:build` and uploads `neoforge/build/libs/AE2Organizer-*.jar`.
+
 ## Config file
 
 Per client, at `config/ae2organizer/tabs.json`:

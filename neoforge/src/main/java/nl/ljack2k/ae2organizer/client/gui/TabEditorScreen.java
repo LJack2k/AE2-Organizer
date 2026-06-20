@@ -53,6 +53,7 @@ public final class TabEditorScreen extends Screen {
     public record GhostTarget(Rect2i area, Consumer<ItemStack> accept) {}
 
     private static final int PAD = 8;
+    private static final int GAP = 5;
     private static final int HEADER_H = 11;
     private static final int BTN_H = 18;
     private static final int ROW_HE = 18;
@@ -83,19 +84,30 @@ public final class TabEditorScreen extends Screen {
     private int listMaxScroll;
     // Right column: Properties + Conditions
     private int rightX, rightW, propsRight, labelX, fieldX;
-    private int propsHeaderY, propsInsetY, propsInsetH, nameRowY, iconRowY, modeRowY, iconX, iconY;
-    private int condHeaderY, condInsetY, condInsetH, condRowsTop, condVisible, condSbX, condContentR, condAddY, condFootDivY;
+    private int propsHeaderY, propsInsetY, propsInsetH, nameRowY, iconRowY, iconX, iconY;
+    private int condHeaderY, condInsetY, condInsetH, condRowsTop, condVisible, condSbX, condContentR;
+    private int ctrlRowY, ctrlDivY, modeBtnX, modeBtnW, addBtnX, addBtnW;
     private boolean condNeedScroll;
     private int condMaxScroll;
 
     public TabEditorScreen(Screen parent) {
         super(Component.translatable("ae2organizer.editor.title"));
         this.parent = parent;
+        String activeId = TabManager.activeTabId();
         for (Tab tab : TabManager.tabs()) {
             drafts.add(TabDraft.from(tab));
         }
+        // Open on the tab that's active in the terminal; fall back to the first.
         if (!drafts.isEmpty()) {
             selected = 0;
+            if (activeId != null) {
+                for (int i = 0; i < drafts.size(); i++) {
+                    if (drafts.get(i).id.equals(activeId)) {
+                        selected = i;
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -118,7 +130,7 @@ public final class TabEditorScreen extends Screen {
     }
 
     public int panelHeight() {
-        return Math.max(1, Math.min(360, frameHeight() - 20));
+        return Math.max(1, Math.min(400, frameHeight() - 20));
     }
 
     public int panelLeft() {
@@ -152,20 +164,10 @@ public final class TabEditorScreen extends Screen {
         footerY = top + panelH - PAD - BTN_H;
         dividerY = footerY - 6;
 
-        // Inventory tray spans the full width just above the footer divider.
-        int invGridW = 9 * 18;
-        int invBlockH = 3 * 18 + 4 + 18;            // 3 rows + gap + hotbar
-        invPanelX = innerX;
-        invPanelW = innerR - innerX;
-        invPanelH = HEADER_H + 4 + invBlockH + 3;
-        invPanelY = dividerY - 6 - invPanelH;
-        invX = invPanelX + (invPanelW - invGridW) / 2;
-        invY = invPanelY + HEADER_H + 4;
-
         int mainTop = contentTop;
-        int mainBottom = invPanelY - 6;
+        int mainBottom = dividerY - 6;              // shared bottom for both columns
 
-        // ---- Left: Tabs panel (list + attached toolbar in one inset) ----
+        // ---- Left: Tabs panel, full height (list + toolbar in one inset) ----
         tabsX = innerX;
         tabsW = 128;
         tabsHeaderY = mainTop;
@@ -184,42 +186,66 @@ public final class TabEditorScreen extends Screen {
         listRowW = listW - (listNeedScroll ? SBW + 2 : 0);
         listSbX = listX + listW - SBW;
 
-        addRenderableWidget(new AE2Button(tabsX + 4, toolbarY, 34, BTN_H, Component.literal("Add"), b -> addTab()));
-        addRenderableWidget(new AE2Button(tabsX + 40, toolbarY, 34, BTN_H, Component.literal("Del"), b -> deleteTab()));
-        addRenderableWidget(new AE2Button(tabsX + 76, toolbarY, 16, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
-        addRenderableWidget(new AE2Button(tabsX + 94, toolbarY, 16, BTN_H, Component.literal("▼"), b -> moveTab(1)));
+        addRenderableWidget(new AE2Button(tabsX + 4, toolbarY, 39, BTN_H, Component.literal("Add"), b -> addTab()));
+        addRenderableWidget(new AE2Button(tabsX + 45, toolbarY, 39, BTN_H, Component.literal("Del"), b -> deleteTab()));
+        addRenderableWidget(new AE2Button(tabsX + 86, toolbarY, 18, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
+        addRenderableWidget(new AE2Button(tabsX + 106, toolbarY, 18, BTN_H, Component.literal("▼"), b -> moveTab(1)));
 
-        // ---- Right column geometry ----
+        // ---- Right column: Properties / Conditions / Inventory stacked ----
         rightX = tabsX + tabsW + 8;
         rightW = innerR - rightX;
         propsRight = rightX + rightW - 4;
         labelX = rightX + 4;
         fieldX = labelX + 34;
 
+        // Properties (fixed height): Name + Icon. Mode moved to the Conditions
+        // panel since it governs how the conditions combine.
         propsHeaderY = mainTop;
         propsInsetY = mainTop + HEADER_H;
-        propsInsetH = 4 + 3 * BTN_H + 2 * 4 + 4;    // pad + 3 rows + gaps + pad
+        propsInsetH = 4 + 2 * BTN_H + 4 + 4;        // pad + 2 rows + gap + pad
         nameRowY = propsInsetY + 4;
         iconRowY = nameRowY + 22;
-        modeRowY = iconRowY + 22;
         iconX = fieldX;
         iconY = iconRowY;
 
-        condHeaderY = propsInsetY + propsInsetH + 6;
+        // Inventory dimensions (placed directly beneath the Conditions inset).
+        int invGridW = 9 * 18;
+        int invBlockH = 3 * 18 + 4 + 18;            // 3 rows + gap + hotbar
+        invPanelX = rightX;
+        invPanelW = rightW;
+        invPanelH = 3 + invBlockH + 3;              // inset: pad + grid + pad
+
+        // Conditions panel: control row (Mode + Add) over a divider, then the
+        // condition rows. Sized to exactly the rows shown — never taller — so
+        // there is no dead strip; the Inventory sits directly beneath it. Rows
+        // are capped so the Inventory still fits above the footer.
+        condHeaderY = propsInsetY + propsInsetH + GAP;
         condInsetY = condHeaderY + HEADER_H;
-        condInsetH = Math.max(48, mainBottom - condInsetY);
+        ctrlRowY = condInsetY + 4;
+        ctrlDivY = ctrlRowY + BTN_H + 2;
+        condRowsTop = ctrlRowY + BTN_H + 6;
+        int ctrlW = rightW - 8;
+        int half = (ctrlW - 4) / 2;
+        modeBtnX = rightX + 4;
+        modeBtnW = half;
+        addBtnX = rightX + 4 + half + 4;
+        addBtnW = ctrlW - half - 4;
         condContentR = rightX + rightW - 4;
-        condAddY = condInsetY + condInsetH - 3 - BTN_H;
-        condFootDivY = condAddY - 4;
-        condRowsTop = condInsetY + 4;
-        int condRowsH = Math.max(COND_ROW_H, (condFootDivY - 3) - condRowsTop);
-        condVisible = Math.max(1, condRowsH / COND_ROW_H);
         condSbX = rightX + rightW - 3 - SBW;
 
         int condCount = hasSelection() ? drafts.get(selected).conditions.size() : 0;
+        int rowsRoom = mainBottom - condRowsTop - 4 - GAP - HEADER_H - invPanelH;
+        int capacity = Math.max(1, rowsRoom / COND_ROW_H);
+        condVisible = Math.min(capacity, Math.max(1, condCount));
+        condInsetH = (condRowsTop - condInsetY) + condVisible * COND_ROW_H + 4;
         condNeedScroll = condCount > condVisible;
         condMaxScroll = Math.max(0, condCount - condVisible);
         condScroll = Math.max(0, Math.min(condScroll, condMaxScroll));
+
+        // Inventory follows directly beneath the Conditions inset.
+        invPanelY = condInsetY + condInsetH + GAP;
+        invX = invPanelX + (invPanelW - invGridW) / 2;
+        invY = invPanelY + HEADER_H + 3;
 
         if (hasSelection()) {
             buildRightPanel(drafts.get(selected));
@@ -246,15 +272,21 @@ public final class TabEditorScreen extends Screen {
                 Component.literal("Pick…"), b -> openIconPicker(draft)));
         ghostTargets.add(new GhostTarget(new Rect2i(iconX, iconY, 18, 18), stack -> draft.icon = idOf(stack)));
 
-        // Mode
-        addRenderableWidget(new AE2Button(fieldX, modeRowY, propsRight - fieldX, BTN_H,
+        // Conditions control row: Mode (how the conditions combine) + Add.
+        addRenderableWidget(new AE2Button(modeBtnX, ctrlRowY, modeBtnW, BTN_H,
                 Component.literal(draft.mode == MatchMode.ALL ? "Match ALL" : "Match ANY"),
                 b -> {
                     draft.mode = draft.mode == MatchMode.ALL ? MatchMode.ANY : MatchMode.ALL;
                     rebuildWidgets();
                 }));
+        addRenderableWidget(new AE2Button(addBtnX, ctrlRowY, addBtnW, BTN_H,
+                Component.literal("+ Add condition"), b -> {
+            draft.conditions.add(CondDraft.fresh());
+            condScroll = Integer.MAX_VALUE / 2;     // jump to the new last row; init clamps
+            rebuildWidgets();
+        }));
 
-        // Conditions — only the rows within the scroll window get widgets.
+        // Condition rows — only those within the scroll window get widgets.
         int rowsShown = Math.min(condVisible, draft.conditions.size() - condScroll);
         for (int k = 0; k < rowsShown; k++) {
             final int condIndex = condScroll + k;
@@ -303,13 +335,6 @@ public final class TabEditorScreen extends Screen {
                 rebuildWidgets();
             }));
         }
-
-        addRenderableWidget(new AE2Button(rightX + 4, condAddY, 120, BTN_H,
-                Component.literal("+ Add condition"), b -> {
-            draft.conditions.add(CondDraft.fresh());
-            condScroll = Integer.MAX_VALUE / 2;     // jump to the new last row; init clamps
-            rebuildWidgets();
-        }));
     }
 
     private AE2Button matchButton(CondDraft cond, int x, int y, int width) {
@@ -337,23 +362,21 @@ public final class TabEditorScreen extends Screen {
         int tc = Ae2Style.textColor();
         graphics.drawString(this.font, getTitle(), left + PAD, top + 8, tc, false);
 
-        // Tabs panel: list + toolbar share one inset, split by a divider.
+        // Left: Tabs panel (full height) — list + toolbar share one inset.
         graphics.drawString(this.font, "Tabs", tabsX, tabsHeaderY, tc, false);
         Ae2Style.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
         Ae2Style.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
 
-        // Properties panel.
+        // Right column, stacked: Properties / Conditions / Inventory.
         graphics.drawString(this.font, "Properties", rightX, propsHeaderY, tc, false);
         Ae2Style.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
 
-        // Conditions panel: rows + attached "+ Add condition" footer.
         graphics.drawString(this.font, "Conditions", rightX, condHeaderY, tc, false);
         Ae2Style.inset(graphics, rightX, condInsetY, rightW, condInsetH);
-        Ae2Style.divider(graphics, rightX + 3, condFootDivY, rightW - 6);
+        Ae2Style.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
 
-        // Inventory tray.
         graphics.drawString(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
-        Ae2Style.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH - HEADER_H);
+        Ae2Style.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH);
 
         // Footer separator.
         Ae2Style.divider(graphics, innerX, dividerY, innerR - innerX);
@@ -361,7 +384,6 @@ public final class TabEditorScreen extends Screen {
         if (hasSelection()) {
             graphics.drawString(this.font, "Name", labelX, nameRowY + 5, tc, false);
             graphics.drawString(this.font, "Icon", labelX, iconRowY + 5, tc, false);
-            graphics.drawString(this.font, "Mode", labelX, modeRowY + 5, tc, false);
         } else {
             graphics.drawString(this.font, "Select a tab, or click Add.", rightX + 6, propsInsetY + 7, tc, false);
         }
@@ -401,9 +423,10 @@ public final class TabEditorScreen extends Screen {
             boolean hovered = inRect(mouseX, mouseY, listX, y, listRowW, ROW_HE - 1);
             Ae2Style.bevelButton(graphics, listX, y, listRowW, ROW_HE - 1, active, hovered);
             int off = active ? 1 : 0;
+            Ae2Style.scaledItem(graphics, iconStack(draft.icon), listX + 2 + off, y + 1 + off, 14);
             String label = draft.name.isBlank() ? draft.id : draft.name;
-            String text = this.font.plainSubstrByWidth(label, listRowW - 6);
-            graphics.drawString(this.font, text, listX + 3 + off, y + 4 + off, Ae2Style.textColor(), false);
+            String text = this.font.plainSubstrByWidth(label, listRowW - 22);
+            graphics.drawString(this.font, text, listX + 19 + off, y + 5 + off, Ae2Style.textColor(), false);
         }
         if (listNeedScroll) {
             int sbH = listVisible * ROW_HE;

@@ -1,0 +1,5 @@
+// Root build for AE2-Organizer.
+//
+// The mod itself is built in the neoforge/ subproject. This root file is
+// intentionally minimal — nothing builds at the root level. The multi-project
+// layout mirrors JackItToMe so a fabric/ subproject could be added later.

@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+**/build/
+**/out/
+**/src/generated/
+
+# NeoForge dev environment
+**/run/
+**/runs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Local jars dropped into libs/ for offline use
+libs/*.jar
+
+# Dev run logs captured while testing
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

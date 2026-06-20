@@ -12,6 +12,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
@@ -20,193 +21,272 @@ import nl.ljack2k.ae2organizer.filter.Tab;
 import nl.ljack2k.ae2organizer.mixin.AbstractContainerScreenAccessor;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * A vertical strip of tabs on the right exterior of an AE2 terminal, drawn with
- * AE2's themed panel ({@link Ae2Style}) and {@link Icon#COG} so it matches AE2
- * and inherits AE2 dark-mode packs. Row 0 is "All", the middle rows are the
- * user's tabs (mouse-wheel scrollable when they overflow), and the last row
- * opens the editor. Rebuilt every screen init from {@link TabManager} state.
+ * The filter tabs as one AE2-themed panel on the right of an AE2 terminal. Row
+ * sizing (icon + text + height) is multiplied by the user's {@code tabScale}
+ * setting. "All" + the user's tabs are bevelled buttons (raised = inactive,
+ * sunken = active) that scroll under a title bar (name + editor gear); the panel
+ * grows only as tall as its content, capped at the terminal height.
+ * <p>Rendering is here; input is driven by {@link ClientEvents} via cancelable
+ * {@code ScreenEvent}s (AE2 consumes scroll/drag before added widgets see them).
  */
 public final class TabBarWidget extends AbstractWidget {
-    private static final int CELL = 22;
-    private static final int LABEL_CELL_W = 104;
-    private static final int ICON_INSET = 3;
-    private static final int GAP = 2;
+    private static final int BASE_ROW_H = 13;
+    private static final int BASE_ICON = 11;
+    private static final int BASE_ICON_CELL = 15;
+    private static final float BASE_TEXT_SCALE = 0.85f;
+    private static final int BASE_LABEL_W = 82;
+    private static final int ICON = 16;     // vanilla slot base size, for barX math
+    private static final int PAD = 4;
+    private static final int TITLE_H = 16;
+    private static final int GEAR_SZ = 16;
+    private static final int GAP = 1;
+    private static final int SB_W = 8;
+    private static final int SB_GAP = 2;
 
     private final MEStorageScreen<?> terminal;
     private int scroll = 0;
-
-    private enum RowType { ALL, TAB, GEAR }
-
-    private record RowEntry(RowType type, @Nullable Tab tab) {}
+    private boolean draggingScrollbar = false;
 
     public TabBarWidget(MEStorageScreen<?> terminal) {
-        super(0, 0, CELL, CELL, Component.literal("AE2 Organizer Tabs"));
+        super(0, 0, 1, 1, Component.literal("AE2 Organizer Tabs"));
         this.terminal = terminal;
-        setX(barX());
-        setY(terminal.getGuiTop());
-        setWidth(cellW());
-        setHeight(availableRows() * CELL);
+        Layout l = layout();
+        setX(l.panelX);
+        setY(l.panelY);
+        setWidth(l.panelW);
+        setHeight(l.panelH);
     }
 
     private boolean labels() {
         return TabManager.getSettings().showTabLabels();
     }
 
-    private int cellW() {
-        return labels() ? LABEL_CELL_W : CELL;
-    }
-
-    private int barX() {
-        return terminal.getGuiLeft() + imageWidth() + GAP;
+    private double scale() {
+        return TabManager.getSettings().clampedScale();
     }
 
     private int imageWidth() {
         return ((AbstractContainerScreenAccessor) terminal).ae2organizer$getImageWidth();
     }
 
-    private int availableRows() {
-        int height = ((AbstractContainerScreenAccessor) terminal).ae2organizer$getImageHeight();
-        return Math.max(3, height / CELL);
+    private int imageHeight() {
+        return ((AbstractContainerScreenAccessor) terminal).ae2organizer$getImageHeight();
     }
 
-    private int middleRows() {
-        return Math.max(1, availableRows() - 2);
-    }
-
-    private void clampScroll(int tabCount) {
-        int max = Math.max(0, tabCount - middleRows());
-        scroll = Math.max(0, Math.min(scroll, max));
-    }
-
-    private List<RowEntry> computeRows() {
-        List<Tab> tabs = TabManager.tabs();
-        clampScroll(tabs.size());
-        int visible = Math.min(tabs.size(), middleRows());
-        List<RowEntry> rows = new ArrayList<>(visible + 2);
-        rows.add(new RowEntry(RowType.ALL, null));
-        for (int i = 0; i < visible; i++) {
-            rows.add(new RowEntry(RowType.TAB, tabs.get(scroll + i)));
+    private int barX() {
+        int guiLeft = terminal.getGuiLeft();
+        int guiTop = terminal.getGuiTop();
+        int bottom = guiTop + imageHeight();
+        int right = guiLeft + imageWidth();
+        for (Slot slot : terminal.getMenu().slots) {
+            int slotRight = guiLeft + slot.x + ICON;
+            int slotY = guiTop + slot.y;
+            if (slotRight > right && slotY < bottom && slotY + ICON > guiTop) {
+                right = slotRight;
+            }
         }
-        rows.add(new RowEntry(RowType.GEAR, null));
-        return rows;
+        return right + GAP;
     }
+
+    private Layout layout() {
+        double scale = scale();
+        int rowH = Math.max(9, (int) Math.round(BASE_ROW_H * scale));
+        int iconDraw = Math.max(8, (int) Math.round(BASE_ICON * scale));
+        int iconCell = Math.max(10, (int) Math.round(BASE_ICON_CELL * scale));
+        float textScale = (float) (BASE_TEXT_SCALE * scale);
+        int labelW = (int) Math.round(BASE_LABEL_W * scale);
+        int listW = labels() ? iconCell + 2 + labelW : iconCell;
+
+        int scrollCount = 1 + TabManager.tabs().size();
+        int desiredPanelH = PAD * 2 + TITLE_H + 1 + scrollCount * rowH;
+        int minPanelH = PAD * 2 + TITLE_H + 1 + rowH;
+        int panelH = Math.min(desiredPanelH, Math.max(minPanelH, imageHeight()));
+
+        int panelX = barX();
+        int panelY = terminal.getGuiTop();
+        int contentX = panelX + PAD;
+        int contentY = panelY + PAD;
+        int listTop = contentY + TITLE_H + 1;
+        int listH = Math.max(rowH, panelY + panelH - PAD - listTop);
+        int visibleRows = Math.max(1, listH / rowH);
+        boolean needScroll = scrollCount > visibleRows;
+        int maxScroll = Math.max(0, scrollCount - visibleRows);
+        scroll = Math.max(0, Math.min(scroll, maxScroll));
+
+        int listAreaW = listW + (needScroll ? SB_GAP + SB_W : 0);
+        int contentW = Math.max(listAreaW, GEAR_SZ);   // title bar must fit the gear
+        int panelW = PAD * 2 + contentW;
+        int sbX = contentX + listW + SB_GAP;
+        int gearX = contentX + contentW - GEAR_SZ;
+
+        return new Layout(panelX, panelY, panelW, panelH, contentX, contentY, listW, listTop,
+                visibleRows, scrollCount, needScroll, maxScroll, sbX, gearX, contentY,
+                rowH, iconCell, iconDraw, textScale);
+    }
+
+    private record Layout(int panelX, int panelY, int panelW, int panelH, int contentX, int contentY,
+                          int listW, int listTop, int visibleRows, int scrollCount, boolean needScroll,
+                          int maxScroll, int sbX, int gearX, int gearY,
+                          int rowH, int iconCell, int iconDraw, float textScale) {}
+
+    @Nullable
+    private static Tab tabForEntry(int entry) {
+        return entry == 0 ? null : TabManager.tabs().get(entry - 1);
+    }
+
+    private static boolean inRect(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    // ---- Rendering ---------------------------------------------------------
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        List<RowEntry> rows = computeRows();
-        int x = barX();
-        int top = terminal.getGuiTop();
-        int w = cellW();
+        Layout l = layout();
         boolean showLabels = labels();
         String activeId = TabManager.activeTabId();
+        var font = Minecraft.getInstance().font;
 
-        Component hoverTip = null;
-        for (int i = 0; i < rows.size(); i++) {
-            RowEntry row = rows.get(i);
-            int y = top + i * CELL;
-            boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + CELL;
+        Ae2Style.panel(graphics, l.panelX, l.panelY, l.panelW, l.panelH);
 
-            boolean active;
-            ItemStack icon;
-            Component label;
-            switch (row.type()) {
-                case ALL -> {
-                    active = activeId == null;
-                    icon = new ItemStack(Items.COMPASS);
-                    label = Component.translatable("ae2organizer.tab.all");
-                }
-                case GEAR -> {
-                    active = false;
-                    icon = ItemStack.EMPTY;
-                    label = Component.translatable("ae2organizer.editor.title");
-                }
-                default -> {
-                    active = row.tab().id().equals(activeId);
-                    icon = iconStack(row.tab().icon());
-                    label = Component.literal(row.tab().name());
-                }
-            }
+        if (showLabels) {
+            Ae2Style.scaledText(graphics, font, Component.translatable("ae2organizer.panel.title").getString(),
+                    l.contentX, l.contentY + 4, Ae2Style.textColor(), l.textScale);
+        }
+        boolean gearHover = inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ);
+        if (gearHover) {
+            graphics.fill(l.gearX, l.gearY, l.gearX + GEAR_SZ, l.gearY + GEAR_SZ, 0x33FFFFFF);
+        }
+        Icon.COG.getBlitter().dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
+                .colorArgb(Ae2Style.textColor()).blit(graphics);
+        graphics.fill(l.contentX, l.contentY + TITLE_H, l.contentX + l.listW, l.contentY + TITLE_H + 1, 0x40000000);
 
-            Ae2Style.panel(graphics, x, y, w, CELL);
-            if (row.type() == RowType.GEAR) {
-                Icon.COG.getBlitter().dest(x + ICON_INSET, y + ICON_INSET, 16, 16).blit(graphics);
-            } else if (!icon.isEmpty()) {
-                graphics.renderItem(icon, x + ICON_INSET, y + ICON_INSET);
+        Component hoverTip = gearHover ? Component.translatable("ae2organizer.editor.title") : null;
+        int rows = Math.min(l.visibleRows, l.scrollCount - scroll);
+        for (int i = 0; i < rows; i++) {
+            int entry = scroll + i;
+            int y = l.listTop + i * l.rowH;
+            Tab tab = tabForEntry(entry);
+            boolean active = (tab == null) ? activeId == null : tab.id().equals(activeId);
+            ItemStack icon = (tab == null) ? new ItemStack(Items.COMPASS) : iconStack(tab.icon());
+            Component label = (tab == null) ? Component.translatable("ae2organizer.tab.all")
+                    : Component.literal(tab.name());
+            boolean hovered = inRect(mouseX, mouseY, l.contentX, y, l.listW, l.rowH);
+
+            drawButton(graphics, l.contentX, y, l.listW, l.rowH, active, hovered);
+            int off = active ? 1 : 0;
+            if (!icon.isEmpty()) {
+                Ae2Style.scaledItem(graphics, icon, l.contentX + 2 + off,
+                        y + (l.rowH - l.iconDraw) / 2 + off, l.iconDraw);
             }
             if (showLabels) {
-                String text = Minecraft.getInstance().font.plainSubstrByWidth(label.getString(), w - 22);
-                graphics.drawString(Minecraft.getInstance().font, text, x + 20, y + 7, Ae2Style.textColor(), false);
+                int textW = l.listW - l.iconCell - 4;
+                String text = font.plainSubstrByWidth(label.getString(), (int) (textW / l.textScale));
+                Ae2Style.scaledText(graphics, font, text, l.contentX + l.iconCell + 2 + off,
+                        y + (l.rowH - Math.round(8 * l.textScale)) / 2 + off, Ae2Style.textColor(), l.textScale);
             } else if (hovered) {
                 hoverTip = label;
             }
-            if (active) {
-                int c = Ae2Style.selectionColor();
-                graphics.fill(x, y, x + w, y + 1, c);
-                graphics.fill(x, y + CELL - 1, x + w, y + CELL, c);
-                graphics.fill(x, y, x + 1, y + CELL, c);
-                graphics.fill(x + w - 1, y, x + w, y + CELL, c);
-            }
+        }
+
+        if (l.needScroll) {
+            drawScrollbar(graphics, l);
         }
         if (hoverTip != null) {
-            graphics.renderTooltip(Minecraft.getInstance().font, hoverTip, mouseX, mouseY);
+            graphics.renderTooltip(font, hoverTip, mouseX, mouseY);
         }
+    }
+
+    private static void drawButton(GuiGraphics graphics, int x, int y, int w, int h, boolean active, boolean hovered) {
+        Ae2Style.bevelButton(graphics, x, y, w, h, active, hovered);
+    }
+
+    private void drawScrollbar(GuiGraphics graphics, Layout l) {
+        int sbTop = l.listTop;
+        int sbH = l.visibleRows * l.rowH;
+        graphics.fill(l.sbX, sbTop, l.sbX + SB_W, sbTop + sbH, 0x66000000);
+        int thumbH = Math.max(12, sbH * l.visibleRows / l.scrollCount);
+        int travel = sbH - thumbH;
+        int thumbY = sbTop + (l.maxScroll == 0 ? 0 : travel * scroll / l.maxScroll);
+        drawButton(graphics, l.sbX, thumbY, SB_W, thumbH, false, draggingScrollbar);
     }
 
     private static ItemStack iconStack(ResourceLocation id) {
         return new ItemStack(BuiltInRegistries.ITEM.getOptional(id).orElse(Items.CHEST));
     }
 
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 || !isMouseOver(mouseX, mouseY)) {
+    // ---- Input (called from ClientEvents) ----------------------------------
+
+    public boolean handleMouseDown(double mouseX, double mouseY) {
+        Layout l = layout();
+        if (!inRect(mouseX, mouseY, l.panelX, l.panelY, l.panelW, l.panelH)) {
             return false;
         }
-        int top = terminal.getGuiTop();
-        int index = (int) ((mouseY - top) / CELL);
-        List<RowEntry> rows = computeRows();
-        if (index < 0 || index >= rows.size()) {
-            return false;
+        if (inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)) {
+            playClick();
+            Minecraft.getInstance().setScreen(new TabEditorScreen(terminal));
+            return true;
         }
-        RowEntry row = rows.get(index);
-        switch (row.type()) {
-            case ALL -> {
-                TabManager.setActive(null);
-                ClientEvents.applyFilter(terminal, null);
-            }
-            case GEAR -> Minecraft.getInstance().setScreen(new TabEditorScreen(terminal));
-            case TAB -> {
-                TabManager.setActive(row.tab().id());
+        int listBottom = l.listTop + l.visibleRows * l.rowH;
+        if (l.needScroll && inRect(mouseX, mouseY, l.sbX, l.listTop, SB_W, l.visibleRows * l.rowH)) {
+            draggingScrollbar = true;
+            scrollTo(mouseY, l);
+            return true;
+        }
+        if (mouseX >= l.contentX && mouseX < l.contentX + l.listW && mouseY >= l.listTop && mouseY < listBottom) {
+            int row = (int) ((mouseY - l.listTop) / l.rowH);
+            int entry = scroll + row;
+            if (row < Math.min(l.visibleRows, l.scrollCount - scroll) && entry >= 0 && entry < l.scrollCount) {
+                Tab tab = tabForEntry(entry);
+                TabManager.setActive(tab == null ? null : tab.id());
                 ClientEvents.applyFilter(terminal, TabManager.activePredicate());
+                playClick();
             }
         }
-        Minecraft.getInstance().getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         return true;
     }
 
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (!isMouseOver(mouseX, mouseY)) {
+    public boolean handleMouseDrag(double mouseX, double mouseY) {
+        if (draggingScrollbar) {
+            scrollTo(mouseY, layout());
+            return true;
+        }
+        return false;
+    }
+
+    public void handleMouseUp() {
+        draggingScrollbar = false;
+    }
+
+    public boolean handleScroll(double mouseX, double mouseY, double deltaY) {
+        Layout l = layout();
+        if (!inRect(mouseX, mouseY, l.panelX, l.panelY, l.panelW, l.panelH)) {
             return false;
         }
-        int tabCount = TabManager.tabs().size();
-        if (tabCount <= middleRows()) {
-            return false;
+        if (l.needScroll) {
+            scroll = Math.max(0, Math.min(scroll + (deltaY < 0 ? 1 : -1), l.maxScroll));
         }
-        scroll += (scrollY < 0) ? 1 : -1;
-        clampScroll(tabCount);
         return true;
+    }
+
+    private void scrollTo(double mouseY, Layout l) {
+        if (l.maxScroll == 0) {
+            scroll = 0;
+            return;
+        }
+        double fraction = (mouseY - l.listTop) / Math.max(1, l.visibleRows * l.rowH);
+        scroll = Math.max(0, Math.min((int) Math.round(fraction * l.maxScroll), l.maxScroll));
+    }
+
+    private void playClick() {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        int x = barX();
-        int top = terminal.getGuiTop();
-        return mouseX >= x && mouseX < x + cellW() && mouseY >= top && mouseY < top + availableRows() * CELL;
+        Layout l = layout();
+        return inRect(mouseX, mouseY, l.panelX, l.panelY, l.panelW, l.panelH);
     }
 
     @Override

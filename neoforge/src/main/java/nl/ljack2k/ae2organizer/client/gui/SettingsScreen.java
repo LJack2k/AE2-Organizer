@@ -34,7 +34,7 @@ public final class SettingsScreen extends Screen {
     private int previewY;
 
     public SettingsScreen(Screen parent) {
-        super(Component.literal("AE2Organizer Settings"));
+        super(Component.literal("AE2 Organizer Settings"));
         this.parent = parent;
         Settings current = TabManager.getSettings();
         this.resetFilterOnOpen = current.resetFilterOnOpen();
@@ -81,7 +81,7 @@ public final class SettingsScreen extends Screen {
 
         int actionY = top + panelH - 26;
         addRenderableWidget(new AE2Button(left + panelW - 130, actionY, 58, 20,
-                Component.literal("Done"), b -> {
+                Component.literal("Save"), b -> {
             boolean reset = resetBox != null ? resetBox.isSelected() : resetFilterOnOpen;
             boolean labels = labelsBox != null ? labelsBox.isSelected() : showTabLabels;
             TabManager.setSettings(new Settings(reset, labels, tabScale));

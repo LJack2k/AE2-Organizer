@@ -127,6 +127,25 @@ public final class Ae2Style {
         graphics.pose().popPose();
     }
 
+    /**
+     * A recessed content panel: dark fill with a sunken bevel (dark top/left,
+     * light bottom/right). The grouping primitive for the editor — generalises
+     * {@link #slot}. Translucent so it reads on both light and dark themes.
+     */
+    public static void inset(GuiGraphics graphics, int x, int y, int w, int h) {
+        graphics.fill(x, y, x + w, y + h, 0x55000000);
+        graphics.fill(x, y, x + w, y + 1, 0x66000000);          // top (dark)
+        graphics.fill(x, y, x + 1, y + h, 0x66000000);          // left (dark)
+        graphics.fill(x, y + h - 1, x + w, y + h, 0x2BFFFFFF);   // bottom (light)
+        graphics.fill(x + w - 1, y, x + w, y + h, 0x2BFFFFFF);   // right (light)
+    }
+
+    /** A 1px engraved horizontal divider (dark line above a faint highlight). */
+    public static void divider(GuiGraphics graphics, int x, int y, int w) {
+        graphics.fill(x, y, x + w, y + 1, 0x55000000);
+        graphics.fill(x, y + 1, x + w, y + 2, 0x1FFFFFFF);
+    }
+
     /** A subtle recessed slot. Translucent so it reads on both light and dark panels. */
     public static void slot(GuiGraphics graphics, int x, int y) {
         graphics.fill(x, y, x + 18, y + 18, 0x44000000);

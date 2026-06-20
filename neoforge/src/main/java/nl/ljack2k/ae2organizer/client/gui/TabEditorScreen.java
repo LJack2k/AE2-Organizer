@@ -256,7 +256,7 @@ public final class TabEditorScreen extends Screen {
         addRenderableWidget(new AE2Button(innerR - 120, footerY, 58, BTN_H,
                 Component.literal("Cancel"), b -> onClose()));
         addRenderableWidget(new AE2Button(innerR - 58, footerY, 58, BTN_H,
-                Component.literal("Done"), b -> commitAndClose()));
+                Component.literal("Save"), b -> commitAndClose()));
     }
 
     private void buildRightPanel(TabDraft draft) {

@@ -29,7 +29,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 ```json
 {
   "version": 1,
-  "settings": { "resetFilterOnOpen": false, "showTabLabels": false },
+  "settings": { "resetFilterOnOpen": false, "showTabLabels": false, "tabScale": 1.15 },
   "tabs": [
     { "id": "ingots", "name": "Ingots", "icon": "minecraft:iron_ingot", "mode": "any",
       "conditions": [ { "type": "tag", "tag": "c:ingots" } ] }
@@ -59,13 +59,14 @@ Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.m
 
 ### UI — `client/`, `client/gui/`
 
-- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, attaches `TabBarWidget` and re-applies the active tab. Registered (client-only) from the `@Mod` constructor.
+- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, attaches `TabBarWidget` and re-applies the active tab. The bar's mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events, because AE2's terminal overrides `mouseScrolled`/`mouseDragged` and consumes them before added widgets receive them. Registered (client-only) from the `@Mod` constructor.
 - **`TabManager`** — client singleton holding tabs, the active selection, and settings; **`TabStorage`** does the JSON persistence (see above).
+- **`TabBarWidget`** — the right-hand "Filters" panel: one `BackgroundGenerator` panel sized to the terminal, a title bar (name + gear), bevelled rows (active = sunken), a scrollbar when the tabs overflow, and a `tabScale`-driven size. Its X anchors past the panel image **and** any real menu slot that sticks out (measured to the slot's 18px frame), so it clears terminals with extra card slots (e.g. the Wireless Crafting Grid).
 - The screens (`TabEditorScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee.
-- **`Ae2Style`** themes those screens through AE2's own pipeline so AE2 dark-mode resource packs apply automatically:
-  - `BackgroundGenerator` draws the nine-sliced `background.png` panel.
-  - `StyleManager` + `PaletteColor` provide text colours from `palette.json` (with a fallback).
-  - AE2 widgets are used directly: `AE2Button`, `AETextField`, `AECheckbox`, and `Icon.COG` (the gear) via `Icon#getBlitter()`.
+- **`Ae2Style`** themes those screens through AE2's own pipeline (so AE2 dark-mode packs apply automatically) and replaces vanilla's blurred menu background with a plain dim via a `renderBackground` override:
+  - `BackgroundGenerator` draws the nine-sliced `background.png` panel; `StyleManager` + `PaletteColor` supply text colours from `palette.json` (with fallbacks).
+  - AE2 widgets used directly: `AE2Button`, `AECheckbox`, and `Icon.COG` (tinted to the palette colour). Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
+  - Helpers render item icons and text at an arbitrary scale, driving the `tabScale` setting.
 - **Inventory drag** is custom: the editor renders the player inventory read-only (never mutating it) and drops resolve against the same `GhostTarget` rects the JEI handler uses.
 
 ### JEI integration — `jei/` (optional)
@@ -78,4 +79,4 @@ A `@JeiPlugin` registers two things and stays dormant if JEI is absent:
 
 - AE2's `Repo` / `MEStorageScreen` and the `appeng.client.gui.style.*` / `widgets.*` classes are **internal, not public API**. The AE2 version range is pinned tight and mixins are `required: true`, so the mod fails loudly rather than silently mis-filtering or mis-rendering if AE2's internals change between versions; the style layer falls back to a default colour if it can't load.
 - Component matching is **presence-based** — no value matching (e.g. "enchant level ≥ 3").
-- The editor lays tabs and conditions out without internal scrolling, so a very large number can overflow the window. Typical counts fit comfortably.
+- The tab bar and the editor's tab list both scroll; the editor's per-tab **condition** rows don't, so a tab with very many conditions can overflow the window. Typical counts fit comfortably.

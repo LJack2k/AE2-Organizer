@@ -11,17 +11,17 @@ A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **fi
 
 AE2 already filters and sorts the terminal list on the client; AE2Organizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
 
-A vertical **tab bar** appears on the right edge of every ME / Crafting / Pattern / Wireless terminal:
+A **"Filters" panel** attaches to the right edge of every ME / Crafting / Pattern / Wireless terminal:
 
-- 🧭 **All** (top) — clears the filter.
-- **Your tabs** (middle) — click one to filter the terminal to that tab's items. Mouse-wheel to scroll if you have more than fit.
-- ⚙ **Gear** (bottom) — opens the editor.
+- 🧭 **All** (top of the list) — clears the filter.
+- **Your tabs** — click one to filter the terminal to that tab's items. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
+- ⚙ **Gear** (top-right of the panel) — opens the editor.
 
-A tab's filter combines with AE2's own search box (AND), so you can pick a broad tab and then type to narrow further. The bar and editor use AE2's own GUI style, so AE2 "dark mode" resource packs reskin them too.
+The panel matches the terminal's height and is drawn with AE2's own GUI style, so AE2 "dark mode" resource packs reskin it too. Its size is adjustable (Settings → **Tab size**). A tab's filter combines with AE2's own search box (AND), so you can pick a broad tab and then type to narrow further.
 
 ## Editing tabs
 
-Click the ⚙ gear to open the editor. On the left you add / rename / reorder / delete tabs; on the right you edit the selected tab (name, icon, match mode, conditions).
+Click the ⚙ gear to open the editor. On the left you add / rename / reorder / delete tabs (the list scrolls); on the right you edit the selected tab (name, icon, match mode, conditions).
 
 Set a tab's **icon** and the item for `mod` / `tag` / `text` conditions in any of three ways:
 
@@ -58,5 +58,6 @@ In the editor, click **Settings…**:
 
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
 - **Show tab names as labels** — on: the bar shows wide labelled buttons. Off (default): icon-only cells with the name on hover.
+- **Tab size** — a slider (with a live preview row) that scales the filter buttons, so you can pack more in or make them easier to read.
 
 Your tabs and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

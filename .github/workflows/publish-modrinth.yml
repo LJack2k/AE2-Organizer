@@ -47,7 +47,7 @@ jobs:
         with:
           # Modrinth project slug (from modrinth.com/mod/<slug>); the immutable
           # project ID also works and survives slug renames.
-          modrinth-id: ae2-orgianizer
+          modrinth-id: ae2-organizer
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
           files: dist/*.jar

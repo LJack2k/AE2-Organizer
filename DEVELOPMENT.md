@@ -38,10 +38,10 @@ release commits into `main`).
 
 One-time setup — repo → **Settings → Secrets and variables → Actions**:
 
-- **Secrets:** `MODRINTH_TOKEN`, `CURSEFORGE_TOKEN`.
-- **Variables:** `CURSEFORGE_ID` — the **numeric** CurseForge project id (project page sidebar). The
-  Modrinth project slug is set directly in `publish-modrinth.yml`. (`GITHUB_TOKEN` is automatic.)
-- A platform is skipped if its id/token is missing, so you can enable them one at a time.
+- **Secrets:** `MODRINTH_TOKEN`, `CURSEFORGE_TOKEN`. (`GITHUB_TOKEN` is automatic.)
+- Project ids are set in the workflows: Modrinth slug `ae2-organizer` in `publish-modrinth.yml`,
+  CurseForge id `1581862` in `publish-curseforge.yml`.
+- A platform is skipped if its token is missing, so you can enable them one at a time.
 
 To release: set `mod_version` in `gradle.properties` to match the tag, commit, then
 `git tag v0.0.5 && git push origin v0.0.5`. AE2 (required) and JEI (optional) dependency links are

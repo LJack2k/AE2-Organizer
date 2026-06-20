@@ -44,11 +44,8 @@ jobs:
       - name: Publish to CurseForge
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          # CurseForge needs the NUMERIC project id (project page sidebar →
-          # "Project ID"), NOT the slug. Set it as the CURSEFORGE_ID repo
-          # variable (Settings → Secrets and variables → Actions → Variables).
-          # If unset, mc-publish skips CurseForge with no error.
-          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          # CurseForge numeric project id (project page sidebar → "Project ID").
+          curseforge-id: 1581862
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: dist/*.jar

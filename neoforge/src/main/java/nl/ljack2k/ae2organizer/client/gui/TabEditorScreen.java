@@ -743,7 +743,9 @@ public final class TabEditorScreen extends Screen {
             List<Condition> built = new ArrayList<>();
             for (CondDraft cond : conditions) {
                 Condition condition = cond.build();
-                if (condition != null) {
+                // Skip empty rows (null) and duplicates (Conditions are records,
+                // so equality is by value).
+                if (condition != null && !built.contains(condition)) {
                     built.add(condition);
                 }
             }
@@ -784,16 +786,19 @@ public final class TabEditorScreen extends Screen {
             return fresh();
         }
 
+        /** Returns {@code null} for an empty/unfilled row so it isn't persisted. */
         @Nullable
         Condition build() {
             return switch (type) {
-                case MOD -> new ModCondition(value.trim());
+                case MOD -> value.isBlank() ? null : new ModCondition(value.trim());
                 case TAG -> {
                     ResourceLocation rl = ResourceLocation.tryParse(value.trim());
                     yield rl == null ? null : new TagCondition(rl);
                 }
-                case TEXT -> new TextCondition(value);
-                case COMPONENT -> new ComponentCondition(componentMatch, value);
+                case TEXT -> value.isBlank() ? null : new TextCondition(value.trim());
+                case COMPONENT -> componentMatch.usesArg()
+                        ? (value.isBlank() ? null : new ComponentCondition(componentMatch, value.trim()))
+                        : new ComponentCondition(componentMatch, "");
             };
         }
     }

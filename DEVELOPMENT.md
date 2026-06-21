@@ -32,9 +32,12 @@ Three tag-triggered workflows under `.github/workflows/` (modelled on JackItToMe
   `workflow_run`), download the jar from the Release, and upload to each platform. Each can also be
   re-run alone (Actions → the workflow → Run workflow → enter the tag) to retry one platform.
 
-`workflow_run` uses the workflow file from the repo's **default branch**, so keep these on the
-default branch — this project develops on `develop`, so make `develop` the default branch (or merge
-release commits into `main`).
+`workflow_run` uses the workflow file from the repo's **default branch**, so the default branch must
+always carry these (version-aware) workflows. This project keeps one long-lived branch per Minecraft
+line — `1.21.1` (currently the default) and `26.1` — with the "featured" line chosen via the
+default-branch setting (not by renaming branches). The workflows read `minecraft_version` /
+`java_version` / `mod_version` from the published line's `gradle.properties`, so one set of files
+serves every branch.
 
 One-time setup — repo → **Settings → Secrets and variables → Actions**:
 
@@ -44,9 +47,12 @@ One-time setup — repo → **Settings → Secrets and variables → Actions**:
   is rejected by the API), CurseForge id `1581862` in `publish-curseforge.yml`.
 - A platform is skipped if its token is missing, so you can enable them one at a time.
 
-To release: set `mod_version` in `gradle.properties` to match the tag, commit, then
-`git tag v0.0.5 && git push origin v0.0.5`. AE2 (required) and JEI (optional) dependency links are
-declared in the publish workflows.
+To release: bump `mod_version` in `gradle.properties` on the line's branch, commit, then tag with the
+Minecraft line appended so tags stay unique across branches —
+`git tag v1.2.0-mc1.21.1 && git push origin v1.2.0-mc1.21.1` (or `…-mc26.1` from the `26.1` branch).
+Only `v*` tag pushes publish; the workflow derives the game version, Java version and the `<ver>+<mc>`
+platform version string from `gradle.properties`. AE2 (required) and JEI (optional) dependency links
+are declared in the publish workflows.
 
 ## Config file
 

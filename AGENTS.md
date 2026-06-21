@@ -113,8 +113,14 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 
 ## Release & git workflow
 
-- Work on **`develop`** (origin is `https://LJack2k@github.com/LJack2k/AE2-Organizer.git`).
+- **Branch per Minecraft line:** `1.21.1` (default) and `26.1` — long-lived and parallel; there is no
+  `develop`/`main`. Work on the branch for the MC line you're targeting. Origin is
+  `https://LJack2k@github.com/LJack2k/AE2-Organizer.git`.
 - Bump `mod_version` in `gradle.properties`; the jar name and `neoforge.mods.toml` version expand from it.
+- **Release tags carry the MC line:** `v<mod_version>-mc<mcline>` (e.g. `v1.2.0-mc1.21.1`,
+  `v1.2.0-mc26.1`) so tags stay unique across branches. Only `v*` tag pushes publish; the version-aware
+  workflows read `minecraft_version`/`java_version`/`mod_version` from `gradle.properties` (configure a
+  new MC line there, not in the workflow files).
 - Commit style: small, logical, conventional-ish (`feat:`/`fix:`/`docs:`/`chore:`). End commit messages
   with `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. **Commit/push only when asked.**
 - When grouping a big change into several commits, order them so each compiles (foundation → features

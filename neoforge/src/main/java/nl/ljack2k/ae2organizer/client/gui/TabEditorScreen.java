@@ -261,7 +261,7 @@ public final class TabEditorScreen extends Screen {
 
     private void buildRightPanel(TabDraft draft) {
         // Name
-        EditBox name = Ae2Style.textField(this.font, fieldX, nameRowY + 1, propsRight - fieldX, 16, Component.literal("Name"));
+        EditBox name = Ae2Style.selectAllField(this.font, fieldX, nameRowY + 1, propsRight - fieldX, 16, Component.literal("Name"));
         name.setMaxLength(64);
         name.setValue(draft.name);
         name.setResponder(s -> draft.name = s);
@@ -307,7 +307,7 @@ public final class TabEditorScreen extends Screen {
                 if (cond.componentMatch.usesArg()) {
                     int cycleW = 80;
                     addRenderableWidget(matchButton(cond, fieldStart, rowY, cycleW));
-                    EditBox arg = Ae2Style.textField(this.font, fieldStart + cycleW + 2, rowY + 1,
+                    EditBox arg = Ae2Style.selectAllField(this.font, fieldStart + cycleW + 2, rowY + 1,
                             Math.max(20, removeX - (fieldStart + cycleW + 2) - 2), 16, Component.literal("Arg"));
                     arg.setMaxLength(128);
                     arg.setValue(cond.value);
@@ -319,7 +319,7 @@ public final class TabEditorScreen extends Screen {
             } else {
                 int pickX = removeX - 20;
                 int boxW = Math.max(20, pickX - fieldStart - 2);
-                EditBox value = Ae2Style.textField(this.font, fieldStart, rowY + 1, boxW, 16, Component.literal("Value"));
+                EditBox value = Ae2Style.selectAllField(this.font, fieldStart, rowY + 1, boxW, 16, Component.literal("Value"));
                 value.setMaxLength(128);
                 value.setValue(cond.value);
                 value.setResponder(s -> cond.value = s);
@@ -632,6 +632,8 @@ public final class TabEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            // A click off any text field drops its focus and selection (vanilla keeps it).
+            Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
             int invIndex = invSlotAt(mouseX, mouseY);
             if (invIndex >= 0 && this.minecraft != null && this.minecraft.player != null) {
                 ItemStack stack = this.minecraft.player.getInventory().getItem(invIndex);

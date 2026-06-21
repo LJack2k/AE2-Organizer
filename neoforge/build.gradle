@@ -8,7 +8,9 @@ version = mod_version
 group = mod_group_id
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    // Driven by java_version in gradle.properties so the toolchain and the
+    // release workflow can never drift (1.21.x = 21, 26.1+ = 25).
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
 }
 
 base {

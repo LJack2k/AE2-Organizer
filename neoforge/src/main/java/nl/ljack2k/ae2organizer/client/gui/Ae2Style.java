@@ -7,6 +7,7 @@ import appeng.client.gui.style.StyleManager;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,7 +84,62 @@ public final class Ae2Style {
      * EditBox; it's readable on the themed panel.
      */
     public static EditBox textField(Font font, int x, int y, int width, int height, Component message) {
-        return new EditBox(font, x, y, width, height, message);
+        return new ThemedField(font, x, y, width, height, message, false);
+    }
+
+    /**
+     * Like {@link #textField} but selects the entire contents on every click (single
+     * or double), so a click-then-type replaces the value instead of positioning the
+     * caret. Overriding {@code onClick} is enough: it is the hook EditBox uses to place
+     * the caret.
+     */
+    public static EditBox selectAllField(Font font, int x, int y, int width, int height, Component message) {
+        return new ThemedField(font, x, y, width, height, message, true);
+    }
+
+    /**
+     * Drops keyboard focus from a focused text field when a click lands outside it.
+     * Vanilla only moves focus when a widget is actually clicked, so a click on empty
+     * panel space would otherwise leave a field focused and still drawing its selection
+     * highlight. Pair with {@link ThemedField}, which clears the selection on blur. Call
+     * from a {@code Screen}'s {@code mouseClicked} before delegating to {@code super}.
+     */
+    public static void blurFieldOnOutsideClick(Screen screen, double mouseX, double mouseY) {
+        if (screen.getFocused() instanceof EditBox box && !box.isMouseOver(mouseX, mouseY)) {
+            screen.setFocused(null);
+        }
+    }
+
+    /**
+     * A vanilla {@link EditBox} that clears its text selection when it loses focus —
+     * EditBox keeps drawing the highlight even while unfocused, so dropping focus alone
+     * isn't enough. Optionally selects everything on click (see {@link #selectAllField}).
+     */
+    private static final class ThemedField extends EditBox {
+        private final boolean selectAllOnClick;
+
+        ThemedField(Font font, int x, int y, int width, int height, Component message, boolean selectAllOnClick) {
+            super(font, x, y, width, height, message);
+            this.selectAllOnClick = selectAllOnClick;
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (selectAllOnClick) {
+                moveCursorToEnd(false); // caret to end, clearing any prior highlight
+                setHighlightPos(0);     // extend selection back to the start
+            } else {
+                super.onClick(mouseX, mouseY);
+            }
+        }
+
+        @Override
+        public void setFocused(boolean focused) {
+            super.setFocused(focused);
+            if (!focused) {
+                setHighlightPos(getCursorPosition()); // collapse selection on blur
+            }
+        }
     }
 
     /**

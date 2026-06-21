@@ -124,6 +124,10 @@ public final class ItemPickerScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            // A click off the search field drops its focus and selection (vanilla keeps it).
+            Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
+        }
         if (button == 0 && mouseX >= gridLeft && mouseY >= gridTop) {
             int col = (int) ((mouseX - gridLeft) / CELL);
             int row = (int) ((mouseY - gridTop) / CELL);

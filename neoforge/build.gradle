@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
-    // ModDevGradle — the modern way to develop NeoForge mods.
-    id 'net.neoforged.moddev' version '1.0.20'
+    // ModDevGradle — the modern way to develop NeoForge mods. 2.x is required
+    // for the 26.1 line (Gradle 9 / Java 25).
+    id 'net.neoforged.moddev' version '2.0.141'
 }
 
 version = mod_version
@@ -75,8 +76,6 @@ tasks.named('processResources', ProcessResources).configure {
         minecraft_version       : minecraft_version,
         minecraft_version_range : minecraft_version_range,
         neo_version             : neo_version,
-        neo_version_range       : neo_version_range,
-        loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,

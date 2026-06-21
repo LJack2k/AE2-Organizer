@@ -1,8 +1,7 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
 import appeng.client.gui.widgets.AE2Button;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
@@ -36,7 +35,7 @@ public final class TagChooserScreen extends Screen {
         super(Component.literal("Choose a tag"));
         this.parent = parent;
         this.onPick = onPick;
-        this.tags = new ItemStack(item).getTags()
+        this.tags = new ItemStack(item).typeHolder().tags()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
                 .toList();
     }
@@ -55,11 +54,7 @@ public final class TagChooserScreen extends Screen {
         listTop = top + 26;
         visible = Math.max(1, (panelH - 26 - 28) / 20);
 
-        if (tags.isEmpty()) {
-            addRenderableWidget(new StringWidget(left + 10, top + 44, panelW - 20, 12,
-                    Component.literal("This item has no tags."), this.font).alignLeft()
-                    .setColor(Ae2Style.textColor()));
-        } else {
+        if (!tags.isEmpty()) {
             int count = Math.min(visible, tags.size() - offset);
             for (int i = 0; i < count; i++) {
                 final TagKey<Item> tag = tags.get(offset + i);
@@ -84,15 +79,18 @@ public final class TagChooserScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
+        if (tags.isEmpty()) {
+            graphics.text(this.font, "This item has no tags.", left + 10, top + 44, Ae2Style.textColor(), false);
+        }
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

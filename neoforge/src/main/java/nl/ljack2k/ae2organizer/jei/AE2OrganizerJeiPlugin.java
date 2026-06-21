@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.jei;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nl.ljack2k.ae2organizer.AE2Organizer;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 
@@ -17,8 +17,8 @@ import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 public class AE2OrganizerJeiPlugin implements IModPlugin {
 
     @Override
-    public ResourceLocation getPluginUid() {
-        return ResourceLocation.fromNamespaceAndPath(AE2Organizer.MODID, "jei_plugin");
+    public Identifier getPluginUid() {
+        return Identifier.fromNamespaceAndPath(AE2Organizer.MODID, "jei_plugin");
     }
 
     @Override

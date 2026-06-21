@@ -1,16 +1,17 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.Icon;
+import appeng.client.gui.style.Blitter;
 import appeng.client.gui.me.common.MEStorageScreen;
+import appeng.util.Icon;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -143,7 +144,7 @@ public final class TabBarWidget extends AbstractWidget {
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Layout l = layout();
         boolean showLabels = labels();
         String activeId = TabManager.activeTabId();
@@ -159,7 +160,7 @@ public final class TabBarWidget extends AbstractWidget {
         if (gearHover) {
             graphics.fill(l.gearX, l.gearY, l.gearX + GEAR_SZ, l.gearY + GEAR_SZ, 0x33FFFFFF);
         }
-        Icon.COG.getBlitter().dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
+        Blitter.icon(Icon.COG).dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
                 .colorArgb(Ae2Style.textColor()).blit(graphics);
         graphics.fill(l.contentX, l.contentY + TITLE_H, l.contentX + l.listW, l.contentY + TITLE_H + 1, 0x40000000);
 
@@ -195,15 +196,15 @@ public final class TabBarWidget extends AbstractWidget {
             drawScrollbar(graphics, l);
         }
         if (hoverTip != null) {
-            graphics.renderTooltip(font, hoverTip, mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, hoverTip, mouseX, mouseY);
         }
     }
 
-    private static void drawButton(GuiGraphics graphics, int x, int y, int w, int h, boolean active, boolean hovered) {
+    private static void drawButton(GuiGraphicsExtractor graphics, int x, int y, int w, int h, boolean active, boolean hovered) {
         Ae2Style.bevelButton(graphics, x, y, w, h, active, hovered);
     }
 
-    private void drawScrollbar(GuiGraphics graphics, Layout l) {
+    private void drawScrollbar(GuiGraphicsExtractor graphics, Layout l) {
         int sbTop = l.listTop;
         int sbH = l.visibleRows * l.rowH;
         graphics.fill(l.sbX, sbTop, l.sbX + SB_W, sbTop + sbH, 0x66000000);
@@ -213,7 +214,7 @@ public final class TabBarWidget extends AbstractWidget {
         drawButton(graphics, l.sbX, thumbY, SB_W, thumbH, false, draggingScrollbar);
     }
 
-    private static ItemStack iconStack(ResourceLocation id) {
+    private static ItemStack iconStack(Identifier id) {
         return new ItemStack(BuiltInRegistries.ITEM.getOptional(id).orElse(Items.CHEST));
     }
 

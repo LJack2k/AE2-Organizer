@@ -1,8 +1,9 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -91,15 +92,15 @@ public final class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 8, top + 7, Ae2Style.textColor(), false);
+        graphics.text(this.font, getTitle(), left + 8, top + 7, Ae2Style.textColor(), false);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
         Item hovered = null;
         int cells = visibleRows * COLS;
@@ -115,15 +116,18 @@ public final class ItemPickerScreen extends Screen {
                 graphics.fill(cx, cy, cx + CELL, cy + CELL, 0x80FFFFFF);
                 hovered = filtered.get(idx);
             }
-            graphics.renderItem(new ItemStack(filtered.get(idx)), cx + 1, cy + 1);
+            graphics.item(new ItemStack(filtered.get(idx)), cx + 1, cy + 1);
         }
         if (hovered != null) {
-            graphics.renderTooltip(this.font, new ItemStack(hovered), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(this.font, new ItemStack(hovered), mouseX, mouseY);
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0) {
             // A click off the search field drops its focus and selection (vanilla keeps it).
             Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
@@ -139,7 +143,7 @@ public final class ItemPickerScreen extends Screen {
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override

@@ -74,7 +74,7 @@ public final class ClientEvents {
             activeBarScreen = terminal;
             applyFilter(terminal, TabManager.activePredicate());
         }
-        activeBar.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+        activeBar.extractRenderState(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
     }
 
     private static boolean isActive(Screen screen) {

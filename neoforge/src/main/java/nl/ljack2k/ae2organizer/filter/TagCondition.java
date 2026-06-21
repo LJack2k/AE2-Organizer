@@ -5,7 +5,7 @@ import appeng.api.stacks.AEKey;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 
@@ -17,10 +17,10 @@ import java.util.function.Predicate;
  * Note (1.21 / NeoForge): common tags use the {@code c:} namespace
  * (e.g. {@code c:ingots}), not the old {@code forge:} namespace.
  */
-public record TagCondition(ResourceLocation tagId) implements Condition {
+public record TagCondition(Identifier tagId) implements Condition {
 
     public static final MapCodec<TagCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            ResourceLocation.CODEC.fieldOf("tag").forGetter(TagCondition::tagId)
+            Identifier.CODEC.fieldOf("tag").forGetter(TagCondition::tagId)
     ).apply(i, TagCondition::new));
 
     @Override

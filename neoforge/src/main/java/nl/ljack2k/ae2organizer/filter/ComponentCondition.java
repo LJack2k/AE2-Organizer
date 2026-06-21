@@ -8,7 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -47,8 +47,8 @@ public record ComponentCondition(ComponentMatch match, String arg) implements Co
                         : key -> key instanceof AEItemKey ik && hasCustomDataKey(ik.getReadOnlyStack(), dataKey);
             }
             case HAS_COMPONENT_TYPE -> {
-                ResourceLocation rl = ResourceLocation.tryParse(arg.trim());
-                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl);
+                Identifier rl = Identifier.tryParse(arg.trim());
+                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(rl);
                 yield componentType == null
                         ? key -> false
                         : key -> key instanceof AEItemKey ik && ik.getReadOnlyStack().has(componentType);

@@ -2,13 +2,14 @@ package nl.ljack2k.ae2organizer.client.gui;
 
 import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -356,51 +357,51 @@ public final class TabEditorScreen extends Screen {
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
         int tc = Ae2Style.textColor();
-        graphics.drawString(this.font, getTitle(), left + PAD, top + 8, tc, false);
+        graphics.text(this.font, getTitle(), left + PAD, top + 8, tc, false);
 
         // Left: Tabs panel (full height) — list + toolbar share one inset.
-        graphics.drawString(this.font, "Tabs", tabsX, tabsHeaderY, tc, false);
+        graphics.text(this.font, "Tabs", tabsX, tabsHeaderY, tc, false);
         Ae2Style.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
         Ae2Style.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
 
         // Right column, stacked: Properties / Conditions / Inventory.
-        graphics.drawString(this.font, "Properties", rightX, propsHeaderY, tc, false);
+        graphics.text(this.font, "Properties", rightX, propsHeaderY, tc, false);
         Ae2Style.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
 
-        graphics.drawString(this.font, "Conditions", rightX, condHeaderY, tc, false);
+        graphics.text(this.font, "Conditions", rightX, condHeaderY, tc, false);
         Ae2Style.inset(graphics, rightX, condInsetY, rightW, condInsetH);
         Ae2Style.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
 
-        graphics.drawString(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
+        graphics.text(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
         Ae2Style.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH);
 
         // Footer separator.
         Ae2Style.divider(graphics, innerX, dividerY, innerR - innerX);
 
         if (hasSelection()) {
-            graphics.drawString(this.font, "Name", labelX, nameRowY + 5, tc, false);
-            graphics.drawString(this.font, "Icon", labelX, iconRowY + 5, tc, false);
+            graphics.text(this.font, "Name", labelX, nameRowY + 5, tc, false);
+            graphics.text(this.font, "Icon", labelX, iconRowY + 5, tc, false);
         } else {
-            graphics.drawString(this.font, "Select a tab, or click Add.", rightX + 6, propsInsetY + 7, tc, false);
+            graphics.text(this.font, "Select a tab, or click Add.", rightX + 6, propsInsetY + 7, tc, false);
         }
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         drawTabList(graphics, mouseX, mouseY);
 
         if (hasSelection()) {
             Ae2Style.slot(graphics, iconX, iconY);
             ItemStack icon = iconStack(drafts.get(selected).icon);
             if (!icon.isEmpty()) {
-                graphics.renderItem(icon, iconX + 1, iconY + 1);
+                graphics.item(icon, iconX + 1, iconY + 1);
                 if (inRect(mouseX, mouseY, iconX, iconY, 18, 18) && draggingStack == null) {
-                    graphics.renderTooltip(this.font, icon, mouseX, mouseY);
+                    graphics.setTooltipForNextFrame(this.font, icon, mouseX, mouseY);
                 }
             }
             drawCondScrollbar(graphics);
@@ -409,11 +410,11 @@ public final class TabEditorScreen extends Screen {
         drawInventory(graphics, mouseX, mouseY);
 
         if (draggingStack != null && !draggingStack.isEmpty()) {
-            graphics.renderItem(draggingStack, mouseX - 8, mouseY - 8);
+            graphics.item(draggingStack, mouseX - 8, mouseY - 8);
         }
     }
 
-    private void drawTabList(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void drawTabList(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int rows = Math.min(listVisible, drafts.size() - listScroll);
         for (int i = 0; i < rows; i++) {
             int idx = listScroll + i;
@@ -426,7 +427,7 @@ public final class TabEditorScreen extends Screen {
             Ae2Style.scaledItem(graphics, iconStack(draft.icon), listX + 2 + off, y + 1 + off, 14);
             String label = draft.name.isBlank() ? draft.id : draft.name;
             String text = this.font.plainSubstrByWidth(label, listRowW - 22);
-            graphics.drawString(this.font, text, listX + 19 + off, y + 5 + off, Ae2Style.textColor(), false);
+            graphics.text(this.font, text, listX + 19 + off, y + 5 + off, Ae2Style.textColor(), false);
         }
         if (listNeedScroll) {
             int sbH = listVisible * ROW_HE;
@@ -438,7 +439,7 @@ public final class TabEditorScreen extends Screen {
         }
     }
 
-    private void drawCondScrollbar(GuiGraphics graphics) {
+    private void drawCondScrollbar(GuiGraphicsExtractor graphics) {
         if (!condNeedScroll) {
             return;
         }
@@ -451,7 +452,7 @@ public final class TabEditorScreen extends Screen {
         Ae2Style.bevelButton(graphics, condSbX, thumbY, SBW, thumbH, false, draggingCondScrollbar);
     }
 
-    private void drawInventory(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void drawInventory(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (this.minecraft == null || this.minecraft.player == null) {
             return;
         }
@@ -461,15 +462,15 @@ public final class TabEditorScreen extends Screen {
             Ae2Style.slot(graphics, p[0], p[1]);
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
             if (!stack.isEmpty()) {
-                graphics.renderItem(stack, p[0] + 1, p[1] + 1);
-                graphics.renderItemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
+                graphics.item(stack, p[0] + 1, p[1] + 1);
+                graphics.itemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
                 if (inRect(mouseX, mouseY, p[0], p[1], 18, 18)) {
                     hovered = stack;
                 }
             }
         }
         if (!hovered.isEmpty() && draggingStack == null) {
-            graphics.renderTooltip(this.font, hovered, mouseX, mouseY);
+            graphics.setTooltipForNextFrame(this.font, hovered, mouseX, mouseY);
         }
     }
 
@@ -527,7 +528,7 @@ public final class TabEditorScreen extends Screen {
     }
 
     private static ItemStack iconStack(String id) {
-        ResourceLocation rl = ResourceLocation.tryParse(id.trim());
+        Identifier rl = Identifier.tryParse(id.trim());
         Item item = rl == null ? Items.CHEST : BuiltInRegistries.ITEM.getOptional(rl).orElse(Items.CHEST);
         return new ItemStack(item);
     }
@@ -630,7 +631,10 @@ public final class TabEditorScreen extends Screen {
     // ---- Input -------------------------------------------------------------
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0) {
             // A click off any text field drops its focus and selection (vanilla keeps it).
             Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
@@ -665,11 +669,12 @@ public final class TabEditorScreen extends Screen {
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        double mouseY = event.y();
         if (draggingListScrollbar) {
             listScrollTo(mouseY);
             return true;
@@ -678,11 +683,13 @@ public final class TabEditorScreen extends Screen {
             condScrollTo(mouseY);
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         draggingListScrollbar = false;
         draggingCondScrollbar = false;
         if (draggingStack != null) {
@@ -697,7 +704,7 @@ public final class TabEditorScreen extends Screen {
             }
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -751,7 +758,7 @@ public final class TabEditorScreen extends Screen {
                     built.add(condition);
                 }
             }
-            ResourceLocation iconId = ResourceLocation.tryParse(icon.trim());
+            Identifier iconId = Identifier.tryParse(icon.trim());
             String finalName = name.isBlank() ? id : name;
             return new Tab(id, finalName, iconId != null ? iconId : Tab.DEFAULT_ICON, mode, built);
         }
@@ -794,7 +801,7 @@ public final class TabEditorScreen extends Screen {
             return switch (type) {
                 case MOD -> value.isBlank() ? null : new ModCondition(value.trim());
                 case TAG -> {
-                    ResourceLocation rl = ResourceLocation.tryParse(value.trim());
+                    Identifier rl = Identifier.tryParse(value.trim());
                     yield rl == null ? null : new TagCondition(rl);
                 }
                 case TEXT -> value.isBlank() ? null : new TextCondition(value.trim());

@@ -6,7 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.loading.FMLPaths;
 import nl.ljack2k.ae2organizer.AE2Organizer;
 import nl.ljack2k.ae2organizer.filter.ComponentCondition;
@@ -102,13 +102,13 @@ public final class TabStorage {
     public static List<Tab> defaults() {
         List<Tab> tabs = new ArrayList<>();
         tabs.add(new Tab("enchanted", "Enchanted",
-                ResourceLocation.withDefaultNamespace("enchanted_book"), MatchMode.ANY,
+                Identifier.withDefaultNamespace("enchanted_book"), MatchMode.ANY,
                 List.of(new ComponentCondition(ComponentMatch.ENCHANTED, ""))));
         tabs.add(new Tab("ingots", "Ingots",
-                ResourceLocation.withDefaultNamespace("iron_ingot"), MatchMode.ANY,
-                List.of(new TagCondition(ResourceLocation.parse("c:ingots")))));
+                Identifier.withDefaultNamespace("iron_ingot"), MatchMode.ANY,
+                List.of(new TagCondition(Identifier.parse("c:ingots")))));
         tabs.add(new Tab("named", "Named",
-                ResourceLocation.withDefaultNamespace("name_tag"), MatchMode.ANY,
+                Identifier.withDefaultNamespace("name_tag"), MatchMode.ANY,
                 List.of(new ComponentCondition(ComponentMatch.HAS_CUSTOM_NAME, ""))));
         return tabs;
     }

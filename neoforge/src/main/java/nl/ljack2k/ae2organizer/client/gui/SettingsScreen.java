@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.client.gui;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.widgets.AE2Button;
 import appeng.client.gui.widgets.AECheckbox;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
@@ -92,22 +92,22 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
         int tc = Ae2Style.textColor();
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
-        graphics.drawString(this.font, "Preview", left + 10, previewY - 10, tc, false);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, tc, false);
+        graphics.text(this.font, "Preview", left + 10, previewY - 10, tc, false);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         drawPreview(graphics, left + 10, previewY);
     }
 
     /** A sample tab row at the current scale, so the slider has a live preview. */
-    private void drawPreview(GuiGraphics graphics, int x, int y) {
+    private void drawPreview(GuiGraphicsExtractor graphics, int x, int y) {
         double s = tabScale;
         int rowH = Math.max(9, (int) Math.round(13 * s));
         int iconDraw = Math.max(8, (int) Math.round(11 * s));

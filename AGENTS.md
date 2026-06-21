@@ -13,15 +13,15 @@ vanilla-AE2 server that doesn't have this mod.
 
 ## Stack (don't guess — these are pinned)
 
-- Minecraft **1.21.1**, NeoForge **21.1.x** (built vs 21.1.193), Java **21**.
-- AE2 **[19.2,19.3)** — *required*, declared `side = "CLIENT"`. JEI optional.
-- Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + `neoforge/` subproject.
+- Minecraft **26.1.2**, NeoForge **26.1.2.76** (4-part version scheme), Java **25**.
+- AE2 **[26.1,26.2)** — *required*, declared `side = "CLIENT"`. JEI optional.
+- Gradle **9.2.1** + ModDevGradle **2.0.141**. Multi-project: minimal root + `neoforge/` subproject.
 - Mod id `ae2organizer`, base package `nl.ljack2k.ae2organizer`. Versions live in `gradle.properties`.
 
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-neoforge-26.1.2-<ver>.jar
 ./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI), opens a real window
 ```
 
@@ -91,6 +91,18 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - Mixins: `required: true`, all under `client`, no refmap (AE2 ships official names).
 
 ## Verified API quick-reference (confirmed via javap this session)
+
+> **26.1 GUI/input API deltas (the bullets below were written for 1.21.1).** Mojang's
+> render-state rewrite + de-obfuscation renamed much of the client GUI surface. On 26.1:
+> `GuiGraphics`→`GuiGraphicsExtractor`; `ResourceLocation`→`Identifier` (same factories);
+> screen/widget draw overrides are `extractRenderState` / `extractWidgetRenderState` /
+> `extractBackground` (not `render`/`renderWidget`/`renderBackground`); `g.renderItem`→`g.item`,
+> `g.drawString`→`g.text`; `pose()` is a 2D `Matrix3x2fStack` (`pushMatrix`/`translate(x,y)`/`scale(x,y)`);
+> mouse handlers take `net.minecraft.client.input.MouseButtonEvent` records (`.x()/.y()/.button()`);
+> AE2's `Icon` is `appeng.util.Icon` (draw via `Blitter.icon(...)`). The **mixin/filter-core targets
+> are UNCHANGED** (`Repo.addEntriesToView`, `MEStorageScreen.repo`, `AbstractContainerScreen.imageWidth/Height`).
+> javap the real 26.1 MC classes from `~/.gradle/caches/neoformruntime/artifacts/minecraft_26.1.2_client.jar`
+> with a **JDK 25+** `javap` (an older `javap` can't read Java 25 bytecode).
 
 - `appeng.client.gui.me.common.Repo`: `private void addEntriesToView(Collection<GridInventoryEntry>)`,
   `public final void updateView()`, `getSearchString/setSearchString`.

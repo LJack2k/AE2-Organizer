@@ -22,6 +22,7 @@ public final class SettingsScreen extends Screen {
     private boolean showTabLabels;
     private double tabScale;
     private boolean clearSearchOnTabSelect;
+    private boolean syncJeiOnTabSelect;
 
     @Nullable
     private AECheckbox resetBox;
@@ -29,6 +30,8 @@ public final class SettingsScreen extends Screen {
     private AECheckbox labelsBox;
     @Nullable
     private AECheckbox clearSearchBox;
+    @Nullable
+    private AECheckbox syncJeiBox;
 
     private int left;
     private int top;
@@ -44,6 +47,7 @@ public final class SettingsScreen extends Screen {
         this.showTabLabels = current.showTabLabels();
         this.tabScale = current.clampedScale();
         this.clearSearchOnTabSelect = current.clearSearchOnTabSelect();
+        this.syncJeiOnTabSelect = current.syncJeiOnTabSelect();
     }
 
     @Override
@@ -54,10 +58,10 @@ public final class SettingsScreen extends Screen {
     @Override
     protected void init() {
         panelW = Math.min(360, this.width - 20);
-        panelH = Math.min(212, this.height - 20);
+        panelH = Math.min(252, this.height - 20);
         left = (this.width - panelW) / 2;
         top = (this.height - panelH) / 2;
-        previewY = top + 134;
+        previewY = top + 180;
 
         ScreenStyle style = Ae2Style.style();
         if (style != null) {
@@ -75,6 +79,11 @@ public final class SettingsScreen extends Screen {
                     Component.literal("Clear search bar when selecting a tab"));
             clearSearchBox.setSelected(clearSearchOnTabSelect);
             addRenderableWidget(clearSearchBox);
+
+            syncJeiBox = new AECheckbox(left + 10, top + 102, panelW - 20, 18, style,
+                    Component.literal("Sync JEI search bar when selecting a tab"));
+            syncJeiBox.setSelected(syncJeiOnTabSelect);
+            addRenderableWidget(syncJeiBox);
         } else {
             addRenderableWidget(CycleButton.onOffBuilder(resetFilterOnOpen)
                     .create(left + 10, top + 28, panelW - 20, 18,
@@ -88,9 +97,13 @@ public final class SettingsScreen extends Screen {
                     .create(left + 10, top + 76, panelW - 20, 18,
                             Component.literal("Clear search bar when selecting a tab"),
                             (btn, val) -> clearSearchOnTabSelect = val));
+            addRenderableWidget(CycleButton.onOffBuilder(syncJeiOnTabSelect)
+                    .create(left + 10, top + 102, panelW - 20, 18,
+                            Component.literal("Sync JEI search bar when selecting a tab"),
+                            (btn, val) -> syncJeiOnTabSelect = val));
         }
 
-        addRenderableWidget(new SizeSlider(left + 10, top + 100, panelW - 20, 18));
+        addRenderableWidget(new SizeSlider(left + 10, top + 148, panelW - 20, 18));
 
         int actionY = top + panelH - 26;
         addRenderableWidget(new AE2Button(left + panelW - 130, actionY, 58, 20,
@@ -98,7 +111,8 @@ public final class SettingsScreen extends Screen {
             boolean reset = resetBox != null ? resetBox.isSelected() : resetFilterOnOpen;
             boolean labels = labelsBox != null ? labelsBox.isSelected() : showTabLabels;
             boolean clearSearch = clearSearchBox != null ? clearSearchBox.isSelected() : clearSearchOnTabSelect;
-            TabManager.setSettings(new Settings(reset, labels, tabScale, clearSearch));
+            boolean syncJei = syncJeiBox != null ? syncJeiBox.isSelected() : syncJeiOnTabSelect;
+            TabManager.setSettings(new Settings(reset, labels, tabScale, clearSearch, syncJei));
             onClose();
         }));
         addRenderableWidget(new AE2Button(left + panelW - 68, actionY, 58, 20,
@@ -110,7 +124,15 @@ public final class SettingsScreen extends Screen {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
         int tc = Ae2Style.textColor();
+        int noteColor = (tc & 0x00FFFFFF) | 0xBB000000;
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
+        Ae2Style.divider(graphics, left + 10, top + 97, panelW - 20);
+        Ae2Style.scaledText(graphics, this.font,
+                "Supports: mod (@mod), tag (#tag) and name conditions.",
+                left + 10, top + 124, noteColor, 0.75f);
+        Ae2Style.scaledText(graphics, this.font,
+                "Not synced: component conditions (enchanted, custom name, etc.).",
+                left + 10, top + 132, noteColor, 0.75f);
         graphics.drawString(this.font, "Preview", left + 10, previewY - 10, tc, false);
     }
 

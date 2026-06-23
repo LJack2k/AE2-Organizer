@@ -20,6 +20,7 @@ import nl.ljack2k.ae2organizer.client.ClientEvents;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.filter.Tab;
 import nl.ljack2k.ae2organizer.mixin.AbstractContainerScreenAccessor;
+import nl.ljack2k.ae2organizer.mixin.MEStorageScreenAccessor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -242,6 +243,11 @@ public final class TabBarWidget extends AbstractWidget {
             if (row < Math.min(l.visibleRows, l.scrollCount - scroll) && entry >= 0 && entry < l.scrollCount) {
                 Tab tab = tabForEntry(entry);
                 TabManager.setActive(tab == null ? null : tab.id());
+                if (TabManager.getSettings().clearSearchOnTabSelect()) {
+                    MEStorageScreenAccessor acc = (MEStorageScreenAccessor) terminal;
+                    acc.ae2organizer$getSearchField().setValue("");
+                    acc.ae2organizer$getRepo().setSearchString("");
+                }
                 ClientEvents.applyFilter(terminal, TabManager.activePredicate());
                 playClick();
             }

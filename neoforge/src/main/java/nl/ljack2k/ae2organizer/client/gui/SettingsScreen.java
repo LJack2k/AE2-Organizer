@@ -21,11 +21,14 @@ public final class SettingsScreen extends Screen {
     private boolean resetFilterOnOpen;
     private boolean showTabLabels;
     private double tabScale;
+    private boolean clearSearchOnTabSelect;
 
     @Nullable
     private AECheckbox resetBox;
     @Nullable
     private AECheckbox labelsBox;
+    @Nullable
+    private AECheckbox clearSearchBox;
 
     private int left;
     private int top;
@@ -40,6 +43,7 @@ public final class SettingsScreen extends Screen {
         this.resetFilterOnOpen = current.resetFilterOnOpen();
         this.showTabLabels = current.showTabLabels();
         this.tabScale = current.clampedScale();
+        this.clearSearchOnTabSelect = current.clearSearchOnTabSelect();
     }
 
     @Override
@@ -53,7 +57,7 @@ public final class SettingsScreen extends Screen {
         panelH = Math.min(212, this.height - 20);
         left = (this.width - panelW) / 2;
         top = (this.height - panelH) / 2;
-        previewY = top + 120;
+        previewY = top + 134;
 
         ScreenStyle style = Ae2Style.style();
         if (style != null) {
@@ -66,6 +70,11 @@ public final class SettingsScreen extends Screen {
                     Component.literal("Show tab names as labels"));
             labelsBox.setSelected(showTabLabels);
             addRenderableWidget(labelsBox);
+
+            clearSearchBox = new AECheckbox(left + 10, top + 76, panelW - 20, 18, style,
+                    Component.literal("Clear search bar when selecting a tab"));
+            clearSearchBox.setSelected(clearSearchOnTabSelect);
+            addRenderableWidget(clearSearchBox);
         } else {
             addRenderableWidget(CycleButton.onOffBuilder(resetFilterOnOpen)
                     .create(left + 10, top + 28, panelW - 20, 18,
@@ -75,16 +84,21 @@ public final class SettingsScreen extends Screen {
                     .create(left + 10, top + 52, panelW - 20, 18,
                             Component.literal("Show tab names as labels"),
                             (btn, val) -> showTabLabels = val));
+            addRenderableWidget(CycleButton.onOffBuilder(clearSearchOnTabSelect)
+                    .create(left + 10, top + 76, panelW - 20, 18,
+                            Component.literal("Clear search bar when selecting a tab"),
+                            (btn, val) -> clearSearchOnTabSelect = val));
         }
 
-        addRenderableWidget(new SizeSlider(left + 10, top + 80, panelW - 20, 18));
+        addRenderableWidget(new SizeSlider(left + 10, top + 100, panelW - 20, 18));
 
         int actionY = top + panelH - 26;
         addRenderableWidget(new AE2Button(left + panelW - 130, actionY, 58, 20,
                 Component.literal("Save"), b -> {
             boolean reset = resetBox != null ? resetBox.isSelected() : resetFilterOnOpen;
             boolean labels = labelsBox != null ? labelsBox.isSelected() : showTabLabels;
-            TabManager.setSettings(new Settings(reset, labels, tabScale));
+            boolean clearSearch = clearSearchBox != null ? clearSearchBox.isSelected() : clearSearchOnTabSelect;
+            TabManager.setSettings(new Settings(reset, labels, tabScale, clearSearch));
             onClose();
         }));
         addRenderableWidget(new AE2Button(left + panelW - 68, actionY, 58, 20,

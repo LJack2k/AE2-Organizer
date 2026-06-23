@@ -61,7 +61,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 ```json
 {
   "version": 1,
-  "settings": { "resetFilterOnOpen": false, "showTabLabels": false, "tabScale": 1.15 },
+  "settings": { "resetFilterOnOpen": false, "showTabLabels": false, "tabScale": 1.15, "clearSearchOnTabSelect": false, "syncJeiOnTabSelect": false },
   "tabs": [
     { "id": "ingots", "name": "Ingots", "icon": "minecraft:iron_ingot", "mode": "any",
       "conditions": [ { "type": "tag", "tag": "c:ingots" } ] }
@@ -80,7 +80,7 @@ Everything is client-side; nothing registers on a dedicated server (the AE2 depe
 ### Filtering — mixins into AE2
 
 - **`mixin/RepoMixin`** — `@ModifyVariable` at `HEAD` of `appeng.client.gui.me.common.Repo#addEntriesToView(Collection)`. Both the full-rebuild and paused-incremental code paths funnel through this one method before sorting, so shrinking its input filters the entire view, AND-combined with AE2's own search box. The active predicate is attached to the live `Repo` instance via the `TabFilterHolder` duck-type interface (a `@Unique` field).
-- **`mixin/MEStorageScreenAccessor`** — `@Accessor` for AE2's `protected final Repo repo`.
+- **`mixin/MEStorageScreenAccessor`** — `@Accessor`s for AE2's `protected final Repo repo` and its `AETextField searchField`. The `searchField` accessor backs the *Clear search bar when selecting a tab* setting: it empties the visible search box, while `repo.setSearchString("")` clears the underlying filter string (both are needed — clearing only one leaves the box and the filter out of sync).
 - **`mixin/AbstractContainerScreenAccessor`** — `@Accessor` for `imageWidth`/`imageHeight`, used to position the tab bar.
 
 Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.mods.toml`), `required: true`, all under `client`. No refmap (AE2 ships official names).
@@ -103,9 +103,11 @@ Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.m
 
 ### JEI integration — `jei/` (optional)
 
-A `@JeiPlugin` registers two things and stays dormant if JEI is absent:
+A `@JeiPlugin` registers two GUI handlers and stays dormant if JEI is absent:
 - a **ghost-ingredient handler** (`EditorGhostHandler`) — accepts items dragged from JEI onto the editor's `GhostTarget`s;
 - a **screen handler** (`EditorGuiProperties`) — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen, which is what makes dragging from JEI possible at all.
+
+It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `#tag` (tag *path* only, no namespace) / the item name — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `component` conditions have no JEI equivalent and are dropped. Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
 
 ## Notes / limitations
 

@@ -5,7 +5,7 @@ A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **fi
 ![AE2Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
 - **Minecraft** 1.21.1 · **NeoForge** 21.1.x · **AE2** 19.2.x (required)
-- **JEI** optional (adds drag-and-drop in the editor)
+- **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.
 
@@ -60,6 +60,8 @@ In the editor, click **Settings…**:
 
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
 - **Show tab names as labels** — on: the bar shows wide labelled buttons. Off (default): icon-only cells with the name on hover.
+- **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
+- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. *Component* conditions have no JEI equivalent and are skipped. Off (default).
 - **Tab size** — a slider (with a live preview row) that scales the filter buttons, so you can pack more in or make them easier to read.
 
 Your tabs and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

@@ -4,7 +4,7 @@ A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **fi
 
 ![AE2Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
-- **Minecraft** 1.21.1 · **NeoForge** 21.1.x · **AE2** 19.2.x (required)
+- **Minecraft** 26.1.2 · **NeoForge** 26.1.x · **AE2** 26.1.x (required)
 - **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.

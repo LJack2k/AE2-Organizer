@@ -17,6 +17,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
+import nl.ljack2k.ae2organizer.client.JeiSync;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.filter.Tab;
 import nl.ljack2k.ae2organizer.mixin.AbstractContainerScreenAccessor;
@@ -247,6 +248,9 @@ public final class TabBarWidget extends AbstractWidget {
                     MEStorageScreenAccessor acc = (MEStorageScreenAccessor) terminal;
                     acc.ae2organizer$getSearchField().setValue("");
                     acc.ae2organizer$getRepo().setSearchString("");
+                }
+                if (TabManager.getSettings().syncJeiOnTabSelect()) {
+                    JeiSync.apply(TabManager.activeTab());
                 }
                 ClientEvents.applyFilter(terminal, TabManager.activePredicate());
                 playClick();

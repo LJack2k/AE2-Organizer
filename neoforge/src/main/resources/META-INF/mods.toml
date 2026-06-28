@@ -21,15 +21,15 @@ config = "ae2organizer.mixins.json"
 
 # --- Required ---
 [[dependencies.${mod_id}]]
-modId = "neoforge"
-type = "required"
-versionRange = "${neo_version_range}"
+modId = "forge"
+mandatory = true
+versionRange = "${loader_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${mod_id}]]
 modId = "minecraft"
-type = "required"
+mandatory = true
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
@@ -41,7 +41,7 @@ side = "BOTH"
 # fail loudly rather than silently mis-filtering.
 [[dependencies.${mod_id}]]
 modId = "ae2"
-type = "required"
+mandatory = true
 versionRange = "${ae2_version_range}"
 ordering = "AFTER"
 side = "CLIENT"

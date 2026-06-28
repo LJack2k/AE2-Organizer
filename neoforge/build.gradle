@@ -1,7 +1,9 @@
 plugins {
     id 'java-library'
-    // ModDevGradle — the modern way to develop NeoForge mods.
-    id 'net.neoforged.moddev' version '1.0.20'
+    // ModDevGradle's legacyforge plugin — supports MinecraftForge up to 1.20.1.
+    // (The 1.21.1/26.1 lines use the regular 'net.neoforged.moddev' plugin; this
+    // line targets Forge, so it uses the legacy variant. Same plugin version.)
+    id 'net.neoforged.moddev.legacyforge' version '2.0.141'
 }
 
 version = mod_version
@@ -9,12 +11,15 @@ group = mod_group_id
 
 java {
     // Driven by java_version in gradle.properties so the toolchain and the
-    // release workflow can never drift (1.21.x = 21, 26.1+ = 25).
+    // release workflow can never drift (1.20.1 = 17, 1.21.x = 21, 26.1+ = 25).
     toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
 }
 
 base {
-    archivesName = "${mod_name}-neoforge-${minecraft_version}"
+    // The subproject dir is historically 'neoforge'; this line builds a Forge jar.
+    // The loader token comes from mod_loaders so the artifact name matches the loader
+    // the release workflows publish under (forge here, neoforge on 1.21.1 / 26.1).
+    archivesName = "${mod_name}-${mod_loaders}-${minecraft_version}"
 }
 
 repositories {
@@ -23,7 +28,7 @@ repositories {
         name = 'NeoForged'
         url = 'https://maven.neoforged.net/releases'
     }
-    // CurseMaven — single source for AE2 + guideme. Coordinate format:
+    // CurseMaven — single source for AE2 + guideme + JEI. Coordinate format:
     //   curse.maven:<slug>-<projectId>:<fileId>
     maven {
         name = 'CurseMaven'
@@ -34,8 +39,8 @@ repositories {
     flatDir { dirs 'libs' }
 }
 
-neoForge {
-    version = neo_version
+legacyForge {
+    version = forge_version
 
     runs {
         client {
@@ -53,29 +58,43 @@ neoForge {
     }
 }
 
-dependencies {
-    // AE2 is required — we hook its client terminal internals. guideme is a
-    // transitive runtime dep AE2 needs but our code never touches, so it's
-    // runtimeOnly with no compileOnly counterpart.
-    compileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+// Mixin refmap generation (top-level extension registered by the legacyforge
+// plugin). Our mixins target a vanilla class (AbstractContainerScreen#imageWidth/
+// Height) whose fields are SRG-obfuscated in production, so a refmap is mandatory
+// on 1.20.1 (unlike the AE2-only mixins, which use AE2's unobfuscated names). The
+// Mixin annotation processor (added in dependencies) reads this config to emit the
+// refmap + the reobf mappings the reobfJar task consumes.
+mixin {
+    add sourceSets.main, 'ae2organizer.refmap.json'
+    config 'ae2organizer.mixins.json'
+}
 
-    // JEI — OPTIONAL integration. compileOnly builds the @JeiPlugin ghost-drag
+dependencies {
+    // Mixin annotation processor — the legacyforge plugin wires the refmap config
+    // above but does NOT add the processor itself, so declare it explicitly.
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // AE2 is required — we hook its client terminal internals. guideme is a
+    // REQUIRED runtime dep of AE2 1.20.1 that our code never touches. CurseForge
+    // jars ship SRG-mapped, so the mod* configurations remap them to official
+    // (Mojang) mappings for the dev compile/runtime.
+    modCompileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+    modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+    modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+
+    // JEI — OPTIONAL integration. modCompileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
     // dormant unless JEI is actually present at runtime, and JEI is not declared
-    // as a dependency in neoforge.mods.toml. runtimeOnly also puts JEI on the dev
-    // client for item search / cheat-spawn / drag testing.
-    compileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
-    runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    // as a dependency in mods.toml. modRuntimeOnly also puts JEI on the dev client
+    // for item search / cheat-spawn / drag testing.
+    modCompileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    modRuntimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
         minecraft_version       : minecraft_version,
         minecraft_version_range : minecraft_version_range,
-        neo_version             : neo_version,
-        neo_version_range       : neo_version_range,
         loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
         mod_id                  : mod_id,
@@ -87,7 +106,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/neoforge.mods.toml']) {
+    filesMatching(['META-INF/mods.toml']) {
         expand replaceProperties
     }
 }

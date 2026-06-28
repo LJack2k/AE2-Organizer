@@ -86,7 +86,9 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
     private static String conditionToJei(Condition condition) {
         return switch (condition.type()) {
             case MOD -> "@" + ((ModCondition) condition).modId();
-            case TAG -> "#" + ((TagCondition) condition).tagId().getPath();
+            // JEI 15.x (1.20.1) uses the `$` prefix for tag search (it's `#` on JEI 19.x / the
+            // 1.21.1 line). JEI indexes tags by path, so the namespace is dropped.
+            case TAG -> "$" + ((TagCondition) condition).tagId().getPath();
             case TEXT -> ((TextCondition) condition).text().trim();
             case COMPONENT -> null;
         };

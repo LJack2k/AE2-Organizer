@@ -161,7 +161,7 @@ public final class TabBarWidget extends AbstractWidget {
         if (gearHover) {
             graphics.fill(l.gearX, l.gearY, l.gearX + GEAR_SZ, l.gearY + GEAR_SZ, 0x33FFFFFF);
         }
-        Icon.COG.getBlitter().dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
+        Icon.WRENCH.getBlitter().dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
                 .colorArgb(Ae2Style.textColor()).blit(graphics);
         graphics.fill(l.contentX, l.contentY + TITLE_H, l.contentX + l.listW, l.contentY + TITLE_H + 1, 0x40000000);
 

@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -186,10 +185,10 @@ public final class TabEditorScreen extends Screen {
         listRowW = listW - (listNeedScroll ? SBW + 2 : 0);
         listSbX = listX + listW - SBW;
 
-        addRenderableWidget(new AE2Button(tabsX + 4, toolbarY, 39, BTN_H, Component.literal("Add"), b -> addTab()));
-        addRenderableWidget(new AE2Button(tabsX + 45, toolbarY, 39, BTN_H, Component.literal("Del"), b -> deleteTab()));
-        addRenderableWidget(new AE2Button(tabsX + 86, toolbarY, 18, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
-        addRenderableWidget(new AE2Button(tabsX + 106, toolbarY, 18, BTN_H, Component.literal("▼"), b -> moveTab(1)));
+        addRenderableWidget(new Ae2Button(tabsX + 4, toolbarY, 39, BTN_H, Component.literal("Add"), b -> addTab()));
+        addRenderableWidget(new Ae2Button(tabsX + 45, toolbarY, 39, BTN_H, Component.literal("Del"), b -> deleteTab()));
+        addRenderableWidget(new Ae2Button(tabsX + 86, toolbarY, 18, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
+        addRenderableWidget(new Ae2Button(tabsX + 106, toolbarY, 18, BTN_H, Component.literal("▼"), b -> moveTab(1)));
 
         // ---- Right column: Properties / Conditions / Inventory stacked ----
         rightX = tabsX + tabsW + 8;
@@ -251,11 +250,11 @@ public final class TabEditorScreen extends Screen {
             buildRightPanel(drafts.get(selected));
         }
 
-        addRenderableWidget(new AE2Button(innerX, footerY, 72, BTN_H,
+        addRenderableWidget(new Ae2Button(innerX, footerY, 72, BTN_H,
                 Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this))));
-        addRenderableWidget(new AE2Button(innerR - 120, footerY, 58, BTN_H,
+        addRenderableWidget(new Ae2Button(innerR - 120, footerY, 58, BTN_H,
                 Component.literal("Cancel"), b -> onClose()));
-        addRenderableWidget(new AE2Button(innerR - 58, footerY, 58, BTN_H,
+        addRenderableWidget(new Ae2Button(innerR - 58, footerY, 58, BTN_H,
                 Component.literal("Save"), b -> commitAndClose()));
     }
 
@@ -268,18 +267,18 @@ public final class TabEditorScreen extends Screen {
         addRenderableWidget(name);
 
         // Icon: recessed slot (drawn in render) + Pick button; slot is a ghost target
-        addRenderableWidget(new AE2Button(fieldX + 22, iconRowY, propsRight - (fieldX + 22), BTN_H,
+        addRenderableWidget(new Ae2Button(fieldX + 22, iconRowY, propsRight - (fieldX + 22), BTN_H,
                 Component.literal("Pick…"), b -> openIconPicker(draft)));
         ghostTargets.add(new GhostTarget(new Rect2i(iconX, iconY, 18, 18), stack -> draft.icon = idOf(stack)));
 
         // Conditions control row: Mode (how the conditions combine) + Add.
-        addRenderableWidget(new AE2Button(modeBtnX, ctrlRowY, modeBtnW, BTN_H,
+        addRenderableWidget(new Ae2Button(modeBtnX, ctrlRowY, modeBtnW, BTN_H,
                 Component.literal(draft.mode == MatchMode.ALL ? "Match ALL" : "Match ANY"),
                 b -> {
                     draft.mode = draft.mode == MatchMode.ALL ? MatchMode.ANY : MatchMode.ALL;
                     rebuildWidgets();
                 }));
-        addRenderableWidget(new AE2Button(addBtnX, ctrlRowY, addBtnW, BTN_H,
+        addRenderableWidget(new Ae2Button(addBtnX, ctrlRowY, addBtnW, BTN_H,
                 Component.literal("+ Add condition"), b -> {
             draft.conditions.add(CondDraft.fresh());
             condScroll = Integer.MAX_VALUE / 2;     // jump to the new last row; init clamps
@@ -296,7 +295,7 @@ public final class TabEditorScreen extends Screen {
             int removeX = contentR - 18;
             int fieldStart = rightX + 4 + TYPE_W + 2;
 
-            addRenderableWidget(new AE2Button(rightX + 4, rowY, TYPE_W, BTN_H,
+            addRenderableWidget(new Ae2Button(rightX + 4, rowY, TYPE_W, BTN_H,
                     Component.literal("Type: " + cond.type.getSerializedName()),
                     b -> {
                         cond.type = cycle(cond.type);
@@ -324,21 +323,21 @@ public final class TabEditorScreen extends Screen {
                 value.setValue(cond.value);
                 value.setResponder(s -> cond.value = s);
                 addRenderableWidget(value);
-                addRenderableWidget(new AE2Button(pickX, rowY, 18, BTN_H,
+                addRenderableWidget(new Ae2Button(pickX, rowY, 18, BTN_H,
                         Component.literal("…"), b -> openConditionPicker(cond)));
                 ghostTargets.add(new GhostTarget(new Rect2i(fieldStart, rowY, boxW, 18),
                         stack -> applyDroppedToCondition(cond, stack)));
             }
 
-            addRenderableWidget(new AE2Button(removeX, rowY, 18, BTN_H, Component.literal("✖"), b -> {
+            addRenderableWidget(new Ae2Button(removeX, rowY, 18, BTN_H, Component.literal("✖"), b -> {
                 draft.conditions.remove(condIndex);
                 rebuildWidgets();
             }));
         }
     }
 
-    private AE2Button matchButton(CondDraft cond, int x, int y, int width) {
-        return new AE2Button(x, y, width, BTN_H, Component.literal(cond.componentMatch.getSerializedName()), b -> {
+    private Ae2Button matchButton(CondDraft cond, int x, int y, int width) {
+        return new Ae2Button(x, y, width, BTN_H, Component.literal(cond.componentMatch.getSerializedName()), b -> {
             cond.componentMatch = cycle(cond.componentMatch);
             rebuildWidgets();
         });
@@ -356,7 +355,7 @@ public final class TabEditorScreen extends Screen {
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
         int tc = Ae2Style.textColor();
@@ -391,6 +390,7 @@ public final class TabEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         drawTabList(graphics, mouseX, mouseY);
 
@@ -701,20 +701,20 @@ public final class TabEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (listNeedScroll && inRect(mouseX, mouseY, listX, listY, listW, listVisible * ROW_HE)) {
-            listScroll = Math.max(0, Math.min(listScroll + (scrollY < 0 ? 1 : -1), listMaxScroll));
+            listScroll = Math.max(0, Math.min(listScroll + (delta < 0 ? 1 : -1), listMaxScroll));
             return true;
         }
         if (condNeedScroll && inRect(mouseX, mouseY, rightX, condRowsTop, rightW, condVisible * COND_ROW_H)) {
-            int next = Math.max(0, Math.min(condScroll + (scrollY < 0 ? 1 : -1), condMaxScroll));
+            int next = Math.max(0, Math.min(condScroll + (delta < 0 ? 1 : -1), condMaxScroll));
             if (next != condScroll) {
                 condScroll = next;
                 rebuildWidgets();
             }
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     // ---- Mutable working copies -------------------------------------------

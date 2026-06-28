@@ -8,8 +8,8 @@ import nl.ljack2k.ae2organizer.filter.TabFilterHolder;
 import nl.ljack2k.ae2organizer.mixin.MEStorageScreenAccessor;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.client.event.ScreenEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
@@ -107,7 +107,7 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onMouseScrolled(ScreenEvent.MouseScrolled.Pre event) {
         if (isActive(event.getScreen())
-                && activeBar.handleScroll(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY())) {
+                && activeBar.handleScroll(event.getMouseX(), event.getMouseY(), event.getScrollDelta())) {
             event.setCanceled(true);
         }
     }

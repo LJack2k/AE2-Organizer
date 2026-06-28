@@ -5,21 +5,18 @@ import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.function.Predicate;
 
 /**
- * Matches item keys by a per-stack data component. {@link #arg()} is unused for
- * presence checks and carries the data key / component-type id for the
- * argument-taking matches. Always guards on {@link AEItemKey} so fluid/other
- * keys never match.
+ * Matches item keys by per-stack NBT. (1.20.1 has no data components, so this is
+ * NBT-based — unlike the 1.21.1/26.1 lines, which use the data-component API.)
+ * {@link #arg()} is unused for presence checks and carries the NBT key for the
+ * argument-taking match. Always guards on {@link AEItemKey} so fluid/other keys
+ * never match.
  */
 public record ComponentCondition(ComponentMatch match, String arg) implements Condition {
 
@@ -36,37 +33,31 @@ public record ComponentCondition(ComponentMatch match, String arg) implements Co
     @Override
     public Predicate<AEKey> toPredicate() {
         return switch (match) {
-            case ENCHANTED -> key -> key instanceof AEItemKey ik && isEnchanted(ik.getReadOnlyStack());
-            case HAS_CUSTOM_NAME -> key -> key instanceof AEItemKey ik
-                    && ik.getReadOnlyStack().has(DataComponents.CUSTOM_NAME);
+            case ENCHANTED -> key -> key instanceof AEItemKey ik && isEnchanted(ik);
+            case HAS_CUSTOM_NAME -> key -> key instanceof AEItemKey ik && ik.getReadOnlyStack().hasCustomHoverName();
             case DAMAGED -> key -> key instanceof AEItemKey ik && ik.isDamaged();
             case HAS_CUSTOM_DATA_KEY -> {
                 String dataKey = arg.trim();
                 yield dataKey.isEmpty()
                         ? key -> false
-                        : key -> key instanceof AEItemKey ik && hasCustomDataKey(ik.getReadOnlyStack(), dataKey);
-            }
-            case HAS_COMPONENT_TYPE -> {
-                ResourceLocation rl = ResourceLocation.tryParse(arg.trim());
-                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl);
-                yield componentType == null
-                        ? key -> false
-                        : key -> key instanceof AEItemKey ik && ik.getReadOnlyStack().has(componentType);
+                        : key -> key instanceof AEItemKey ik && hasNbtKey(ik, dataKey);
             }
         };
     }
 
-    private static boolean isEnchanted(ItemStack stack) {
-        ItemEnchantments enchantments = stack.get(DataComponents.ENCHANTMENTS);
-        if (enchantments != null && !enchantments.isEmpty()) {
+    /** Active enchantments (tools/armour) or stored ones (enchanted books). */
+    private static boolean isEnchanted(AEItemKey ik) {
+        ItemStack stack = ik.getReadOnlyStack();
+        if (stack.isEnchanted()) {
             return true;
         }
-        ItemEnchantments stored = stack.get(DataComponents.STORED_ENCHANTMENTS);
-        return stored != null && !stored.isEmpty();
+        CompoundTag tag = ik.getTag();
+        return tag != null && !tag.getList("StoredEnchantments", Tag.TAG_COMPOUND).isEmpty();
     }
 
-    private static boolean hasCustomDataKey(ItemStack stack, String dataKey) {
-        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-        return customData != null && customData.copyTag().contains(dataKey);
+    /** True if the stack's NBT carries a top-level key (the 1.20.1 analogue of a custom-data key). */
+    private static boolean hasNbtKey(AEItemKey ik, String dataKey) {
+        CompoundTag tag = ik.getTag();
+        return tag != null && tag.contains(dataKey);
     }
 }

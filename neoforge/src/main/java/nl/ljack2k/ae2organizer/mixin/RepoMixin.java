@@ -26,7 +26,9 @@ import java.util.function.Predicate;
  * and persists across incremental updates, so newly streamed entries stay
  * filtered too. {@code null} means "show everything".
  */
-@Mixin(Repo.class)
+// remap = false: AE2's classes ship un-obfuscated, so the mixin AP must not try
+// to map this target to SRG (only vanilla targets go through the refmap).
+@Mixin(value = Repo.class, remap = false)
 public abstract class RepoMixin implements TabFilterHolder {
 
     @Unique

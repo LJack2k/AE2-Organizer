@@ -126,7 +126,7 @@ public final class Ae2Style {
         @Override
         public void onClick(double mouseX, double mouseY) {
             if (selectAllOnClick) {
-                moveCursorToEnd(false); // caret to end, clearing any prior highlight
+                moveCursorToEnd(); // caret to end, clearing any prior highlight
                 setHighlightPos(0);     // extend selection back to the start
             } else {
                 super.onClick(mouseX, mouseY);

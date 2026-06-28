@@ -18,7 +18,10 @@ import java.util.function.Predicate;
  */
 public interface Condition {
 
-    Codec<Condition> CODEC = ConditionType.CODEC.dispatch("type", Condition::type, ConditionType::codec);
+    // DFU 6.0.8 (MC 1.20.1) dispatch expects the per-type function to return a
+    // Codec (1.21.1's DFU takes a MapCodec); ConditionType holds MapCodecs, so
+    // adapt with .codec(). The only divergence here from the 1.21.1 source.
+    Codec<Condition> CODEC = ConditionType.CODEC.dispatch("type", Condition::type, t -> t.codec().codec());
 
     ConditionType type();
 

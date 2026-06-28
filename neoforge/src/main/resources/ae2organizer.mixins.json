@@ -2,7 +2,8 @@
   "required": true,
   "minVersion": "0.8.5",
   "package": "nl.ljack2k.ae2organizer.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "ae2organizer.refmap.json",
   "client": [
     "AbstractContainerScreenAccessor",
     "MEStorageScreenAccessor",

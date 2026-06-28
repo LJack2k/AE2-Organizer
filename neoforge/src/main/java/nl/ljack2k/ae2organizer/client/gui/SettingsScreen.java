@@ -1,7 +1,6 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
 import appeng.client.gui.style.ScreenStyle;
-import appeng.client.gui.widgets.AE2Button;
 import appeng.client.gui.widgets.AECheckbox;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -106,7 +105,7 @@ public final class SettingsScreen extends Screen {
         addRenderableWidget(new SizeSlider(left + 10, top + 148, panelW - 20, 18));
 
         int actionY = top + panelH - 26;
-        addRenderableWidget(new AE2Button(left + panelW - 130, actionY, 58, 20,
+        addRenderableWidget(new Ae2Button(left + panelW - 130, actionY, 58, 20,
                 Component.literal("Save"), b -> {
             boolean reset = resetBox != null ? resetBox.isSelected() : resetFilterOnOpen;
             boolean labels = labelsBox != null ? labelsBox.isSelected() : showTabLabels;
@@ -115,12 +114,12 @@ public final class SettingsScreen extends Screen {
             TabManager.setSettings(new Settings(reset, labels, tabScale, clearSearch, syncJei));
             onClose();
         }));
-        addRenderableWidget(new AE2Button(left + panelW - 68, actionY, 58, 20,
+        addRenderableWidget(new Ae2Button(left + panelW - 68, actionY, 58, 20,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
         Ae2Style.panel(graphics, left, top, panelW, panelH);
         int tc = Ae2Style.textColor();
@@ -138,6 +137,7 @@ public final class SettingsScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         drawPreview(graphics, left + 10, previewY);
     }

@@ -1,6 +1,6 @@
 package nl.ljack2k.ae2organizer.client;
 
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 /** Mod-bus client setup: load the saved tabs once the client is ready. */
 public final class ClientSetup {

@@ -1,10 +1,10 @@
 # AE2Organizer
 
-A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to Applied Energistics 2 terminals. Create tabs that narrow the ME/Crafting terminal to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
+A client-side [Forge](https://minecraftforge.net/) mod that adds user-defined **filter tabs** to Applied Energistics 2 terminals. Create tabs that narrow the ME/Crafting terminal to just the items you want — by mod, item tag, name, or per-stack NBT — and switch between them with one click.
 
 ![AE2Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
-- **Minecraft** 1.21.1 · **NeoForge** 21.1.x · **AE2** 19.2.x (required)
+- **Minecraft** 1.20.1 · **Forge** 47.4.x · **AE2** 15.4.x (required)
 - **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.
@@ -42,17 +42,16 @@ Each tab combines its conditions with **Match ANY** (OR) or **Match ALL** (AND):
 | `mod` | items from a mod id | `create` |
 | `tag` | items in an item tag | `c:ingots` |
 | `text` | display name contains text (case-insensitive) | `sword` |
-| `component` | a per-stack data component (see below) | — |
+| `component` | a per-stack NBT check (see below) | — |
 
-Component checks:
+Component checks (per-stack NBT):
 
 - `enchanted` — has enchantments (or stored enchantments, for books)
 - `named` — has a custom name
 - `damaged` — has taken damage
-- `custom_data_key` — its custom data contains a given NBT key (the *arg* field)
-- `component_type` — has a given component type id, e.g. `minecraft:potion_contents` (the *arg* field)
+- `custom_data_key` — its NBT contains a given top-level key (the *arg* field)
 
-> **Tag tip (1.21):** common tags use the `c:` namespace on NeoForge — `c:ingots`, `c:nuggets`, `c:ores`, and so on. The old `forge:` namespace is gone. Dragging an item onto a `tag` condition lists its real tags, so you don't have to guess.
+> **Tag tip (1.20.1):** common tags use the `forge:` namespace on Forge — `forge:ingots`, `forge:nuggets`, `forge:ores`, and so on. Dragging an item onto a `tag` condition lists its real tags, so you don't have to guess.
 
 ## Settings
 
@@ -61,7 +60,7 @@ In the editor, click **Settings…**:
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
 - **Show tab names as labels** — on: the bar shows wide labelled buttons. Off (default): icon-only cells with the name on hover.
 - **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
-- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. *Component* conditions have no JEI equivalent and are skipped. Off (default).
+- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `$tag` (JEI 15.x uses `$` for tags), `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. *Component* conditions have no JEI equivalent and are skipped. Off (default).
 - **Tab size** — a slider (with a live preview row) that scales the filter buttons, so you can pack more in or make them easier to read.
 
 Your tabs and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

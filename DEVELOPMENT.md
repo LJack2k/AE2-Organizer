@@ -4,15 +4,16 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 
 ## Requirements / toolchain
 
-- Minecraft **1.21.1**, NeoForge **21.1.x** (built against 21.1.193), Java **21**.
-- Applied Energistics 2 **[19.2,19.3)** — required at runtime, client side.
-- JEI — optional; compiled against for the drag integration, never bundled.
-- Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + the `neoforge/` subproject (so a `fabric/` module could be added later).
+- Minecraft **1.20.1**, **MinecraftForge 47.4.20**, Java **17**. (NeoForge 1.20.1 uses the same `net.minecraftforge` packages and would also work, but AE2 15.4.10 ships only Forge/Fabric — so this line targets Forge.)
+- Applied Energistics 2 **[15.4,15.5)** — required at runtime, client side. guideme **20.1.x** is a required runtime dep of AE2 (a standalone mod, not jar-in-jar).
+- JEI **15.x** — optional; compiled against for the drag integration, never bundled.
+- Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin: reobfuscates to SRG and generates a Mixin refmap). Multi-project: minimal root + the `neoforge/` subproject (dir name carried over from the NeoForge lines; it builds a Forge jar).
+- Build Gradle on a **JDK 17 or 21 launcher** (Gradle 8.10.2 predates JDK 25): `JAVA_HOME=…/jdk-21… ./gradlew …`. The Java-17 toolchain that compiles the mod is auto-provisioned (foojay).
 
 ## Building
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
 ./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI) for testing
 ```
 
@@ -20,7 +21,7 @@ The output jar contains only this mod's classes/resources — AE2, guideme and J
 
 ### Versions
 
-Set in `gradle.properties` (`mod_version`, `minecraft_version`, `neo_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; JEI is `jei_curse_file_id`. Both resolve via the CurseMaven repo.
+Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; JEI is `jei_curse_file_id`. Both resolve via the CurseMaven repo.
 
 ## Publishing (CurseForge + Modrinth)
 
@@ -34,8 +35,8 @@ Three tag-triggered workflows under `.github/workflows/` (modelled on JackItToMe
 
 `workflow_run` uses the workflow file from the repo's **default branch**, so the default branch must
 always carry these (version-aware) workflows. This project keeps one long-lived branch per Minecraft
-line — `1.21.1` (currently the default) and `26.1` — with the "featured" line chosen via the
-default-branch setting (not by renaming branches). The workflows read `minecraft_version` /
+line — `1.21.1` (currently the default), `26.1`, and `1.20.1` (Forge) — with the "featured" line chosen
+via the default-branch setting (not by renaming branches). The workflows read `minecraft_version` /
 `java_version` / `mod_version` from the published line's `gradle.properties`, so one set of files
 serves every branch.
 
@@ -53,6 +54,12 @@ Minecraft line appended so tags stay unique across branches —
 Only `v*` tag pushes publish; the workflow derives the game version, Java version and the `<ver>+<mc>`
 platform version string from `gradle.properties`. AE2 (required) and JEI (optional) dependency links
 are declared in the publish workflows.
+
+> **The 1.20.1 (Forge) line is not release-wired yet.** The publish workflows run from the **default
+> branch** and hardcode `loaders: neoforge` (and a `neoforge` token in the asset name). Before tagging
+> `v…-mc1.20.1`, make `loaders` version-aware — read a `mod_loaders` property from the tagged commit's
+> `gradle.properties` (set `mod_loaders=forge` here, `=neoforge` on `1.21.1`/`26.1`) — on the default
+> branch. Until then, build this line's jar locally with `:neoforge:build`.
 
 ## Config file
 
@@ -83,7 +90,7 @@ Everything is client-side; nothing registers on a dedicated server (the AE2 depe
 - **`mixin/MEStorageScreenAccessor`** — `@Accessor`s for AE2's `protected final Repo repo` and its `AETextField searchField`. The `searchField` accessor backs the *Clear search bar when selecting a tab* setting: it empties the visible search box, while `repo.setSearchString("")` clears the underlying filter string (both are needed — clearing only one leaves the box and the filter out of sync).
 - **`mixin/AbstractContainerScreenAccessor`** — `@Accessor` for `imageWidth`/`imageHeight`, used to position the tab bar.
 
-Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.mods.toml`), `required: true`, all under `client`. No refmap (AE2 ships official names).
+Mixins are configured in `ae2organizer.mixins.json` (referenced from `mods.toml`), `required: true`, all under `client`. A **refmap is generated** (production reobfuscates to SRG) for the vanilla `AbstractContainerScreenAccessor` (`imageWidth`/`imageHeight` → SRG); the AE2-targeting mixins carry `@Mixin(…, remap = false)` because AE2 ships un-obfuscated. The Mixin annotation processor is declared explicitly in `build.gradle` (the legacyforge `mixin { }` block only wires the refmap config).
 
 ### Filter model — `filter/`
 
@@ -97,7 +104,7 @@ Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.m
 - The screens (`TabEditorScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee.
 - **`Ae2Style`** themes those screens through AE2's own pipeline (so AE2 dark-mode packs apply automatically) and replaces vanilla's blurred menu background with a plain dim via a `renderBackground` override:
   - `BackgroundGenerator` draws the nine-sliced `background.png` panel; `StyleManager` + `PaletteColor` supply text colours from `palette.json` (with fallbacks).
-  - AE2 widgets used directly: `AE2Button`, `AECheckbox`, and `Icon.COG` (tinted to the palette colour). Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
+  - AE2 widgets used directly: `AECheckbox` and `Icon.WRENCH` (tinted to the palette colour). Text buttons are a local `Ae2Button` (extends vanilla `Button`, drawn via `Ae2Style.bevelButton`) — AE2 15.4 has no generic text button. Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
   - Helpers render item icons and text at an arbitrary scale, driving the `tabScale` setting.
 - **Inventory drag** is custom: the editor renders the player inventory read-only (never mutating it) and drops resolve against the same `GhostTarget` rects the JEI handler uses.
 
@@ -107,7 +114,7 @@ A `@JeiPlugin` registers two GUI handlers and stays dormant if JEI is absent:
 - a **ghost-ingredient handler** (`EditorGhostHandler`) — accepts items dragged from JEI onto the editor's `GhostTarget`s;
 - a **screen handler** (`EditorGuiProperties`) — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen, which is what makes dragging from JEI possible at all.
 
-It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `#tag` (tag *path* only, no namespace) / the item name — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `component` conditions have no JEI equivalent and are dropped. Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
+It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `$tag` (JEI 15.x's tag prefix is `$`, not `#`; tag *path* only, no namespace) / the item name — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `component` conditions have no JEI equivalent and are dropped. Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
 
 ## Notes / limitations
 

@@ -60,19 +60,28 @@ Per client, at `config/ae2organizer/tabs.json`:
 
 ```json
 {
-  "version": 1,
-  "settings": { "resetFilterOnOpen": false, "showTabLabels": false, "tabScale": 1.15, "clearSearchOnTabSelect": false, "syncJeiOnTabSelect": false },
+  "version": 2,
+  "settings": { "resetFilterOnOpen": false, "clearSearchOnTabSelect": false, "syncJeiOnTabSelect": false },
+  "windows": [
+    { "id": "main", "name": "Filters", "orientation": "vertical", "showLabels": true, "scale": 1.15,
+      "position": "dock", "x": 0, "y": 0, "showGear": true, "showAll": true,
+      "placements": { "ae2:craftingterm": { "mode": "free", "x": 120, "y": 40 } },
+      "baseTerminal": "ae2:craftingterm", "hiddenOn": [ "ae2:wirelessterm" ], "collapsed": false }
+  ],
   "tabs": [
     { "id": "ingots", "name": "Ingots", "icon": "minecraft:iron_ingot", "mode": "any",
-      "conditions": [ { "type": "tag", "tag": "c:ingots" } ] }
-  ]
+      "conditions": [ { "type": "tag", "tag": "c:ingots" } ], "window": "main" }
+  ],
+  "terminalNames": { "ae2:craftingterm": "" }
 }
 ```
 
 - Loaded on `FMLClientSetupEvent`. Missing or invalid pieces fall back to defaults; a few example tabs are seeded on first run.
-- Tabs are written on editor **Done**, settings on change. Writes are atomic (temp file + move).
-- A condition is `{ "type": "mod"|"tag"|"text"|"component", ... }` — e.g. `{"type":"mod","modId":"create"}`, `{"type":"text","text":"sword"}`, `{"type":"component","match":"enchanted"}`. (De)serialized with Mojang Codecs.
-- Any condition may carry `"negate": true` to make it an **exclusion**; the field is optional and defaults to `false`, so older files load unchanged. `Tab#toPredicate()` combines positives by `mode` and always AND-excludes the negated ones: *(positives) and not (any exclusion)*.
+- Written on editor **Save**, on settings change, and on live window drags. Writes are atomic (temp file + move).
+- A condition is `{ "type": "mod"|"tag"|"text"|"component", ... }` — e.g. `{"type":"mod","modId":"create"}`, `{"type":"text","text":"sword"}`, `{"type":"component","match":"enchanted"}`. (De)serialized with Mojang Codecs. Any condition may carry `"negate": true` to make it an **exclusion** (optional, defaults `false`); `Tab#toPredicate()` combines positives by `mode` and AND-excludes the negated ones: *(positives) and not (any exclusion)*.
+- **Windows** own presentation only; the active tab is global (one at a time). Each `Tab` names its `window`; every window property is optional with a sane default. `position` is `dock`/`center`/`free`; per-terminal overrides live in `placements` (keyed by menu-type id), with `baseTerminal` as the inherited fallback for terminals not yet placed. `hiddenOn` lists terminal types where the window is hidden; `collapsed` is the editor tree state.
+- **v1 → v2 migration:** a file without `windows` is upgraded on load — one `main` window is synthesised carrying the legacy `settings.showTabLabels`/`tabScale`, and every tab keeps its default `window: "main"`.
+- `terminalNames` remembers a friendly name per terminal type as they're opened (AE2 screens often have a blank vanilla title, so the visibility UI falls back to a known-id map / prettified id).
 
 ## Architecture
 
@@ -90,16 +99,18 @@ Mixins are configured in `ae2organizer.mixins.json` (referenced from `neoforge.m
 
 `Tab` + `Condition` (`ModCondition`, `TagCondition`, `TextCondition`, `ComponentCondition`) with Codecs. `Tab#toPredicate()` / `Condition#toPredicate()` build a `Predicate<AEKey>`. Conditions guard on `AEItemKey`, so fluid/other keys never match item conditions, and precompute expensive bits (resolved `TagKey`s, lowercased text, registry lookups) because the predicate runs over every key on each terminal view refresh.
 
+`FilterWindow` is the presentation layer: `Orientation` (vertical/horizontal), `PositionMode` (dock/center/free) + coords, per-window scale/labels/gear/all/collapsed, a `Map<String, Placement>` of per-terminal position overrides keyed by menu-type id, a `baseTerminal` (the first-placed terminal others inherit), and `hiddenOn` (terminal types to hide on). It affects only where/how tabs are drawn — the filter predicate is unchanged, and exactly one tab is active across all windows.
+
 ### UI — `client/`, `client/gui/`
 
-- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, attaches `TabBarWidget` and re-applies the active tab. The bar's mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events, because AE2's terminal overrides `mouseScrolled`/`mouseDragged` and consumes them before added widgets receive them. Registered (client-only) from the `@Mod` constructor.
-- **`TabManager`** — client singleton holding tabs, the active selection, and settings; **`TabStorage`** does the JSON persistence (see above).
-- **`TabBarWidget`** — the right-hand "Filters" panel: one `BackgroundGenerator` panel sized to the terminal, a title bar (name + gear), bevelled rows (active = sunken), a scrollbar when the tabs overflow, and a `tabScale`-driven size. Its X anchors past the panel image **and** any real menu slot that sticks out (measured to the slot's 18px frame), so it clears terminals with extra card slots (e.g. the Wireless Crafting Grid).
-- The screens (`TabEditorScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee.
+- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, builds one `TabBarWidget` **per window visible on that terminal type** and re-applies the active tab; the list is rebuilt when the terminal instance or the visible-window signature changes. Mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events (AE2's terminal consumes `mouseScrolled`/`mouseDragged` before added widgets see them) and fanned out to every bar. Also renders the move-mode banner, and registers the client command `/ae2organizer resetwindows` (`RegisterClientCommandsEvent`). It remembers each opened terminal's key (and title, if any) via `TabManager.rememberTerminal`. Registered (client-only) from the `@Mod` constructor.
+- **`TabManager`** — client singleton holding windows, tabs, the (global) active selection, settings, transient move-mode, and remembered terminal names; **`TabStorage`** does the JSON persistence and v1→v2 migration (see above). `visibleWindows(terminalKey)` applies `hiddenOn` with a lockout safeguard (always returns ≥1 window so a gear stays reachable).
+- **`TabBarWidget`** — one window's panel: a `BackgroundGenerator` panel, an "All" entry (optional) + the window's tabs as bevelled rows/cells (active = sunken), a gear (right for vertical, left for horizontal), vertical **or** horizontal layout, per-window scale, and a scrollbar when it overflows. Its dock X anchors past the panel image **and** any real menu slot that sticks out (18px frame) so it clears terminals with extra card slots (e.g. the Wireless Crafting Grid). Position resolves per terminal (`FilterWindow#resolve`); in move-mode (explicit toggle or **Shift** held) the whole panel drags to a `free` position saved per terminal, and a window dragged fully off-screen snaps back to center on the next frame.
+- The screens (`TabEditorScreen` — a windows-and-tabs tree, `WindowVisibilityScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee.
 - **`Ae2Style`** themes those screens through AE2's own pipeline (so AE2 dark-mode packs apply automatically) and replaces vanilla's blurred menu background with a plain dim via a `renderBackground` override:
   - `BackgroundGenerator` draws the nine-sliced `background.png` panel; `StyleManager` + `PaletteColor` supply text colours from `palette.json` (with fallbacks).
   - AE2 widgets used directly: `AE2Button`, `AECheckbox`, and `Icon.COG` (tinted to the palette colour). Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
-  - Helpers render item icons and text at an arbitrary scale, driving the `tabScale` setting.
+  - Helpers render item icons and text at an arbitrary scale, driving each window's per-window size.
 - **Inventory drag** is custom: the editor renders the player inventory read-only (never mutating it) and drops resolve against the same `GhostTarget` rects the JEI handler uses.
 
 ### JEI integration — `jei/` (optional)
@@ -114,4 +125,4 @@ It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailabl
 
 - AE2's `Repo` / `MEStorageScreen` and the `appeng.client.gui.style.*` / `widgets.*` classes are **internal, not public API**. The AE2 version range is pinned tight and mixins are `required: true`, so the mod fails loudly rather than silently mis-filtering or mis-rendering if AE2's internals change between versions; the style layer falls back to a default colour if it can't load.
 - Component matching is **presence-based** — no value matching (e.g. "enchant level ≥ 3").
-- The tab bar and the editor's tab list both scroll; the editor's per-tab **condition** rows don't, so a tab with very many conditions can overflow the window. Typical counts fit comfortably.
+- The filter windows and the editor's tree both scroll; the editor's per-tab **condition** rows and the per-window **Terminals…** visibility list don't, so very many conditions / terminal types can overflow. Typical counts fit comfortably.

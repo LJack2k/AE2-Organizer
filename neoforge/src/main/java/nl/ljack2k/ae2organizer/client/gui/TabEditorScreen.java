@@ -61,6 +61,7 @@ public final class TabEditorScreen extends Screen {
     private static final int COND_ROW_H = 20;
     private static final int SBW = 8;
     private static final int TYPE_W = 86;
+    private static final int NOT_W = 30;
 
     private final Screen parent;
     private final List<TabDraft> drafts = new ArrayList<>();
@@ -187,10 +188,12 @@ public final class TabEditorScreen extends Screen {
         listRowW = listW - (listNeedScroll ? SBW + 2 : 0);
         listSbX = listX + listW - SBW;
 
-        addRenderableWidget(new AE2Button(tabsX + 4, toolbarY, 39, BTN_H, Component.literal("Add"), b -> addTab()));
-        addRenderableWidget(new AE2Button(tabsX + 45, toolbarY, 39, BTN_H, Component.literal("Del"), b -> deleteTab()));
-        addRenderableWidget(new AE2Button(tabsX + 86, toolbarY, 18, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
-        addRenderableWidget(new AE2Button(tabsX + 106, toolbarY, 18, BTN_H, Component.literal("▼"), b -> moveTab(1)));
+        int tb = tabsX + 4;
+        addRenderableWidget(new AE2Button(tb, toolbarY, 25, BTN_H, Component.literal("Add"), b -> addTab()));
+        addRenderableWidget(new AE2Button(tb + 27, toolbarY, 30, BTN_H, Component.literal("Copy"), b -> copyTab()));
+        addRenderableWidget(new AE2Button(tb + 59, toolbarY, 24, BTN_H, Component.literal("Del"), b -> deleteTab()));
+        addRenderableWidget(new AE2Button(tb + 85, toolbarY, 16, BTN_H, Component.literal("▲"), b -> moveTab(-1)));
+        addRenderableWidget(new AE2Button(tb + 103, toolbarY, 16, BTN_H, Component.literal("▼"), b -> moveTab(1)));
 
         // ---- Right column: Properties / Conditions / Inventory stacked ----
         rightX = tabsX + tabsW + 8;
@@ -295,12 +298,22 @@ public final class TabEditorScreen extends Screen {
             int rowY = condRowsTop + k * COND_ROW_H;
             int contentR = condNeedScroll ? condSbX - 2 : condContentR;
             int removeX = contentR - 18;
-            int fieldStart = rightX + 4 + TYPE_W + 2;
+            int notX = rightX + 4 + TYPE_W + 2;
+            int fieldStart = notX + NOT_W + 2;
 
             addRenderableWidget(new AE2Button(rightX + 4, rowY, TYPE_W, BTN_H,
                     Component.literal("Type: " + cond.type.getSerializedName()),
                     b -> {
                         cond.type = cycle(cond.type);
+                        rebuildWidgets();
+                    }));
+
+            // Include/Exclude toggle: when set, this condition hides matches
+            // (AND-combined as an exclusion, independent of the tab's mode).
+            addRenderableWidget(new AE2Button(notX, rowY, NOT_W, BTN_H,
+                    Component.literal(cond.negate ? "Not" : "Is"),
+                    b -> {
+                        cond.negate = !cond.negate;
                         rebuildWidgets();
                     }));
 
@@ -594,6 +607,22 @@ public final class TabEditorScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void copyTab() {
+        if (!hasSelection()) {
+            return;
+        }
+        TabDraft src = drafts.get(selected);
+        TabDraft copy = new TabDraft("tab-" + UUID.randomUUID().toString().substring(0, 8),
+                src.name + " (copy)", src.icon, src.mode);
+        for (CondDraft cond : src.conditions) {
+            copy.conditions.add(new CondDraft(cond.type, cond.value, cond.componentMatch, cond.negate));
+        }
+        drafts.add(selected + 1, copy);
+        selected = selected + 1;
+        condScroll = 0;
+        rebuildWidgets();
+    }
+
     private void deleteTab() {
         if (!hasSelection()) {
             return;
@@ -768,29 +797,31 @@ public final class TabEditorScreen extends Screen {
         ConditionType type;
         String value;
         ComponentMatch componentMatch;
+        boolean negate;
 
-        CondDraft(ConditionType type, String value, ComponentMatch componentMatch) {
+        CondDraft(ConditionType type, String value, ComponentMatch componentMatch, boolean negate) {
             this.type = type;
             this.value = value;
             this.componentMatch = componentMatch;
+            this.negate = negate;
         }
 
         static CondDraft fresh() {
-            return new CondDraft(ConditionType.MOD, "", ComponentMatch.ENCHANTED);
+            return new CondDraft(ConditionType.MOD, "", ComponentMatch.ENCHANTED, false);
         }
 
         static CondDraft from(Condition condition) {
             if (condition instanceof ModCondition c) {
-                return new CondDraft(ConditionType.MOD, c.modId(), ComponentMatch.ENCHANTED);
+                return new CondDraft(ConditionType.MOD, c.modId(), ComponentMatch.ENCHANTED, c.negate());
             }
             if (condition instanceof TagCondition c) {
-                return new CondDraft(ConditionType.TAG, c.tagId().toString(), ComponentMatch.ENCHANTED);
+                return new CondDraft(ConditionType.TAG, c.tagId().toString(), ComponentMatch.ENCHANTED, c.negate());
             }
             if (condition instanceof TextCondition c) {
-                return new CondDraft(ConditionType.TEXT, c.text(), ComponentMatch.ENCHANTED);
+                return new CondDraft(ConditionType.TEXT, c.text(), ComponentMatch.ENCHANTED, c.negate());
             }
             if (condition instanceof ComponentCondition c) {
-                return new CondDraft(ConditionType.COMPONENT, c.arg(), c.match());
+                return new CondDraft(ConditionType.COMPONENT, c.arg(), c.match(), c.negate());
             }
             return fresh();
         }
@@ -799,15 +830,15 @@ public final class TabEditorScreen extends Screen {
         @Nullable
         Condition build() {
             return switch (type) {
-                case MOD -> value.isBlank() ? null : new ModCondition(value.trim());
+                case MOD -> value.isBlank() ? null : new ModCondition(value.trim(), negate);
                 case TAG -> {
                     Identifier rl = Identifier.tryParse(value.trim());
-                    yield rl == null ? null : new TagCondition(rl);
+                    yield rl == null ? null : new TagCondition(rl, negate);
                 }
-                case TEXT -> value.isBlank() ? null : new TextCondition(value.trim());
+                case TEXT -> value.isBlank() ? null : new TextCondition(value.trim(), negate);
                 case COMPONENT -> componentMatch.usesArg()
-                        ? (value.isBlank() ? null : new ComponentCondition(componentMatch, value.trim()))
-                        : new ComponentCondition(componentMatch, "");
+                        ? (value.isBlank() ? null : new ComponentCondition(componentMatch, value.trim(), negate))
+                        : new ComponentCondition(componentMatch, "", negate);
             };
         }
     }

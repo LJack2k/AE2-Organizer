@@ -27,22 +27,36 @@ public record Tab(String id, String name, Identifier icon, MatchMode mode, List<
 
     /**
      * Builds the combined predicate for this tab. An empty condition list
-     * matches everything. Conditions are combined with AND ({@link MatchMode#ALL})
-     * or OR ({@link MatchMode#ANY}).
+     * matches everything.
+     * <p>
+     * Positive conditions are combined with AND ({@link MatchMode#ALL}) or OR
+     * ({@link MatchMode#ANY}). Negated conditions (see {@link Condition#negate()})
+     * are exclusions: they are always AND-combined and applied on top, so the tab
+     * reads as {@code (positives combined by mode) AND (none of the exclusions)}.
+     * A tab with only exclusions shows everything except those.
      */
     public Predicate<AEKey> toPredicate() {
-        if (conditions.isEmpty()) {
-            return key -> true;
-        }
-        Predicate<AEKey> combined = null;
+        Predicate<AEKey> positives = null;
+        Predicate<AEKey> exclusions = null;
         for (Condition condition : conditions) {
             Predicate<AEKey> part = condition.toPredicate();
-            if (combined == null) {
-                combined = part;
+            if (condition.negate()) {
+                Predicate<AEKey> without = part.negate();
+                exclusions = (exclusions == null) ? without : exclusions.and(without);
             } else {
-                combined = (mode == MatchMode.ALL) ? combined.and(part) : combined.or(part);
+                positives = (positives == null) ? part
+                        : (mode == MatchMode.ALL) ? positives.and(part) : positives.or(part);
             }
         }
-        return combined;
+        if (positives == null && exclusions == null) {
+            return key -> true;
+        }
+        if (positives == null) {
+            return exclusions;
+        }
+        if (exclusions == null) {
+            return positives;
+        }
+        return positives.and(exclusions);
     }
 }

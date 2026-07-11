@@ -103,13 +103,13 @@ public final class TabStorage {
         List<Tab> tabs = new ArrayList<>();
         tabs.add(new Tab("enchanted", "Enchanted",
                 Identifier.withDefaultNamespace("enchanted_book"), MatchMode.ANY,
-                List.of(new ComponentCondition(ComponentMatch.ENCHANTED, ""))));
+                List.of(new ComponentCondition(ComponentMatch.ENCHANTED, "", false))));
         tabs.add(new Tab("ingots", "Ingots",
                 Identifier.withDefaultNamespace("iron_ingot"), MatchMode.ANY,
-                List.of(new TagCondition(Identifier.parse("c:ingots")))));
+                List.of(new TagCondition(Identifier.parse("c:ingots"), false))));
         tabs.add(new Tab("named", "Named",
                 Identifier.withDefaultNamespace("name_tag"), MatchMode.ANY,
-                List.of(new ComponentCondition(ComponentMatch.HAS_CUSTOM_NAME, ""))));
+                List.of(new ComponentCondition(ComponentMatch.HAS_CUSTOM_NAME, "", false))));
         return tabs;
     }
 }

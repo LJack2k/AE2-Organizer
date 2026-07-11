@@ -21,11 +21,12 @@ import java.util.function.Predicate;
  * argument-taking matches. Always guards on {@link AEItemKey} so fluid/other
  * keys never match.
  */
-public record ComponentCondition(ComponentMatch match, String arg) implements Condition {
+public record ComponentCondition(ComponentMatch match, String arg, boolean negate) implements Condition {
 
     public static final MapCodec<ComponentCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             ComponentMatch.CODEC.fieldOf("match").forGetter(ComponentCondition::match),
-            Codec.STRING.optionalFieldOf("arg", "").forGetter(ComponentCondition::arg)
+            Codec.STRING.optionalFieldOf("arg", "").forGetter(ComponentCondition::arg),
+            Codec.BOOL.optionalFieldOf("negate", false).forGetter(ComponentCondition::negate)
     ).apply(i, ComponentCondition::new));
 
     @Override

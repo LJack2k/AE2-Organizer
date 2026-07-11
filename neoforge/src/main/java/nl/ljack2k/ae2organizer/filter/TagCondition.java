@@ -17,10 +17,11 @@ import java.util.function.Predicate;
  * Note (1.21 / NeoForge): common tags use the {@code c:} namespace
  * (e.g. {@code c:ingots}), not the old {@code forge:} namespace.
  */
-public record TagCondition(Identifier tagId) implements Condition {
+public record TagCondition(Identifier tagId, boolean negate) implements Condition {
 
     public static final MapCodec<TagCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            Identifier.CODEC.fieldOf("tag").forGetter(TagCondition::tagId)
+            Identifier.CODEC.fieldOf("tag").forGetter(TagCondition::tagId),
+            com.mojang.serialization.Codec.BOOL.optionalFieldOf("negate", false).forGetter(TagCondition::negate)
     ).apply(i, TagCondition::new));
 
     @Override

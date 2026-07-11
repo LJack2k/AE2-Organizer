@@ -72,6 +72,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 - Loaded on `FMLClientSetupEvent`. Missing or invalid pieces fall back to defaults; a few example tabs are seeded on first run.
 - Tabs are written on editor **Done**, settings on change. Writes are atomic (temp file + move).
 - A condition is `{ "type": "mod"|"tag"|"text"|"component", ... }` — e.g. `{"type":"mod","modId":"create"}`, `{"type":"text","text":"sword"}`, `{"type":"component","match":"enchanted"}`. (De)serialized with Mojang Codecs.
+- Any condition may carry `"negate": true` to make it an **exclusion**; the field is optional and defaults to `false`, so older files load unchanged. `Tab#toPredicate()` combines positives by `mode` and always AND-excludes the negated ones: *(positives) and not (any exclusion)*.
 
 ## Architecture
 
@@ -107,7 +108,7 @@ A `@JeiPlugin` registers two GUI handlers and stays dormant if JEI is absent:
 - a **ghost-ingredient handler** (`EditorGhostHandler`) — accepts items dragged from JEI onto the editor's `GhostTarget`s;
 - a **screen handler** (`EditorGuiProperties`) — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen, which is what makes dragging from JEI possible at all.
 
-It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `#tag` (tag *path* only, no namespace) / the item name — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `component` conditions have no JEI equivalent and are dropped. Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
+It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `#tag` (tag *path* only, no namespace) / the item name (quoted if it has spaces) — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `Not` conditions become JEI `-` exclusions; since JEI splits on `|` at the top level with no parentheses, exclusions are **distributed into every OR branch** (`p1 -n | p2 -n`) so the result still mirrors `Tab#toPredicate()`. `component` conditions have no JEI equivalent and are dropped (a negated component therefore can't be mirrored). Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
 
 ## Notes / limitations
 

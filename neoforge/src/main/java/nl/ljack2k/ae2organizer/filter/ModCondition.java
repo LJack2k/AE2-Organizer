@@ -8,10 +8,11 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 /** Matches keys whose mod id (namespace) equals the configured value. */
-public record ModCondition(String modId) implements Condition {
+public record ModCondition(String modId, boolean negate) implements Condition {
 
     public static final MapCodec<ModCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            com.mojang.serialization.Codec.STRING.fieldOf("modId").forGetter(ModCondition::modId)
+            com.mojang.serialization.Codec.STRING.fieldOf("modId").forGetter(ModCondition::modId),
+            com.mojang.serialization.Codec.BOOL.optionalFieldOf("negate", false).forGetter(ModCondition::negate)
     ).apply(i, ModCondition::new));
 
     @Override

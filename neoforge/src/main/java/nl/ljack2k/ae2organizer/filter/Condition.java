@@ -25,6 +25,17 @@ public interface Condition {
 
     ConditionType type();
 
-    /** A test against a stored key. Must tolerate non-item keys (fluids, etc.). */
+    /**
+     * When {@code true}, this condition is an <em>exclusion</em>: an entry
+     * matching {@link #toPredicate()} is hidden. Exclusions are always
+     * AND-combined regardless of the tab's {@link MatchMode}, so a tab reads as
+     * {@code (positives combined by mode) AND (none of the exclusions)}.
+     */
+    boolean negate();
+
+    /**
+     * The raw (non-negated) test against a stored key. Must tolerate non-item
+     * keys (fluids, etc.). {@link Tab} applies {@link #negate()} itself.
+     */
     Predicate<AEKey> toPredicate();
 }

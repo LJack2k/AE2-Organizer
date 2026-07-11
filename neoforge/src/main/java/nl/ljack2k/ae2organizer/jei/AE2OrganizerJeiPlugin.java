@@ -58,10 +58,22 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
 
     /**
      * Translates a tab's conditions to a JEI filter string, mirroring the tab's
-     * own match logic so JEI shows the same items as the terminal: ANY mode joins
-     * with {@code " | "} (OR), ALL mode joins with a space (AND).
+     * match logic so JEI shows the same items as the terminal.
+     * <p>
+     * Semantics match {@link Tab#toPredicate()}: positives combine by mode
+     * (ANY → OR, ALL → AND), and negated conditions are exclusions AND-combined
+     * on top. JEI's grammar splits on {@code |} at the top level (OR) with no
+     * parentheses, and a {@code -} token prefix excludes within a chunk. So we
+     * <em>distribute</em> the exclusions into every OR branch:
+     * <ul>
+     *   <li>ALL: {@code p1 p2 -n1}</li>
+     *   <li>ANY: {@code p1 -n1 | p2 -n1}</li>
+     *   <li>only exclusions: {@code -n1 -n2} (everything except)</li>
+     * </ul>
      * Returns {@code ""} for the "All" pseudo-tab (clears JEI's search) and
-     * {@code null} when no condition is translatable.
+     * {@code null} when no condition is translatable. Note {@code COMPONENT}
+     * conditions can't be expressed in JEI's grammar; a negated component is
+     * therefore dropped, so JEI may show slightly more than the terminal.
      */
     @Nullable
     private static String buildJeiFilter(@Nullable Tab tab) {
@@ -69,17 +81,35 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
         List<Condition> conditions = tab.conditions();
         if (conditions.isEmpty()) return "";
 
-        List<String> parts = new ArrayList<>();
+        List<String> positives = new ArrayList<>();
+        List<String> exclusions = new ArrayList<>();
         for (Condition condition : conditions) {
-            String part = conditionToJei(condition);
-            if (part != null && !part.isBlank()) {
-                parts.add(part);
+            String token = conditionToJei(condition);
+            if (token == null || token.isBlank()) continue;
+            if (condition.negate()) {
+                exclusions.add("-" + token);
+            } else {
+                positives.add(token);
             }
         }
-        if (parts.isEmpty()) return null;
-        // Mirror the tab's match logic: ANY → OR (" | "), ALL → AND (space).
-        String separator = tab.mode() == MatchMode.ANY ? " | " : " ";
-        return String.join(separator, parts);
+        if (positives.isEmpty() && exclusions.isEmpty()) return null;
+
+        String exclusionSuffix = String.join(" ", exclusions);
+        if (positives.isEmpty()) {
+            // Only exclusions: show everything except these (single chunk).
+            return exclusionSuffix;
+        }
+        if (tab.mode() == MatchMode.ALL) {
+            List<String> all = new ArrayList<>(positives);
+            all.addAll(exclusions);
+            return String.join(" ", all);
+        }
+        // ANY: OR of positives, each branch carrying the exclusions.
+        List<String> branches = new ArrayList<>(positives.size());
+        for (String positive : positives) {
+            branches.add(exclusions.isEmpty() ? positive : positive + " " + exclusionSuffix);
+        }
+        return String.join(" | ", branches);
     }
 
     @Nullable
@@ -89,7 +119,13 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
             // JEI 15.x (1.20.1) uses the `$` prefix for tag search (it's `#` on JEI 19.x / the
             // 1.21.1 line). JEI indexes tags by path, so the namespace is dropped.
             case TAG -> "$" + ((TagCondition) condition).tagId().getPath();
-            case TEXT -> ((TextCondition) condition).text().trim();
+            // Quote so a multi-word name stays one phrase token (mirrors the
+            // terminal's substring match); unquoted it would split into ANDed
+            // words, and a negated "-oak drawer" would leak "drawer" as positive.
+            case TEXT -> {
+                String text = ((TextCondition) condition).text().trim();
+                yield text.isEmpty() ? null : (text.contains(" ") ? "\"" + text + "\"" : text);
+            }
             case COMPONENT -> null;
         };
     }

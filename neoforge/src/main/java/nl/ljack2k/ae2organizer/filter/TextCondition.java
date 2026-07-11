@@ -9,10 +9,11 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 /** Matches keys whose display name contains the given text (case-insensitive). */
-public record TextCondition(String text) implements Condition {
+public record TextCondition(String text, boolean negate) implements Condition {
 
     public static final MapCodec<TextCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            Codec.STRING.fieldOf("text").forGetter(TextCondition::text)
+            Codec.STRING.fieldOf("text").forGetter(TextCondition::text),
+            Codec.BOOL.optionalFieldOf("negate", false).forGetter(TextCondition::negate)
     ).apply(i, TextCondition::new));
 
     @Override

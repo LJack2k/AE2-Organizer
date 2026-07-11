@@ -23,7 +23,7 @@ The panel matches the terminal's height and is drawn with AE2's own GUI style, s
 
 ## Editing tabs
 
-Click the ⚙ gear to open the editor. On the left you add / rename / reorder / delete tabs (the list scrolls); on the right you edit the selected tab (name, icon, match mode, conditions).
+Click the ⚙ gear to open the editor. On the left you add / copy / rename / reorder / delete tabs (the list scrolls) — **Copy** duplicates the selected tab (with all its conditions) so you can tweak a variant without rebuilding it; on the right you edit the selected tab (name, icon, match mode, conditions).
 
 Set a tab's **icon** and the item for `mod` / `tag` / `text` conditions in any of three ways:
 
@@ -44,6 +44,8 @@ Each tab combines its conditions with **Match ANY** (OR) or **Match ALL** (AND):
 | `text` | display name contains text (case-insensitive) | `sword` |
 | `component` | a per-stack data component (see below) | — |
 
+Each condition also has an **`Is` / `Not`** toggle. `Not` turns it into an **exclusion** — anything it matches is *hidden*. Exclusions always apply on top of the positive conditions regardless of the match mode, so a tab reads as *(positives combined by ANY/ALL) and none of the exclusions*. For example: **Match ANY**, `Is tag c:oak_logs`, `Is tag c:spruce_logs`, `Not mod sophisticatedstorage` shows oak **or** spruce wood, but never the storage-mod's drawers. A tab with only `Not` conditions shows everything except those.
+
 Component checks:
 
 - `enchanted` — has enchantments (or stored enchantments, for books)
@@ -61,7 +63,7 @@ In the editor, click **Settings…**:
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
 - **Show tab names as labels** — on: the bar shows wide labelled buttons. Off (default): icon-only cells with the name on hover.
 - **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
-- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. *Component* conditions have no JEI equivalent and are skipped. Off (default).
+- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. `Not` conditions become JEI exclusions (`-`), applied to every OR branch. *Component* conditions have no JEI equivalent and are skipped — so a `Not component` exclusion can't be mirrored and JEI may show a little more than the terminal. Off (default).
 - **Tab size** — a slider (with a live preview row) that scales the filter buttons, so you can pack more in or make them easier to read.
 
 Your tabs and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

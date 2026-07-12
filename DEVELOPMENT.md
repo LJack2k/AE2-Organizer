@@ -53,13 +53,9 @@ Minecraft line appended so tags stay unique across branches —
 `git tag v1.2.0-mc1.21.1 && git push origin v1.2.0-mc1.21.1` (or `…-mc26.1` from the `26.1` branch).
 Only `v*` tag pushes publish; the workflow derives the game version, Java version and the `<ver>+<mc>`
 platform version string from `gradle.properties`. AE2 (required) and JEI (optional) dependency links
-are declared in the publish workflows.
-
-> **The 1.20.1 (Forge) line is not release-wired yet.** The publish workflows run from the **default
-> branch** and hardcode `loaders: neoforge` (and a `neoforge` token in the asset name). Before tagging
-> `v…-mc1.20.1`, make `loaders` version-aware — read a `mod_loaders` property from the tagged commit's
-> `gradle.properties` (set `mod_loaders=forge` here, `=neoforge` on `1.21.1`/`26.1`) — on the default
-> branch. Until then, build this line's jar locally with `:neoforge:build`.
+are declared in the publish workflows. The publish jobs check out the **tagged commit** and read
+`mod_loaders` from its `gradle.properties` (`forge` here, `neoforge` on `1.21.1`/`26.1`), so the Forge
+line publishes with `loaders: forge` — released the same way as the NeoForge lines (e.g. `v1.2.0-mc1.20.1`).
 
 ## Config file
 

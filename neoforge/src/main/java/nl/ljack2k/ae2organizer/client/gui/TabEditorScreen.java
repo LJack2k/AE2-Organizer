@@ -27,6 +27,7 @@ import nl.ljack2k.ae2organizer.filter.PositionMode;
 import nl.ljack2k.ae2organizer.filter.Tab;
 import nl.ljack2k.ae2organizer.filter.TagCondition;
 import nl.ljack2k.ae2organizer.filter.TextCondition;
+import nl.ljack2k.ae2organizer.persist.TabShare;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -76,6 +77,10 @@ public final class TabEditorScreen extends Screen {
     // Flattened visible tree rows: each is {windowIndex, tabIndex(-1 for window)}.
     private final List<int[]> treeRows = new ArrayList<>();
     private int pendingDeleteWindow = -1;
+    // Tabs parsed from the clipboard, awaiting the import-replace confirmation.
+    @Nullable
+    private List<Tab> pendingImport;
+    private String status = "";
 
     @Nullable
     private ItemStack draggingStack;
@@ -248,7 +253,9 @@ public final class TabEditorScreen extends Screen {
         labelX = rightX + 4;
         fieldX = labelX + 34;
 
-        if (pendingDeleteWindow >= 0) {
+        if (pendingImport != null) {
+            buildConfirmImport();
+        } else if (pendingDeleteWindow >= 0) {
             buildConfirmDelete();
         } else if (editingWindow()) {
             buildWindowPanel();
@@ -268,7 +275,7 @@ public final class TabEditorScreen extends Screen {
 
     // ---- Right panel: window properties ------------------------------------
 
-    private static final int WIN_ROWS = 8;
+    private static final int WIN_ROWS = 9;
 
     private void buildWindowPanel() {
         WindowDraft w = selWindowDraft();
@@ -337,6 +344,60 @@ public final class TabEditorScreen extends Screen {
                     }
                     rebuildWidgets();
                 }));
+        rowY += 22;
+
+        // Share this window's tabs (conditions only) via the clipboard.
+        int halfW = (fW - 4) / 2;
+        addRenderableWidget(new AE2Button(fX, rowY, halfW, BTN_H,
+                Component.literal("Export"), b -> exportWindowTabs(w)));
+        addRenderableWidget(new AE2Button(fX + halfW + 4, rowY, fW - halfW - 4, BTN_H,
+                Component.literal("Import"), b -> importWindowTabs()));
+    }
+
+    private void exportWindowTabs(WindowDraft w) {
+        List<Tab> tabs = new ArrayList<>(w.tabs.size());
+        for (TabDraft t : w.tabs) {
+            tabs.add(t.toTab(w.id));
+        }
+        Minecraft.getInstance().keyboardHandler.setClipboard(TabShare.export(tabs));
+        status = "Copied " + tabs.size() + " tab(s) to clipboard";
+        rebuildWidgets();
+    }
+
+    private void importWindowTabs() {
+        String clip = Minecraft.getInstance().keyboardHandler.getClipboard();
+        List<Tab> parsed = TabShare.parse(clip).orElse(null);
+        if (parsed == null) {
+            status = "No AE2Organizer tabs on the clipboard";
+        } else {
+            pendingImport = parsed;   // ask before replacing
+        }
+        rebuildWidgets();
+    }
+
+    private void buildConfirmImport() {
+        int by = mainTop + 40;
+        addRenderableWidget(new AE2Button(rightX + 20, by, 80, BTN_H, Component.literal("Replace"), b -> {
+            WindowDraft w = selWindowDraft();
+            List<Tab> imported = pendingImport;
+            pendingImport = null;
+            if (w != null && imported != null) {
+                w.tabs.clear();
+                for (Tab t : imported) {
+                    TabDraft d = TabDraft.from(t);
+                    d.id = "tab-" + UUID.randomUUID().toString().substring(0, 8);   // fresh id
+                    w.tabs.add(d);
+                }
+                w.collapsed = false;
+                selTab = -1;
+                status = "Imported " + imported.size() + " tab(s)";
+            }
+            rebuildWidgets();
+        }));
+        addRenderableWidget(new AE2Button(rightX + 110, by, 80, BTN_H, Component.literal("Cancel"), b -> {
+            pendingImport = null;
+            rebuildWidgets();
+        }));
     }
 
     // ---- Right panel: confirm window delete --------------------------------
@@ -513,7 +574,16 @@ public final class TabEditorScreen extends Screen {
         Ae2Style.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
         Ae2Style.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
 
-        if (pendingDeleteWindow >= 0) {
+        if (pendingImport != null) {
+            graphics.drawString(this.font, "Confirm import", rightX, mainTop, tc, false);
+            Ae2Style.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
+            WindowDraft w = selWindowDraft();
+            int have = w == null ? 0 : w.tabs.size();
+            graphics.drawString(this.font, "Replace this window's " + have + " tab(s)",
+                    rightX + 6, mainTop + HEADER_H + 8, tc, false);
+            graphics.drawString(this.font, "with " + pendingImport.size() + " imported tab(s)?",
+                    rightX + 6, mainTop + HEADER_H + 20, tc, false);
+        } else if (pendingDeleteWindow >= 0) {
             graphics.drawString(this.font, "Confirm", rightX, mainTop, tc, false);
             Ae2Style.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
             WindowDraft w = (pendingDeleteWindow < windows.size()) ? windows.get(pendingDeleteWindow) : null;
@@ -532,7 +602,8 @@ public final class TabEditorScreen extends Screen {
             graphics.drawString(this.font, "Gear", rightX + 4, ly + 5, tc, false); ly += 22;
             graphics.drawString(this.font, "All", rightX + 4, ly + 5, tc, false); ly += 22;
             graphics.drawString(this.font, "Visible", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Position", rightX + 4, ly + 5, tc, false);
+            graphics.drawString(this.font, "Position", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.drawString(this.font, "Tabs", rightX + 4, ly + 5, tc, false);
         } else {
             graphics.drawString(this.font, "Properties", rightX, propsHeaderY, tc, false);
             Ae2Style.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
@@ -546,6 +617,10 @@ public final class TabEditorScreen extends Screen {
         }
 
         Ae2Style.divider(graphics, innerX, dividerY, innerR - innerX);
+        if (!status.isEmpty()) {
+            int note = (tc & 0x00FFFFFF) | 0xBB000000;
+            Ae2Style.scaledText(graphics, this.font, status, innerX + 138, footerY + 6, note, 0.85f);
+        }
     }
 
     @Override
@@ -930,6 +1005,35 @@ public final class TabEditorScreen extends Screen {
             out.add(w.toWindow());
         }
         return out;
+    }
+
+    // ---- Used by SettingsScreen's all-windows import/export ----------------
+
+    /** Current (unsaved) windows as they'd be saved. */
+    public List<FilterWindow> draftWindows() {
+        return collectWindows();
+    }
+
+    /** Current (unsaved) tabs as they'd be saved. */
+    public List<Tab> draftTabs() {
+        return flattenTabs();
+    }
+
+    /** Reload the editor's drafts from {@link TabManager} (after an all-windows import). */
+    public void reloadDrafts() {
+        windows.clear();
+        for (FilterWindow w : TabManager.windows()) {
+            windows.add(WindowDraft.from(w));
+        }
+        if (windows.isEmpty()) {
+            windows.add(WindowDraft.fresh("Filters"));
+        }
+        selWindow = 0;
+        selTab = -1;
+        pendingImport = null;
+        pendingDeleteWindow = -1;
+        condScroll = 0;
+        listScroll = 0;
     }
 
     private void commitAndClose() {

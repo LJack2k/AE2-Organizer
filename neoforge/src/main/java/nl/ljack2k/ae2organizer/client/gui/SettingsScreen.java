@@ -4,48 +4,49 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.widgets.AE2Button;
 import appeng.client.gui.widgets.AECheckbox;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.filter.Settings;
+import nl.ljack2k.ae2organizer.persist.TabShare;
 import org.jetbrains.annotations.Nullable;
 
-/** Windowed, client-only general settings, themed via {@link Ae2Style}. */
+/**
+ * Windowed, client-only global settings, themed via {@link Ae2Style}.
+ * Presentation settings (label mode, size, orientation, position) are per-window
+ * and edited in the tab editor's window panel; only cross-cutting behaviour — plus
+ * whole-config import/export — lives here.
+ */
 public final class SettingsScreen extends Screen {
 
     private final Screen parent;
     private boolean resetFilterOnOpen;
-    private boolean showTabLabels;
-    private double tabScale;
     private boolean clearSearchOnTabSelect;
     private boolean syncJeiOnTabSelect;
 
     @Nullable
     private AECheckbox resetBox;
     @Nullable
-    private AECheckbox labelsBox;
-    @Nullable
     private AECheckbox clearSearchBox;
     @Nullable
     private AECheckbox syncJeiBox;
+
+    // Full config parsed from the clipboard, awaiting the import-replace confirmation.
+    @Nullable
+    private TabShare.AllData pendingImportAll;
+    private String status = "";
 
     private int left;
     private int top;
     private int panelW;
     private int panelH;
-    private int previewY;
 
     public SettingsScreen(Screen parent) {
         super(Component.literal("AE2 Organizer Settings"));
         this.parent = parent;
         Settings current = TabManager.getSettings();
         this.resetFilterOnOpen = current.resetFilterOnOpen();
-        this.showTabLabels = current.showTabLabels();
-        this.tabScale = current.clampedScale();
         this.clearSearchOnTabSelect = current.clearSearchOnTabSelect();
         this.syncJeiOnTabSelect = current.syncJeiOnTabSelect();
     }
@@ -58,10 +59,27 @@ public final class SettingsScreen extends Screen {
     @Override
     protected void init() {
         panelW = Math.min(360, this.width - 20);
-        panelH = Math.min(252, this.height - 20);
+        panelH = Math.min(pendingImportAll != null ? 110 : 224, this.height - 20);
         left = (this.width - panelW) / 2;
         top = (this.height - panelH) / 2;
-        previewY = top + 180;
+
+        if (pendingImportAll != null) {
+            int by = top + 62;
+            addRenderableWidget(new AE2Button(left + 20, by, 96, 20, Component.literal("Replace all"), b -> {
+                TabShare.AllData data = pendingImportAll;
+                pendingImportAll = null;
+                TabManager.replaceAll(data.windows(), data.tabs());
+                if (parent instanceof TabEditorScreen ed) {
+                    ed.reloadDrafts();
+                }
+                onClose();
+            }));
+            addRenderableWidget(new AE2Button(left + 124, by, 96, 20, Component.literal("Cancel"), b -> {
+                pendingImportAll = null;
+                rebuildWidgets();
+            }));
+            return;
+        }
 
         ScreenStyle style = Ae2Style.style();
         if (style != null) {
@@ -70,17 +88,12 @@ public final class SettingsScreen extends Screen {
             resetBox.setSelected(resetFilterOnOpen);
             addRenderableWidget(resetBox);
 
-            labelsBox = new AECheckbox(left + 10, top + 52, panelW - 20, 18, style,
-                    Component.literal("Show tab names as labels"));
-            labelsBox.setSelected(showTabLabels);
-            addRenderableWidget(labelsBox);
-
-            clearSearchBox = new AECheckbox(left + 10, top + 76, panelW - 20, 18, style,
+            clearSearchBox = new AECheckbox(left + 10, top + 52, panelW - 20, 18, style,
                     Component.literal("Clear search bar when selecting a tab"));
             clearSearchBox.setSelected(clearSearchOnTabSelect);
             addRenderableWidget(clearSearchBox);
 
-            syncJeiBox = new AECheckbox(left + 10, top + 102, panelW - 20, 18, style,
+            syncJeiBox = new AECheckbox(left + 10, top + 76, panelW - 20, 18, style,
                     Component.literal("Sync JEI search bar when selecting a tab"));
             syncJeiBox.setSelected(syncJeiOnTabSelect);
             addRenderableWidget(syncJeiBox);
@@ -89,34 +102,56 @@ public final class SettingsScreen extends Screen {
                     .create(left + 10, top + 28, panelW - 20, 18,
                             Component.literal("Reset filter when opening a terminal"),
                             (btn, val) -> resetFilterOnOpen = val));
-            addRenderableWidget(CycleButton.onOffBuilder(showTabLabels)
-                    .create(left + 10, top + 52, panelW - 20, 18,
-                            Component.literal("Show tab names as labels"),
-                            (btn, val) -> showTabLabels = val));
             addRenderableWidget(CycleButton.onOffBuilder(clearSearchOnTabSelect)
-                    .create(left + 10, top + 76, panelW - 20, 18,
+                    .create(left + 10, top + 52, panelW - 20, 18,
                             Component.literal("Clear search bar when selecting a tab"),
                             (btn, val) -> clearSearchOnTabSelect = val));
             addRenderableWidget(CycleButton.onOffBuilder(syncJeiOnTabSelect)
-                    .create(left + 10, top + 102, panelW - 20, 18,
+                    .create(left + 10, top + 76, panelW - 20, 18,
                             Component.literal("Sync JEI search bar when selecting a tab"),
                             (btn, val) -> syncJeiOnTabSelect = val));
         }
 
-        addRenderableWidget(new SizeSlider(left + 10, top + 148, panelW - 20, 18));
+        // All-windows import/export (whole config, via the clipboard).
+        int shareY = top + 138;
+        int halfW = (panelW - 20 - 4) / 2;
+        addRenderableWidget(new AE2Button(left + 10, shareY, halfW, 20,
+                Component.literal("Export all"), b -> exportAll()));
+        addRenderableWidget(new AE2Button(left + 10 + halfW + 4, shareY, panelW - 20 - halfW - 4, 20,
+                Component.literal("Import all"), b -> importAll()));
 
         int actionY = top + panelH - 26;
         addRenderableWidget(new AE2Button(left + panelW - 130, actionY, 58, 20,
                 Component.literal("Save"), b -> {
             boolean reset = resetBox != null ? resetBox.isSelected() : resetFilterOnOpen;
-            boolean labels = labelsBox != null ? labelsBox.isSelected() : showTabLabels;
             boolean clearSearch = clearSearchBox != null ? clearSearchBox.isSelected() : clearSearchOnTabSelect;
             boolean syncJei = syncJeiBox != null ? syncJeiBox.isSelected() : syncJeiOnTabSelect;
-            TabManager.setSettings(new Settings(reset, labels, tabScale, clearSearch, syncJei));
+            TabManager.setSettings(new Settings(reset, clearSearch, syncJei));
             onClose();
         }));
         addRenderableWidget(new AE2Button(left + panelW - 68, actionY, 58, 20,
                 Component.literal("Cancel"), b -> onClose()));
+    }
+
+    private void exportAll() {
+        if (parent instanceof TabEditorScreen ed) {
+            this.minecraft.keyboardHandler.setClipboard(TabShare.exportAll(ed.draftWindows(), ed.draftTabs()));
+            status = "Copied " + ed.draftWindows().size() + " window(s) to clipboard";
+        } else {
+            status = "Open Settings from the editor to export";
+        }
+        rebuildWidgets();
+    }
+
+    private void importAll() {
+        String clip = this.minecraft.keyboardHandler.getClipboard();
+        TabShare.AllData data = TabShare.parseAll(clip).orElse(null);
+        if (data == null) {
+            status = "No AE2Organizer windows on the clipboard";
+        } else {
+            pendingImportAll = data;   // ask before replacing everything
+        }
+        rebuildWidgets();
     }
 
     @Override
@@ -126,57 +161,31 @@ public final class SettingsScreen extends Screen {
         int tc = Ae2Style.textColor();
         int noteColor = (tc & 0x00FFFFFF) | 0xBB000000;
         graphics.text(this.font, getTitle(), left + 10, top + 9, tc, false);
-        Ae2Style.divider(graphics, left + 10, top + 97, panelW - 20);
-        Ae2Style.scaledText(graphics, this.font,
-                "Supports: mod (@mod), tag (#tag) and name conditions.",
-                left + 10, top + 124, noteColor, 0.75f);
-        Ae2Style.scaledText(graphics, this.font,
-                "Not synced: component conditions (enchanted, custom name, etc.).",
-                left + 10, top + 132, noteColor, 0.75f);
-        graphics.text(this.font, "Preview", left + 10, previewY - 10, tc, false);
-    }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        drawPreview(graphics, left + 10, previewY);
-    }
+        if (pendingImportAll != null) {
+            graphics.text(this.font, "Replace ALL windows and tabs with the",
+                    left + 10, top + 30, tc, false);
+            graphics.text(this.font, pendingImportAll.windows().size() + " imported window(s)? This cannot be undone.",
+                    left + 10, top + 42, tc, false);
+            return;
+        }
 
-    /** A sample tab row at the current scale, so the slider has a live preview. */
-    private void drawPreview(GuiGraphicsExtractor graphics, int x, int y) {
-        double s = tabScale;
-        int rowH = Math.max(9, (int) Math.round(13 * s));
-        int iconDraw = Math.max(8, (int) Math.round(11 * s));
-        int iconCell = Math.max(10, (int) Math.round(15 * s));
-        float ts = (float) (0.85 * s);
-        int labelW = (int) Math.round(82 * s);
-        int w = iconCell + 2 + labelW;
-        Ae2Style.bevelButton(graphics, x, y, w, rowH, false, false);
-        Ae2Style.scaledItem(graphics, new ItemStack(Items.COMPASS), x + 2, y + (rowH - iconDraw) / 2, iconDraw);
-        Ae2Style.scaledText(graphics, this.font, "Filter name", x + iconCell + 2,
-                y + (rowH - Math.round(8 * ts)) / 2, Ae2Style.textColor(), ts);
+        Ae2Style.divider(graphics, left + 10, top + 100, panelW - 20);
+        Ae2Style.scaledText(graphics, this.font,
+                "JEI sync supports: mod (@mod), tag (#tag), name; Not → exclude (-).",
+                left + 10, top + 108, noteColor, 0.75f);
+        Ae2Style.scaledText(graphics, this.font,
+                "Window size, labels, orientation & position: edit per window.",
+                left + 10, top + 118, noteColor, 0.75f);
+        graphics.text(this.font, "Import / export all windows + tabs (clipboard):",
+                left + 10, top + 128, tc, false);
+        if (!status.isEmpty()) {
+            Ae2Style.scaledText(graphics, this.font, status, left + 10, top + panelH - 38, noteColor, 0.85f);
+        }
     }
 
     @Override
     public void onClose() {
         this.minecraft.setScreen(parent);
-    }
-
-    private final class SizeSlider extends AbstractSliderButton {
-        SizeSlider(int x, int y, int w, int h) {
-            super(x, y, w, h, Component.empty(),
-                    (tabScale - Settings.MIN_SCALE) / (Settings.MAX_SCALE - Settings.MIN_SCALE));
-            updateMessage();
-        }
-
-        @Override
-        protected void updateMessage() {
-            setMessage(Component.literal("Tab size: " + Math.round(tabScale * 100) + "%"));
-        }
-
-        @Override
-        protected void applyValue() {
-            tabScale = Settings.MIN_SCALE + this.value * (Settings.MAX_SCALE - Settings.MIN_SCALE);
-        }
     }
 }

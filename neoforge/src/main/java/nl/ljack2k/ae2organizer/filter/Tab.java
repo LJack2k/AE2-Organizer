@@ -13,7 +13,8 @@ import java.util.function.Predicate;
  * list of {@link Condition}s. {@code id} is a stable internal key (used for
  * active-tab tracking and as a fallback display value).
  */
-public record Tab(String id, String name, Identifier icon, MatchMode mode, List<Condition> conditions) {
+public record Tab(String id, String name, Identifier icon, MatchMode mode, List<Condition> conditions,
+                  String window) {
 
     public static final Identifier DEFAULT_ICON = Identifier.withDefaultNamespace("chest");
 
@@ -22,8 +23,14 @@ public record Tab(String id, String name, Identifier icon, MatchMode mode, List<
             Codec.STRING.fieldOf("name").forGetter(Tab::name),
             Identifier.CODEC.optionalFieldOf("icon", DEFAULT_ICON).forGetter(Tab::icon),
             MatchMode.CODEC.optionalFieldOf("mode", MatchMode.ANY).forGetter(Tab::mode),
-            Condition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(Tab::conditions)
+            Condition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(Tab::conditions),
+            Codec.STRING.optionalFieldOf("window", FilterWindow.MAIN_ID).forGetter(Tab::window)
     ).apply(i, Tab::new));
+
+    /** A copy of this tab reassigned to a different window. */
+    public Tab withWindow(String windowId) {
+        return new Tab(id, name, icon, mode, conditions, windowId);
+    }
 
     /**
      * Builds the combined predicate for this tab. An empty condition list

@@ -71,6 +71,7 @@ Select a window in the editor tree to set its presentation (each property is per
 - **All entry** — show or hide the 🧭 *All* button on this window.
 - **Terminals…** — show or hide this window per **terminal type** (ME Terminal, Crafting Terminal, Pattern Encoding Terminal, …). Each type stands for every terminal of that type.
 - **Position** — see below.
+- **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set or reusing it in another window.
 
 **Moving windows.** Hold **Shift** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
 
@@ -83,5 +84,6 @@ In the editor, click **Settings…** for cross-cutting behaviour (per-window lay
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
 - **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
 - **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. `Not` conditions become JEI exclusions (`-`), applied to every OR branch. *Component* conditions have no JEI equivalent and are skipped — so a `Not component` exclusion can't be mirrored and JEI may show a little more than the terminal. Off (default).
+- **Export all / Import all** — copy your **entire** setup (every window *with* its layout, plus all tabs) to the clipboard as JSON, or **replace** everything from a copied export (asks first) — a quick backup or full transfer between instances. Plain JSON; the per-window and all-windows formats are tagged distinctly, so pasting the wrong one just fails safely.
 
 Your windows, tabs, and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

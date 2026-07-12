@@ -82,6 +82,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 - **Windows** own presentation only; the active tab is global (one at a time). Each `Tab` names its `window`; every window property is optional with a sane default. `position` is `dock`/`center`/`free`; per-terminal overrides live in `placements` (keyed by menu-type id), with `baseTerminal` as the inherited fallback for terminals not yet placed. `hiddenOn` lists terminal types where the window is hidden; `collapsed` is the editor tree state.
 - **v1 → v2 migration:** a file without `windows` is upgraded on load — one `main` window is synthesised carrying the legacy `settings.showTabLabels`/`tabScale`, and every tab keeps its default `window: "main"`.
 - `terminalNames` remembers a friendly name per terminal type as they're opened (AE2 screens often have a blank vanilla title, so the visibility UI falls back to a known-id map / prettified id).
+- **Clipboard import/export** (`persist/TabShare`) uses the same Codecs to (de)serialize plain JSON to/from the system clipboard, wrapped with a magic key so foreign text is rejected: `{"ae2organizer":"tabs",…}` for a single window's tabs (conditions only; `id`/`window` stripped, regenerated on import) and `{"ae2organizer":"windows",…}` for a full windows+tabs snapshot. Import always **replaces** (per window, or the whole config) behind a confirm.
 
 ## Architecture
 

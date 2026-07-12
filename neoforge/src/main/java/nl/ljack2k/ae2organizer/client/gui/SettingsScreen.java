@@ -43,7 +43,7 @@ public final class SettingsScreen extends Screen {
     private int panelH;
 
     public SettingsScreen(Screen parent) {
-        super(Component.literal("AE2 Organizer Settings"));
+        super(Component.literal("AE2 Organizer - Global Setting"));
         this.parent = parent;
         Settings current = TabManager.getSettings();
         this.resetFilterOnOpen = current.resetFilterOnOpen();

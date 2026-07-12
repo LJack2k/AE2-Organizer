@@ -27,7 +27,7 @@ Windows are drawn with AE2's own GUI style, so AE2 "dark mode" resource packs re
 
 Click the ⚙ gear to open the editor. The left panel is a **tree**: each *window* node expands to the tabs inside it. Select a window row to edit that [window](#windows); select a tab row to edit the tab (name, icon, match mode, conditions) on the right.
 
-Toolbar: **+Win** (new window) · **+Tab** (new tab in the selected window) · **Copy** (duplicate the selected tab — or the whole window, with its tabs) · **Del** · **▲ ▼** (reorder within the window/among windows). A tab's **"Win:"** button moves it to the next window. Deleting a window that still has tabs asks first.
+Toolbar: **+Win** (new window) · **+Tab** (new tab in the selected window) · **Copy** (duplicate the selected tab — or the whole window, with its tabs) · **Del** · **▲ ▼** (reorder within the window/among windows). A tab's **"Window…"** button opens a picker to move it to another window. Deleting a window that still has tabs asks first.
 
 Set a tab's **icon** and the item for `mod` / `tag` / `text` conditions in any of three ways:
 

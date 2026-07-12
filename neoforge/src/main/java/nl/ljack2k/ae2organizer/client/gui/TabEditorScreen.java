@@ -470,11 +470,9 @@ public final class TabEditorScreen extends Screen {
         name.setResponder(s -> draft.name = s);
         addRenderableWidget(name);
 
-        // Window-reassign button (top-right of the Name row).
-        WindowDraft cur = selWindowDraft();
-        String winLabel = "Win: " + (cur == null ? "?" : shorten(cur.name, 6));
+        // Window-reassign button (top-right of the Name row) — opens a picker.
         addRenderableWidget(new AE2Button(propsRight - 66, nameRowY, 66, BTN_H,
-                Component.literal(winLabel), b -> reassignTabWindow()));
+                Component.literal("Window…"), b -> openWindowPicker()));
 
         // Icon: recessed slot + Pick button; slot is a ghost target.
         addRenderableWidget(new AE2Button(fieldX + 22, iconRowY, propsRight - (fieldX + 22), BTN_H,
@@ -556,10 +554,6 @@ public final class TabEditorScreen extends Screen {
         return values[(value.ordinal() + 1) % values.length];
     }
 
-    private static String shorten(String s, int max) {
-        s = s.isBlank() ? "?" : s;
-        return s.length() <= max ? s : s.substring(0, max);
-    }
 
     // ---- Rendering ---------------------------------------------------------
 
@@ -953,19 +947,30 @@ public final class TabEditorScreen extends Screen {
         rebuildWidgets();
     }
 
-    /** Move the selected tab to the next window (cycles). */
-    private void reassignTabWindow() {
+    /** Opens the window picker for the selected tab. */
+    private void openWindowPicker() {
+        if (editingWindow() || selWindowDraft() == null) {
+            return;
+        }
+        List<String> names = new ArrayList<>(windows.size());
+        for (WindowDraft w : windows) {
+            names.add(w.name.isBlank() ? w.id : w.name);
+        }
+        this.minecraft.setScreen(new WindowPickerScreen(this, names, selWindow, this::moveSelectedTabToWindow));
+    }
+
+    /** Move the selected tab into the given window (by index). */
+    private void moveSelectedTabToWindow(int target) {
         WindowDraft w = selWindowDraft();
-        if (w == null || editingWindow() || windows.size() < 2) {
+        if (w == null || editingWindow() || target < 0 || target >= windows.size() || target == selWindow) {
             return;
         }
         TabDraft t = w.tabs.remove(selTab);
-        int next = (selWindow + 1) % windows.size();
-        WindowDraft target = windows.get(next);
-        target.collapsed = false;
-        target.tabs.add(t);
-        selWindow = next;
-        selTab = target.tabs.size() - 1;
+        WindowDraft dest = windows.get(target);
+        dest.collapsed = false;
+        dest.tabs.add(t);
+        selWindow = target;
+        selTab = dest.tabs.size() - 1;
         condScroll = 0;
         rebuildWidgets();
     }

@@ -116,13 +116,13 @@ public final class ClientEvents {
         }
         var font = net.minecraft.client.Minecraft.getInstance().font;
         int tc = nl.ljack2k.ae2organizer.client.gui.Ae2Style.textColor();
-        String msg = "Move mode: drag panels — click here when done";
+        String msg = "Move mode: drag panels (or hold Alt anytime) — click here when done";
         g.text(font, msg, r[0] + 6, r[1] + (r[3] - 8) / 2, tc, false);
     }
 
     private static int[] bannerRect(Screen screen) {
         var font = net.minecraft.client.Minecraft.getInstance().font;
-        int w = font.width("Move mode: drag panels — click here when done") + 12;
+        int w = font.width("Move mode: drag panels (or hold Alt anytime) — click here when done") + 12;
         int x = (screen.width - w) / 2;
         return new int[]{x, 4, w, 16};
     }

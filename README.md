@@ -73,7 +73,7 @@ Select a window in the editor tree to set its presentation (each property is per
 - **Position** — see below.
 - **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set or reusing it in another window.
 
-**Moving windows.** Hold **Shift** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
+**Moving windows.** Hold **Alt** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. (Alt, not Shift — so it never clashes with shift-click actions like JEI's cheat-mode grab.) Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
 
 **Stuck?** The client command `/ae2organizer resetwindows` restores every window to a reachable state — first window docked, the rest centered, all gears shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
 

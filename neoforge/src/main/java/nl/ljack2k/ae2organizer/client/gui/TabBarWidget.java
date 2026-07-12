@@ -36,7 +36,7 @@ import java.util.List;
  * by id (looked up fresh each frame so editor changes apply live); shows that
  * window's tabs, optionally with an "All" entry and a gear. Supports a vertical
  * list or a horizontal icon-row ({@link Orientation}), a per-window size, and free
- * positioning — in move-mode (the explicit toggle, or holding Shift) the whole
+ * positioning — in move-mode (the explicit toggle, or holding Alt) the whole
  * panel drags to an absolute screen position.
  * <p>Rendering is here; input is driven by {@link ClientEvents} via cancelable
  * {@code ScreenEvent}s (AE2 consumes scroll/drag before added widgets see them).
@@ -100,12 +100,12 @@ public final class TabBarWidget extends AbstractWidget {
         return TabManager.tabsForWindow(windowId);
     }
 
-    /** Move-mode is active via the explicit toggle or while Shift is held. */
+    /** Move-mode is active via the explicit toggle or while Alt is held (not Shift — Shift clashes with shift-click). */
     private static boolean moveActive() {
         var window = Minecraft.getInstance().getWindow();
-        boolean shift = InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT);
-        return TabManager.isMoveMode() || shift;
+        boolean alt = InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT)
+                || InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_ALT);
+        return TabManager.isMoveMode() || alt;
     }
 
     /**

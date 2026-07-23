@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -43,7 +42,7 @@ import java.util.function.Consumer;
 
 /**
  * Windowed, client-only editor for filter windows and their tabs, themed via
- * {@link Ae2Style}.
+ * {@link RsStyle}.
  * <p>
  * The left panel is a two-level <b>tree</b>: each {@link WindowDraft} is a node
  * that expands to its {@link TabDraft}s. Selecting a window node edits window
@@ -68,6 +67,7 @@ public final class TabEditorScreen extends Screen {
 
     private final Screen parent;
     private final String terminalKey;
+    private final TabManager.Store store;
     private final List<WindowDraft> windows = new ArrayList<>();
     private final List<GhostTarget> ghostTargets = new ArrayList<>();
     // Tree selection: selWindow indexes windows; selTab indexes that window's tabs
@@ -107,18 +107,19 @@ public final class TabEditorScreen extends Screen {
     private boolean condNeedScroll;
     private int condMaxScroll;
 
-    public TabEditorScreen(Screen parent, String terminalKey) {
-        super(Component.translatable("ae2organizer.editor.title"));
+    public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store) {
+        super(Component.translatable("ae2organizer.gui.editor.title"));
         this.parent = parent;
         this.terminalKey = terminalKey;
-        for (FilterWindow w : TabManager.windows()) {
-            windows.add(WindowDraft.from(w));
+        this.store = store;
+        for (FilterWindow w : store.windows()) {
+            windows.add(WindowDraft.from(w, store));
         }
         if (windows.isEmpty()) {
             windows.add(WindowDraft.fresh("Filters"));
         }
         // Open on the window/tab holding the active tab; fall back to the first window.
-        String activeId = TabManager.activeTabId();
+        String activeId = store.activeTabId();
         selWindow = 0;
         selTab = -1;
         if (activeId != null) {
@@ -239,12 +240,12 @@ public final class TabEditorScreen extends Screen {
         listSbX = listX + listW - SBW;
 
         int tb = tabsX + 4;
-        addRenderableWidget(new AE2Button(tb, toolbarY, 38, BTN_H, Component.literal("+Win"), b -> addWindow()));
-        addRenderableWidget(new AE2Button(tb + 40, toolbarY, 38, BTN_H, Component.literal("+Tab"), b -> addTab()));
-        addRenderableWidget(new AE2Button(tb + 80, toolbarY, 38, BTN_H, Component.literal("Copy"), b -> copySelected()));
-        addRenderableWidget(new AE2Button(tb, toolbar2Y, 38, BTN_H, Component.literal("Del"), b -> deleteSelected()));
-        addRenderableWidget(new AE2Button(tb + 40, toolbar2Y, 38, BTN_H, Component.literal("▲"), b -> moveSelected(-1)));
-        addRenderableWidget(new AE2Button(tb + 80, toolbar2Y, 38, BTN_H, Component.literal("▼"), b -> moveSelected(1)));
+        addRenderableWidget(new RsButton(tb, toolbarY, 38, BTN_H, Component.literal("+Win"), b -> addWindow()));
+        addRenderableWidget(new RsButton(tb + 40, toolbarY, 38, BTN_H, Component.literal("+Tab"), b -> addTab()));
+        addRenderableWidget(new RsButton(tb + 80, toolbarY, 38, BTN_H, Component.literal("Copy"), b -> copySelected()));
+        addRenderableWidget(new RsButton(tb, toolbar2Y, 38, BTN_H, Component.literal("Del"), b -> deleteSelected()));
+        addRenderableWidget(new RsButton(tb + 40, toolbar2Y, 38, BTN_H, Component.literal("▲"), b -> moveSelected(-1)));
+        addRenderableWidget(new RsButton(tb + 80, toolbar2Y, 38, BTN_H, Component.literal("▼"), b -> moveSelected(1)));
 
         // ---- Right column ----
         rightX = tabsX + tabsW + 8;
@@ -263,13 +264,13 @@ public final class TabEditorScreen extends Screen {
             buildTabPanel(selTabDraft());
         }
 
-        addRenderableWidget(new AE2Button(innerX, footerY, 62, BTN_H,
-                Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this))));
-        addRenderableWidget(new AE2Button(innerX + 66, footerY, 66, BTN_H,
+        addRenderableWidget(new RsButton(innerX, footerY, 62, BTN_H,
+                Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this, store))));
+        addRenderableWidget(new RsButton(innerX + 66, footerY, 66, BTN_H,
                 Component.literal("Move…"), b -> commitThenMove()));
-        addRenderableWidget(new AE2Button(innerR - 120, footerY, 58, BTN_H,
+        addRenderableWidget(new RsButton(innerR - 120, footerY, 58, BTN_H,
                 Component.literal("Cancel"), b -> onClose()));
-        addRenderableWidget(new AE2Button(innerR - 58, footerY, 58, BTN_H,
+        addRenderableWidget(new RsButton(innerR - 58, footerY, 58, BTN_H,
                 Component.literal("Save"), b -> commitAndClose()));
     }
 
@@ -289,25 +290,25 @@ public final class TabEditorScreen extends Screen {
         int fX = rightX + 74;
         int fW = propsRight - fX;
 
-        EditBox name = Ae2Style.selectAllField(this.font, fX, rowY + 1, fW, 16, Component.literal("Name"));
+        EditBox name = RsStyle.selectAllField(this.font, fX, rowY + 1, fW, 16, Component.literal("Name"));
         name.setMaxLength(48);
         name.setValue(w.name);
         name.setResponder(s -> w.name = s);
         addRenderableWidget(name);
         rowY += 22;
 
-        addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
+        addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal(w.orientation == Orientation.HORIZONTAL ? "Horizontal" : "Vertical"),
                 b -> { w.orientation = cycle(w.orientation); rebuildWidgets(); }));
         rowY += 22;
 
         if (w.orientation == Orientation.HORIZONTAL) {
             // Horizontal windows are always icon-only (labels push the gear off-screen).
-            AE2Button disp = new AE2Button(fX, rowY, fW, BTN_H, Component.literal("Icons only"), b -> {});
+            RsButton disp = new RsButton(fX, rowY, fW, BTN_H, Component.literal("Icons only"), b -> {});
             disp.active = false;
             addRenderableWidget(disp);
         } else {
-            addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
+            addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                     Component.literal(w.showLabels ? "Labels" : "Icons only"),
                     b -> { w.showLabels = !w.showLabels; rebuildWidgets(); }));
         }
@@ -316,26 +317,26 @@ public final class TabEditorScreen extends Screen {
         addRenderableWidget(new WindowSizeSlider(fX, rowY, fW, BTN_H, w));
         rowY += 22;
 
-        addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
+        addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal(w.showGear ? "Gear: shown" : "Gear: hidden"),
                 b -> { w.showGear = !w.showGear; rebuildWidgets(); }));
         rowY += 22;
 
-        addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
+        addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal(w.showAll ? "All entry: shown" : "All entry: hidden"),
                 b -> { w.showAll = !w.showAll; rebuildWidgets(); }));
         rowY += 22;
 
-        // Per-terminal visibility: opens a small list of known terminal types.
+        // Per-grid visibility: opens a small list of known grid types.
         int hidden = w.hiddenOn.size();
-        addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
-                Component.literal(hidden == 0 ? "Terminals… (all shown)" : "Terminals… (" + hidden + " hidden)"),
+        addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
+                Component.literal(hidden == 0 ? "Grids… (all shown)" : "Grids… (" + hidden + " hidden)"),
                 b -> this.minecraft.setScreen(
-                        new WindowVisibilityScreen(this, knownTerminals(), w.hiddenOn, terminalKey))));
+                        new WindowVisibilityScreen(this, knownTerminals(), w.hiddenOn, terminalKey, store))));
         rowY += 22;
 
-        // Positions are per-terminal; this recenters the window for THIS terminal.
-        addRenderableWidget(new AE2Button(fX, rowY, fW, BTN_H,
+        // Positions are per-grid; this recenters the window for THIS grid.
+        addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal("Center here"),
                 b -> {
                     w.placements.put(terminalKey, new Placement(PositionMode.CENTER, 0, 0));
@@ -348,9 +349,9 @@ public final class TabEditorScreen extends Screen {
 
         // Share this window's tabs (conditions only) via the clipboard.
         int halfW = (fW - 4) / 2;
-        addRenderableWidget(new AE2Button(fX, rowY, halfW, BTN_H,
+        addRenderableWidget(new RsButton(fX, rowY, halfW, BTN_H,
                 Component.literal("Export"), b -> exportWindowTabs(w)));
-        addRenderableWidget(new AE2Button(fX + halfW + 4, rowY, fW - halfW - 4, BTN_H,
+        addRenderableWidget(new RsButton(fX + halfW + 4, rowY, fW - halfW - 4, BTN_H,
                 Component.literal("Import"), b -> importWindowTabs()));
     }
 
@@ -377,7 +378,7 @@ public final class TabEditorScreen extends Screen {
 
     private void buildConfirmImport() {
         int by = mainTop + 40;
-        addRenderableWidget(new AE2Button(rightX + 20, by, 80, BTN_H, Component.literal("Replace"), b -> {
+        addRenderableWidget(new RsButton(rightX + 20, by, 80, BTN_H, Component.literal("Replace"), b -> {
             WindowDraft w = selWindowDraft();
             List<Tab> imported = pendingImport;
             pendingImport = null;
@@ -394,7 +395,7 @@ public final class TabEditorScreen extends Screen {
             }
             rebuildWidgets();
         }));
-        addRenderableWidget(new AE2Button(rightX + 110, by, 80, BTN_H, Component.literal("Cancel"), b -> {
+        addRenderableWidget(new RsButton(rightX + 110, by, 80, BTN_H, Component.literal("Cancel"), b -> {
             pendingImport = null;
             rebuildWidgets();
         }));
@@ -404,12 +405,12 @@ public final class TabEditorScreen extends Screen {
 
     private void buildConfirmDelete() {
         int by = mainTop + 40;
-        addRenderableWidget(new AE2Button(rightX + 20, by, 80, BTN_H, Component.literal("Delete"), b -> {
+        addRenderableWidget(new RsButton(rightX + 20, by, 80, BTN_H, Component.literal("Delete"), b -> {
             int idx = pendingDeleteWindow;
             pendingDeleteWindow = -1;
             doDeleteWindow(idx);
         }));
-        addRenderableWidget(new AE2Button(rightX + 110, by, 80, BTN_H, Component.literal("Cancel"), b -> {
+        addRenderableWidget(new RsButton(rightX + 110, by, 80, BTN_H, Component.literal("Cancel"), b -> {
             pendingDeleteWindow = -1;
             rebuildWidgets();
         }));
@@ -464,26 +465,27 @@ public final class TabEditorScreen extends Screen {
         }
 
         // Name (leaves room on the right for the window-reassign button).
-        EditBox name = Ae2Style.selectAllField(this.font, fieldX, nameRowY + 1, propsRight - 68 - fieldX, 16, Component.literal("Name"));
+        EditBox name = RsStyle.selectAllField(this.font, fieldX, nameRowY + 1, propsRight - 68 - fieldX, 16, Component.literal("Name"));
         name.setMaxLength(64);
         name.setValue(draft.name);
         name.setResponder(s -> draft.name = s);
         addRenderableWidget(name);
 
         // Window-reassign button (top-right of the Name row) — opens a picker.
-        addRenderableWidget(new AE2Button(propsRight - 66, nameRowY, 66, BTN_H,
+        addRenderableWidget(new RsButton(propsRight - 66, nameRowY, 66, BTN_H,
                 Component.literal("Window…"), b -> openWindowPicker()));
 
         // Icon: recessed slot + Pick button; slot is a ghost target.
-        addRenderableWidget(new AE2Button(fieldX + 22, iconRowY, propsRight - (fieldX + 22), BTN_H,
+        addRenderableWidget(new RsButton(fieldX + 22, iconRowY, propsRight - (fieldX + 22), BTN_H,
                 Component.literal("Pick…"), b -> openIconPicker(draft)));
+        // TODO(task6): JEI ghost-drag + viewer sync
         ghostTargets.add(new GhostTarget(new Rect2i(iconX, iconY, 18, 18), stack -> draft.icon = idOf(stack)));
 
         // Conditions control row.
-        addRenderableWidget(new AE2Button(modeBtnX, ctrlRowY, modeBtnW, BTN_H,
+        addRenderableWidget(new RsButton(modeBtnX, ctrlRowY, modeBtnW, BTN_H,
                 Component.literal(draft.mode == MatchMode.ALL ? "Match ALL" : "Match ANY"),
                 b -> { draft.mode = draft.mode == MatchMode.ALL ? MatchMode.ANY : MatchMode.ALL; rebuildWidgets(); }));
-        addRenderableWidget(new AE2Button(addBtnX, ctrlRowY, addBtnW, BTN_H,
+        addRenderableWidget(new RsButton(addBtnX, ctrlRowY, addBtnW, BTN_H,
                 Component.literal("+ Add condition"), b -> {
             draft.conditions.add(CondDraft.fresh());
             condScroll = Integer.MAX_VALUE / 2;
@@ -500,11 +502,11 @@ public final class TabEditorScreen extends Screen {
             int notX = rightX + 4 + TYPE_W + 2;
             int fieldStart = notX + NOT_W + 2;
 
-            addRenderableWidget(new AE2Button(rightX + 4, rowY, TYPE_W, BTN_H,
+            addRenderableWidget(new RsButton(rightX + 4, rowY, TYPE_W, BTN_H,
                     Component.literal("Type: " + cond.type.getSerializedName()),
                     b -> { cond.type = cycle(cond.type); rebuildWidgets(); }));
 
-            addRenderableWidget(new AE2Button(notX, rowY, NOT_W, BTN_H,
+            addRenderableWidget(new RsButton(notX, rowY, NOT_W, BTN_H,
                     Component.literal(cond.negate ? "Not" : "Is"),
                     b -> { cond.negate = !cond.negate; rebuildWidgets(); }));
 
@@ -512,7 +514,7 @@ public final class TabEditorScreen extends Screen {
                 if (cond.componentMatch.usesArg()) {
                     int cycleW = 80;
                     addRenderableWidget(matchButton(cond, fieldStart, rowY, cycleW));
-                    EditBox arg = Ae2Style.selectAllField(this.font, fieldStart + cycleW + 2, rowY + 1,
+                    EditBox arg = RsStyle.selectAllField(this.font, fieldStart + cycleW + 2, rowY + 1,
                             Math.max(20, removeX - (fieldStart + cycleW + 2) - 2), 16, Component.literal("Arg"));
                     arg.setMaxLength(128);
                     arg.setValue(cond.value);
@@ -524,26 +526,27 @@ public final class TabEditorScreen extends Screen {
             } else {
                 int pickX = removeX - 20;
                 int boxW = Math.max(20, pickX - fieldStart - 2);
-                EditBox value = Ae2Style.selectAllField(this.font, fieldStart, rowY + 1, boxW, 16, Component.literal("Value"));
+                EditBox value = RsStyle.selectAllField(this.font, fieldStart, rowY + 1, boxW, 16, Component.literal("Value"));
                 value.setMaxLength(128);
                 value.setValue(cond.value);
                 value.setResponder(s -> cond.value = s);
                 addRenderableWidget(value);
-                addRenderableWidget(new AE2Button(pickX, rowY, 18, BTN_H,
+                addRenderableWidget(new RsButton(pickX, rowY, 18, BTN_H,
                         Component.literal("…"), b -> openConditionPicker(cond)));
+                // TODO(task6): JEI ghost-drag + viewer sync
                 ghostTargets.add(new GhostTarget(new Rect2i(fieldStart, rowY, boxW, 18),
                         stack -> applyDroppedToCondition(cond, stack)));
             }
 
-            addRenderableWidget(new AE2Button(removeX, rowY, 18, BTN_H, Component.literal("✖"), b -> {
+            addRenderableWidget(new RsButton(removeX, rowY, 18, BTN_H, Component.literal("✖"), b -> {
                 draft.conditions.remove(condIndex);
                 rebuildWidgets();
             }));
         }
     }
 
-    private AE2Button matchButton(CondDraft cond, int x, int y, int width) {
-        return new AE2Button(x, y, width, BTN_H, Component.literal(cond.componentMatch.getSerializedName()), b -> {
+    private RsButton matchButton(CondDraft cond, int x, int y, int width) {
+        return new RsButton(x, y, width, BTN_H, Component.literal(cond.componentMatch.getSerializedName()), b -> {
             cond.componentMatch = cycle(cond.componentMatch);
             rebuildWidgets();
         });
@@ -559,18 +562,18 @@ public final class TabEditorScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        int tc = Ae2Style.textColor();
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        RsStyle.panel(graphics, left, top, panelW, panelH);
+        int tc = RsStyle.textColor();
         graphics.drawString(this.font, getTitle(), left + PAD, top + 8, tc, false);
 
         graphics.drawString(this.font, "Windows & Tabs", tabsX, tabsHeaderY, tc, false);
-        Ae2Style.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
-        Ae2Style.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
+        RsStyle.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
+        RsStyle.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
 
         if (pendingImport != null) {
             graphics.drawString(this.font, "Confirm import", rightX, mainTop, tc, false);
-            Ae2Style.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
+            RsStyle.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
             WindowDraft w = selWindowDraft();
             int have = w == null ? 0 : w.tabs.size();
             graphics.drawString(this.font, "Replace this window's " + have + " tab(s)",
@@ -579,7 +582,7 @@ public final class TabEditorScreen extends Screen {
                     rightX + 6, mainTop + HEADER_H + 20, tc, false);
         } else if (pendingDeleteWindow >= 0) {
             graphics.drawString(this.font, "Confirm", rightX, mainTop, tc, false);
-            Ae2Style.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
+            RsStyle.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
             WindowDraft w = (pendingDeleteWindow < windows.size()) ? windows.get(pendingDeleteWindow) : null;
             int n = w == null ? 0 : w.tabs.size();
             graphics.drawString(this.font, "Delete window \"" + (w == null ? "" : w.name) + "\"",
@@ -587,7 +590,7 @@ public final class TabEditorScreen extends Screen {
             graphics.drawString(this.font, "and its " + n + " tab(s)?", rightX + 6, mainTop + HEADER_H + 20, tc, false);
         } else if (editingWindow()) {
             graphics.drawString(this.font, "Window", rightX, mainTop, tc, false);
-            Ae2Style.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
+            RsStyle.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
             int ly = propsInsetY + 4;
             graphics.drawString(this.font, "Name", rightX + 4, ly + 5, tc, false); ly += 22;
             graphics.drawString(this.font, "Layout", rightX + 4, ly + 5, tc, false); ly += 22;
@@ -600,20 +603,20 @@ public final class TabEditorScreen extends Screen {
             graphics.drawString(this.font, "Tabs", rightX + 4, ly + 5, tc, false);
         } else {
             graphics.drawString(this.font, "Properties", rightX, propsHeaderY, tc, false);
-            Ae2Style.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
+            RsStyle.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
             graphics.drawString(this.font, "Conditions", rightX, condHeaderY, tc, false);
-            Ae2Style.inset(graphics, rightX, condInsetY, rightW, condInsetH);
-            Ae2Style.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
+            RsStyle.inset(graphics, rightX, condInsetY, rightW, condInsetH);
+            RsStyle.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
             graphics.drawString(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
-            Ae2Style.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH);
+            RsStyle.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH);
             graphics.drawString(this.font, "Name", labelX, nameRowY + 5, tc, false);
             graphics.drawString(this.font, "Icon", labelX, iconRowY + 5, tc, false);
         }
 
-        Ae2Style.divider(graphics, innerX, dividerY, innerR - innerX);
+        RsStyle.divider(graphics, innerX, dividerY, innerR - innerX);
         if (!status.isEmpty()) {
             int note = (tc & 0x00FFFFFF) | 0xBB000000;
-            Ae2Style.scaledText(graphics, this.font, status, innerX + 138, footerY + 6, note, 0.85f);
+            RsStyle.scaledText(graphics, this.font, status, innerX + 138, footerY + 6, note, 0.85f);
         }
     }
 
@@ -625,7 +628,7 @@ public final class TabEditorScreen extends Screen {
         if (!editingWindow() && pendingDeleteWindow < 0) {
             TabDraft draft = selTabDraft();
             if (draft != null) {
-                Ae2Style.slot(graphics, iconX, iconY);
+                RsStyle.slot(graphics, iconX, iconY);
                 ItemStack icon = iconStack(draft.icon);
                 if (!icon.isEmpty()) {
                     graphics.renderItem(icon, iconX + 1, iconY + 1);
@@ -639,6 +642,14 @@ public final class TabEditorScreen extends Screen {
         }
 
         if (draggingStack != null && !draggingStack.isEmpty()) {
+            // Highlight valid drop zones green while dragging (brighter under the cursor).
+            for (GhostTarget target : ghostTargets) {
+                Rect2i a = target.area();
+                boolean over = inRect(mouseX, mouseY, a.getX(), a.getY(), a.getWidth(), a.getHeight());
+                graphics.fill(a.getX(), a.getY(), a.getX() + a.getWidth(), a.getY() + a.getHeight(),
+                        over ? 0x9040FF40 : 0x5040FF40);
+                graphics.renderOutline(a.getX(), a.getY(), a.getWidth(), a.getHeight(), 0xFF40C040);
+            }
             graphics.renderItem(draggingStack, mouseX - 8, mouseY - 8);
         }
     }
@@ -658,22 +669,22 @@ public final class TabEditorScreen extends Screen {
             int rowX = isWindow ? listX : listX + TAB_INDENT;
             int rowW = isWindow ? listRowW : listRowW - TAB_INDENT;
             boolean hovered = inRect(mouseX, mouseY, rowX, y, rowW, ROW_HE - 1);
-            Ae2Style.bevelButton(graphics, rowX, y, rowW, ROW_HE - 1, active, hovered);
+            RsStyle.bevelButton(graphics, rowX, y, rowW, ROW_HE - 1, active, hovered);
             int off = active ? 1 : 0;
             WindowDraft w = windows.get(wi);
             if (isWindow) {
                 // Filled chevron at normal height, aligned with the window name.
                 String caret = w.collapsed ? "▶" : "▼";
-                graphics.drawString(this.font, caret, rowX + 3 + off, y + 5 + off, Ae2Style.textColor(), false);
+                graphics.drawString(this.font, caret, rowX + 3 + off, y + 5 + off, RsStyle.textColor(), false);
                 String label = (w.name.isBlank() ? "Window" : w.name);
                 String text = this.font.plainSubstrByWidth(label, rowW - CARET_W - 2);
-                graphics.drawString(this.font, text, rowX + CARET_W + off, y + 5 + off, Ae2Style.textColor(), false);
+                graphics.drawString(this.font, text, rowX + CARET_W + off, y + 5 + off, RsStyle.textColor(), false);
             } else {
                 TabDraft t = w.tabs.get(ti);
-                Ae2Style.scaledItem(graphics, iconStack(t.icon), rowX + 2 + off, y + 1 + off, 14);
+                RsStyle.scaledItem(graphics, iconStack(t.icon), rowX + 2 + off, y + 1 + off, 14);
                 String label = t.name.isBlank() ? t.id : t.name;
                 String text = this.font.plainSubstrByWidth(label, rowW - 20);
-                graphics.drawString(this.font, text, rowX + 18 + off, y + 5 + off, Ae2Style.textColor(), false);
+                graphics.drawString(this.font, text, rowX + 18 + off, y + 5 + off, RsStyle.textColor(), false);
             }
         }
         if (listNeedScroll) {
@@ -682,7 +693,7 @@ public final class TabEditorScreen extends Screen {
             int thumbH = Math.max(12, sbH * listVisible / treeRows.size());
             int travel = sbH - thumbH;
             int thumbY = listY + (listMaxScroll == 0 ? 0 : travel * listScroll / listMaxScroll);
-            Ae2Style.bevelButton(graphics, listSbX, thumbY, SBW, thumbH, false, draggingListScrollbar);
+            RsStyle.bevelButton(graphics, listSbX, thumbY, SBW, thumbH, false, draggingListScrollbar);
         }
     }
 
@@ -700,7 +711,7 @@ public final class TabEditorScreen extends Screen {
         int thumbH = Math.max(12, sbH * condVisible / size);
         int travel = sbH - thumbH;
         int thumbY = condRowsTop + (condMaxScroll == 0 ? 0 : travel * condScroll / condMaxScroll);
-        Ae2Style.bevelButton(graphics, condSbX, thumbY, SBW, thumbH, false, draggingCondScrollbar);
+        RsStyle.bevelButton(graphics, condSbX, thumbY, SBW, thumbH, false, draggingCondScrollbar);
     }
 
     private void drawInventory(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -710,7 +721,7 @@ public final class TabEditorScreen extends Screen {
         ItemStack hovered = ItemStack.EMPTY;
         for (int i = 0; i < 36; i++) {
             int[] p = invSlotPos(i);
-            Ae2Style.slot(graphics, p[0], p[1]);
+            RsStyle.slot(graphics, p[0], p[1]);
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
             if (!stack.isEmpty()) {
                 graphics.renderItem(stack, p[0] + 1, p[1] + 1);
@@ -978,12 +989,12 @@ public final class TabEditorScreen extends Screen {
     // ---- Commit / close ----------------------------------------------------
 
     /**
-     * All terminal types to show in the visibility list: every terminal the user
+     * All grid types to show in the visibility list: every grid the user
      * has opened (stable — survives {@code resetwindows}), plus any that still
      * carry coords, plus the current one.
      */
     private List<String> knownTerminals() {
-        TreeSet<String> set = new TreeSet<>(TabManager.knownTerminalKeys());
+        TreeSet<String> set = new TreeSet<>(store.knownTerminalKeys());
         for (WindowDraft w : windows) {
             set.addAll(w.placements.keySet());
             if (!w.baseTerminal.isEmpty()) {
@@ -1027,8 +1038,8 @@ public final class TabEditorScreen extends Screen {
     /** Reload the editor's drafts from {@link TabManager} (after an all-windows import). */
     public void reloadDrafts() {
         windows.clear();
-        for (FilterWindow w : TabManager.windows()) {
-            windows.add(WindowDraft.from(w));
+        for (FilterWindow w : store.windows()) {
+            windows.add(WindowDraft.from(w, store));
         }
         if (windows.isEmpty()) {
             windows.add(WindowDraft.fresh("Filters"));
@@ -1042,13 +1053,13 @@ public final class TabEditorScreen extends Screen {
     }
 
     private void commitAndClose() {
-        TabManager.replaceAll(collectWindows(), flattenTabs());
+        store.replaceAll(collectWindows(), flattenTabs());
         onClose();
     }
 
     private void commitThenMove() {
-        TabManager.replaceAll(collectWindows(), flattenTabs());
-        TabManager.setMoveMode(true);
+        store.replaceAll(collectWindows(), flattenTabs());
+        store.setMoveMode(true);
         onClose();
     }
 
@@ -1062,7 +1073,7 @@ public final class TabEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
+            RsStyle.blurFieldOnOutsideClick(this, mouseX, mouseY);
             if (!editingWindow() && pendingDeleteWindow < 0) {
                 int invIndex = invSlotAt(mouseX, mouseY);
                 if (invIndex >= 0 && this.minecraft != null && this.minecraft.player != null) {
@@ -1219,14 +1230,14 @@ public final class TabEditorScreen extends Screen {
                     Orientation.VERTICAL, false, FilterWindow.DEFAULT_SCALE, PositionMode.CENTER, 0, 0, true, true);
         }
 
-        static WindowDraft from(FilterWindow w) {
+        static WindowDraft from(FilterWindow w, TabManager.Store store) {
             WindowDraft d = new WindowDraft(w.id(), w.name(), w.orientation(), w.showLabels(),
                     w.clampedScale(), w.position(), w.x(), w.y(), w.showGear(), w.showAll());
             d.placements.putAll(w.placements());
             d.baseTerminal = w.baseTerminal();
             d.hiddenOn.addAll(w.hiddenOn());
             d.collapsed = w.collapsed();
-            for (Tab t : TabManager.tabsForWindow(w.id())) {
+            for (Tab t : store.tabsForWindow(w.id())) {
                 d.tabs.add(TabDraft.from(t));
             }
             return d;

@@ -30,10 +30,10 @@ import java.util.Map;
  * Format (v2): {@code {"version":2,"settings":{...},"windows":[...],"tabs":[...]}}.
  * Missing pieces fall back to defaults rather than crashing the client.
  * <p>
- * v1 files (no {@code windows}, with {@code settings.showTabLabels}/{@code tabScale})
- * are migrated on load: a single {@link FilterWindow#MAIN_ID main} window is
- * synthesised carrying those legacy presentation values, and every tab keeps its
- * default {@code window = "main"} assignment.
+ * A file without {@code windows} is migrated on load: a single
+ * {@link FilterWindow#MAIN_ID main} window is synthesised carrying any legacy
+ * {@code settings.showTabLabels}/{@code tabScale} presentation values, and every
+ * tab keeps its default {@code window = "main"} assignment.
  */
 public final class TabStorage {
     private TabStorage() {}
@@ -45,14 +45,14 @@ public final class TabStorage {
     public record StoredData(Settings settings, List<FilterWindow> windows, List<Tab> tabs,
                              Map<String, String> terminalNames) {}
 
-    private static Path file() {
-        return FMLPaths.CONFIGDIR.get().resolve("ae2organizer").resolve("tabs.json");
+    private static Path file(String fileName) {
+        return FMLPaths.CONFIGDIR.get().resolve("ae2organizer").resolve(fileName);
     }
 
-    public static StoredData load() {
-        Path path = file();
+    public static StoredData load(String fileName) {
+        Path path = file(fileName);
         if (!Files.exists(path)) {
-            AE2Organizer.LOGGER.info("[AE2Organizer] No tabs.json found — seeding default tabs.");
+            AE2Organizer.LOGGER.info("[AE2Organizer] No {} found — seeding default tabs.", fileName);
             return new StoredData(Settings.DEFAULT, List.of(defaultWindow()), defaults(), new HashMap<>());
         }
         try {
@@ -80,7 +80,6 @@ public final class TabStorage {
             List<FilterWindow> windows;
             JsonElement windowsElement = obj.get("windows");
             if (windowsElement == null) {
-                // Migrate a v1 file: one window carrying the legacy label/scale settings.
                 windows = new ArrayList<>();
                 windows.add(migratedWindow(obj.getAsJsonObject("settings")));
             } else {
@@ -110,9 +109,9 @@ public final class TabStorage {
         }
     }
 
-    public static void save(Settings settings, List<FilterWindow> windows, List<Tab> tabs,
+    public static void save(String fileName, Settings settings, List<FilterWindow> windows, List<Tab> tabs,
                             Map<String, String> terminalNames) {
-        Path path = file();
+        Path path = file(fileName);
         try {
             JsonElement windowsElement = FilterWindow.CODEC.listOf().encodeStart(JsonOps.INSTANCE, windows)
                     .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Failed to encode windows: {}", err))
@@ -137,7 +136,7 @@ public final class TabStorage {
             out.add("terminalNames", namesObj);
 
             Files.createDirectories(path.getParent());
-            Path tmp = path.resolveSibling("tabs.json.tmp");
+            Path tmp = path.resolveSibling(fileName + ".tmp");
             Files.writeString(tmp, GSON.toJson(out));
             Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (Exception e) {
@@ -149,7 +148,7 @@ public final class TabStorage {
         return FilterWindow.createDefault(false, FilterWindow.DEFAULT_SCALE);
     }
 
-    /** Build the single window for a migrated v1 file, honoring its legacy presentation fields. */
+    /** Build the single window for a legacy/window-less file, honoring any legacy presentation fields. */
     private static FilterWindow migratedWindow(JsonObject legacySettings) {
         boolean labels = legacySettings != null && legacySettings.has("showTabLabels")
                 && legacySettings.get("showTabLabels").getAsBoolean();

@@ -1,7 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.Icon;
-import appeng.client.gui.me.common.MEStorageScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -16,28 +14,27 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
+import nl.ljack2k.ae2organizer.backend.SearchClearable;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
-import nl.ljack2k.ae2organizer.client.JeiSync;
 import nl.ljack2k.ae2organizer.client.TabManager;
+import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.filter.FilterWindow;
 import nl.ljack2k.ae2organizer.filter.Orientation;
 import nl.ljack2k.ae2organizer.filter.PositionMode;
 import nl.ljack2k.ae2organizer.filter.Tab;
-import nl.ljack2k.ae2organizer.mixin.AbstractContainerScreenAccessor;
-import nl.ljack2k.ae2organizer.mixin.MEStorageScreenAccessor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * One filter window rendered as an AE2-themed panel. Bound to a {@link FilterWindow}
- * by id (looked up fresh each frame so editor changes apply live); shows that
- * window's tabs, optionally with an "All" entry and a gear. Supports a vertical
- * list or a horizontal icon-row ({@link Orientation}), a per-window size, and free
- * positioning — in move-mode (the explicit toggle, or holding Alt) the whole
- * panel drags to an absolute screen position.
- * <p>Rendering is here; input is driven by {@link ClientEvents} via cancelable
- * {@code ScreenEvent}s (AE2 consumes scroll/drag before added widgets see them).
+ * One filter window rendered as a themed panel beside a storage screen. Bound to
+ * a {@link FilterWindow} by id (looked up fresh each frame so editor changes apply
+ * live) within a specific backend's {@link TabManager.Store}. Reads all screen
+ * geometry through a {@link ScreenAdapter}, so it is agnostic of AE2 vs RS.
+ * <p>Rendering is here; input is driven by {@code ClientEvents} via cancelable
+ * {@code ScreenEvent}s (the storage screens consume scroll/drag before added
+ * widgets see them).
  */
 public final class TabBarWidget extends AbstractWidget {
     private static final int BASE_ROW_H = 13;
@@ -54,7 +51,9 @@ public final class TabBarWidget extends AbstractWidget {
     private static final int SB_W = 8;
     private static final int SB_GAP = 2;
 
-    private final MEStorageScreen<?> terminal;
+    private final Screen screen;
+    private final ScreenAdapter adapter;
+    private final TabManager.Store store;
     private final String windowId;
     private final String terminalKey;
     private int scroll = 0;
@@ -65,11 +64,13 @@ public final class TabBarWidget extends AbstractWidget {
     private int dragGrabX, dragGrabY;
     private int dragX, dragY;
 
-    public TabBarWidget(MEStorageScreen<?> terminal, String windowId) {
-        super(0, 0, 1, 1, Component.literal("AE2 Organizer Tabs"));
-        this.terminal = terminal;
+    public TabBarWidget(Screen screen, ScreenAdapter adapter, TabManager.Store store, String windowId) {
+        super(0, 0, 1, 1, Component.literal("Storage Filter Tabs"));
+        this.screen = screen;
+        this.adapter = adapter;
+        this.store = store;
         this.windowId = windowId;
-        this.terminalKey = terminalKey(terminal);
+        this.terminalKey = adapter.terminalKey();
         Layout l = layout();
         if (l != null) {
             setX(l.panelX);
@@ -83,39 +84,33 @@ public final class TabBarWidget extends AbstractWidget {
         return windowId;
     }
 
-    /** Stable id for a terminal's menu type, e.g. {@code ae2:crafting_terminal}. */
-    public static String terminalKey(MEStorageScreen<?> t) {
-        ResourceLocation id = BuiltInRegistries.MENU.getKey(t.getMenu().getType());
-        return id == null ? "unknown" : id.toString();
-    }
-
     @Nullable
     private FilterWindow window() {
-        return TabManager.window(windowId);
+        return store.window(windowId);
     }
 
     private List<Tab> windowTabs() {
-        return TabManager.tabsForWindow(windowId);
+        return store.tabsForWindow(windowId);
     }
 
     /**
      * Move-mode is active via the explicit toggle or while Alt is held. (Alt, not
-     * Shift — Shift collides with JEI cheat-grab and vanilla shift-click transfer.)
+     * Shift — Shift collides with viewer cheat-grab and vanilla shift-click transfer.)
      */
-    private static boolean moveActive() {
-        return TabManager.isMoveMode() || Screen.hasAltDown();
+    private boolean moveActive() {
+        return store.isMoveMode() || Screen.hasAltDown();
     }
 
     /**
      * Whether this window draws a gear. Forced on for the first window <em>visible
-     * on this terminal</em> if none of the visible windows show one, so the editor
-     * is always reachable.
+     * on this screen</em> if none of the visible windows show one, so the editor is
+     * always reachable.
      */
     private boolean effectiveGear(FilterWindow w) {
         if (w.showGear()) {
             return true;
         }
-        List<FilterWindow> vis = TabManager.visibleWindows(terminalKey);
+        List<FilterWindow> vis = store.visibleWindows(terminalKey);
         for (FilterWindow v : vis) {
             if (v.showGear()) {
                 return false;
@@ -125,11 +120,11 @@ public final class TabBarWidget extends AbstractWidget {
     }
 
     private int imageWidth() {
-        return ((AbstractContainerScreenAccessor) terminal).ae2organizer$getImageWidth();
+        return adapter.xSize();
     }
 
     private int imageHeight() {
-        return ((AbstractContainerScreenAccessor) terminal).ae2organizer$getImageHeight();
+        return adapter.ySize();
     }
 
     private static int screenW() {
@@ -141,11 +136,11 @@ public final class TabBarWidget extends AbstractWidget {
     }
 
     private int dockX() {
-        int guiLeft = terminal.getGuiLeft();
-        int guiTop = terminal.getGuiTop();
+        int guiLeft = adapter.guiLeft();
+        int guiTop = adapter.guiTop();
         int bottom = guiTop + imageHeight();
         int right = guiLeft + imageWidth();
-        for (Slot slot : terminal.getMenu().slots) {
+        for (Slot slot : adapter.slots()) {
             int slotRight = guiLeft + slot.x - 1 + SLOT_FRAME;
             int slotY = guiTop + slot.y;
             if (slotRight > right && slotY < bottom && slotY + ICON > guiTop) {
@@ -255,15 +250,14 @@ public final class TabBarWidget extends AbstractWidget {
         if (draggingPanel) {
             return new int[]{dragX, dragY};
         }
-        // Position is per-terminal: this terminal's override, else the global default.
+        // Position is per-screen: this screen's override, else the global default.
         nl.ljack2k.ae2organizer.filter.Placement p = w.resolve(terminalKey);
         return switch (p.mode()) {
-            case DOCK -> new int[]{dockX(), terminal.getGuiTop()};
+            case DOCK -> new int[]{dockX(), adapter.guiTop()};
             case CENTER -> new int[]{(screenW() - panelW) / 2, (screenH() - panelH) / 2};
             case FREE -> {
                 // Recovery: a window dragged entirely off-screen snaps to center so
-                // it (and its gear) is always reachable. Partially-visible windows
-                // are left where the user put them.
+                // it (and its gear) is always reachable.
                 if (fullyOffScreen(p.x(), p.y(), panelW, panelH)) {
                     yield new int[]{(screenW() - panelW) / 2, (screenH() - panelH) / 2};
                 }
@@ -312,23 +306,22 @@ public final class TabBarWidget extends AbstractWidget {
         }
         List<Tab> tabs = windowTabs();
         FilterWindow w = window();
-        String activeId = TabManager.activeTabId();
+        String activeId = store.activeTabId();
         var font = Minecraft.getInstance().font;
         boolean move = moveActive();
 
-        Ae2Style.panel(graphics, l.panelX, l.panelY, l.panelW, l.panelH);
+        RsStyle.panel(graphics, l.panelX, l.panelY, l.panelW, l.panelH);
 
         if (!l.horizontal && l.labels && w != null) {
-            Ae2Style.scaledText(graphics, font, w.name(),
-                    l.contentX, l.contentY + 4, Ae2Style.textColor(), l.textScale);
+            RsStyle.scaledText(graphics, font, w.name(),
+                    l.contentX, l.contentY + 4, RsStyle.textColor(), l.textScale);
         }
         if (l.gear) {
             boolean gearHover = !move && inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ);
             if (gearHover) {
                 graphics.fill(l.gearX, l.gearY, l.gearX + GEAR_SZ, l.gearY + GEAR_SZ, 0x33FFFFFF);
             }
-            Icon.COG.getBlitter().dest(l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)
-                    .colorArgb(Ae2Style.textColor()).blit(graphics);
+            RsStyle.settingsIcon(graphics, l.gearX, l.gearY);
         }
         if (!l.horizontal && l.hasTitle) {
             graphics.fill(l.contentX, l.contentY + TITLE_H, l.contentX + l.cellMain, l.contentY + TITLE_H + 1, 0x40000000);
@@ -349,17 +342,17 @@ public final class TabBarWidget extends AbstractWidget {
                     : (tab == null ? Component.empty() : Component.literal(tab.name()));
             boolean hovered = !move && inRect(mouseX, mouseY, r[0], r[1], r[2], r[3]);
 
-            Ae2Style.bevelButton(graphics, r[0], r[1], r[2], r[3], active, hovered);
+            RsStyle.bevelButton(graphics, r[0], r[1], r[2], r[3], active, hovered);
             int off = active ? 1 : 0;
             if (!icon.isEmpty()) {
-                Ae2Style.scaledItem(graphics, icon, r[0] + 2 + off,
+                RsStyle.scaledItem(graphics, icon, r[0] + 2 + off,
                         r[1] + (r[3] - l.iconDraw) / 2 + off, l.iconDraw);
             }
             if (l.labels) {
                 int textW = r[2] - l.iconCell - 4;
                 String text = font.plainSubstrByWidth(label.getString(), (int) (textW / l.textScale));
-                Ae2Style.scaledText(graphics, font, text, r[0] + l.iconCell + 2 + off,
-                        r[1] + (r[3] - Math.round(8 * l.textScale)) / 2 + off, Ae2Style.textColor(), l.textScale);
+                RsStyle.scaledText(graphics, font, text, r[0] + l.iconCell + 2 + off,
+                        r[1] + (r[3] - Math.round(8 * l.textScale)) / 2 + off, RsStyle.textColor(), l.textScale);
             } else if (hovered) {
                 hoverTip = label;
             }
@@ -384,7 +377,7 @@ public final class TabBarWidget extends AbstractWidget {
         int thumbH = Math.max(12, sbH * l.visible / Math.max(1, entryCount));
         int travel = sbH - thumbH;
         int thumbY = sbTop + (l.maxScroll == 0 ? 0 : travel * scroll / l.maxScroll);
-        Ae2Style.bevelButton(graphics, l.sbX, thumbY, SB_W, thumbH, false, draggingScrollbar);
+        RsStyle.bevelButton(graphics, l.sbX, thumbY, SB_W, thumbH, false, draggingScrollbar);
     }
 
     private static ItemStack iconStack(ResourceLocation id) {
@@ -408,7 +401,7 @@ public final class TabBarWidget extends AbstractWidget {
         }
         if (l.gear && inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)) {
             playClick();
-            Minecraft.getInstance().setScreen(new TabEditorScreen(terminal, terminalKey));
+            Minecraft.getInstance().setScreen(new TabEditorScreen(screen, terminalKey, store));
             return true;
         }
         if (!l.horizontal && l.needScroll
@@ -424,17 +417,15 @@ public final class TabBarWidget extends AbstractWidget {
                 Tab tab = tabForEntry(l.entryIndices[i], tabs, l.hasAll);
                 String clickedId = tab == null ? null : tab.id();
                 // Clicking the already-active filter clears back to "All".
-                String newId = (clickedId != null && clickedId.equals(TabManager.activeTabId())) ? null : clickedId;
-                TabManager.setActive(newId);
-                if (TabManager.getSettings().clearSearchOnTabSelect()) {
-                    MEStorageScreenAccessor acc = (MEStorageScreenAccessor) terminal;
-                    acc.ae2organizer$getSearchField().setValue("");
-                    acc.ae2organizer$getRepo().setSearchString("");
+                String newId = (clickedId != null && clickedId.equals(store.activeTabId())) ? null : clickedId;
+                store.setActive(newId);
+                if (store.getSettings().clearSearchOnTabSelect() && adapter instanceof SearchClearable sc) {
+                    sc.clearSearch();
                 }
-                if (TabManager.getSettings().syncJeiOnTabSelect()) {
-                    JeiSync.apply(TabManager.activeTab());
+                if (store.getSettings().syncViewerOnTabSelect()) {
+                    ViewerSync.apply(store.activeTab());
                 }
-                ClientEvents.applyFilter(terminal, TabManager.activePredicate());
+                ClientEvents.applyFilter(adapter, store);
                 playClick();
                 break;
             }
@@ -461,8 +452,8 @@ public final class TabBarWidget extends AbstractWidget {
     public void handleMouseUp() {
         if (draggingPanel) {
             draggingPanel = false;
-            // Save the position for THIS terminal only.
-            TabManager.updateWindowPlacement(windowId, terminalKey, PositionMode.FREE, dragX, dragY);
+            // Save the position for THIS screen only.
+            store.updateWindowPlacement(windowId, terminalKey, PositionMode.FREE, dragX, dragY);
         }
         draggingScrollbar = false;
     }

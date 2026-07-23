@@ -1,18 +1,17 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Predicate;
 
 /**
- * Matches item keys carrying the given item tag, e.g. {@code c:ingots}.
+ * Matches item stacks carrying the given item tag, e.g. {@code c:ingots}.
  * <p>
  * Note (1.21 / NeoForge): common tags use the {@code c:} namespace
  * (e.g. {@code c:ingots}), not the old {@code forge:} namespace.
@@ -30,8 +29,8 @@ public record TagCondition(ResourceLocation tagId, boolean negate) implements Co
     }
 
     @Override
-    public Predicate<AEKey> toPredicate() {
+    public Predicate<ItemStack> toPredicate() {
         TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagId);
-        return key -> key instanceof AEItemKey && key.isTagged(tagKey);
+        return stack -> !stack.isEmpty() && stack.is(tagKey);
     }
 }

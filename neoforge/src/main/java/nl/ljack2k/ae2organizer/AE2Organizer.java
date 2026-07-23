@@ -3,20 +3,19 @@ package nl.ljack2k.ae2organizer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.common.NeoForge;
-import nl.ljack2k.ae2organizer.client.ClientEvents;
-import nl.ljack2k.ae2organizer.client.ClientSetup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Entry point for AE2Organizer — a client-side mod that adds user-defined
- * filter tabs to Applied Energistics 2 terminals.
+ * Entry point for AE2Organizer — a client-side mod that adds user-defined filter
+ * tabs to Applied Energistics 2 terminals <em>and</em> Refined Storage 2 grids,
+ * with a hard separation between the two (each storage system has its own
+ * independent tabs/windows/settings).
  * <p>
- * All behaviour is client-side, so wiring is gated on {@link Dist#isClient()}:
- * the game-bus screen hooks ({@link ClientEvents}) draw the tab bar, and the
- * mod-bus {@link ClientSetup} loads the saved tabs. Nothing is registered on a
- * dedicated server, so AE2's client classes are never touched there.
+ * All behaviour is client-side, so wiring is gated on {@link Dist#isClient()}.
+ * Both AE2 and RS are optional: {@code BackendRegistry.init()} (run at client
+ * setup) only instantiates the backend whose mod is present, and the mixin
+ * configs self-gate, so the jar loads cleanly with either, both, or neither.
  */
 @Mod(AE2Organizer.MODID)
 public final class AE2Organizer {
@@ -25,9 +24,13 @@ public final class AE2Organizer {
 
     public AE2Organizer(IEventBus modBus, Dist dist) {
         if (dist.isClient()) {
-            NeoForge.EVENT_BUS.register(ClientEvents.class);
-            modBus.addListener(ClientSetup::onClientSetup);
-            LOGGER.info("[AE2Organizer] Client loaded — filter tabs enabled on AE2 terminals.");
+            nl.ljack2k.ae2organizer.client.ClientBootstrap.init(modBus);
+            LOGGER.info("[AE2Organizer] Client loaded — filter tabs enabled on AE2 terminals and RS grids.");
+        }
+        // Dev-only RCON/screenshot test harness; never active in a normal install.
+        if (System.getProperty("ae2organizer.devHarness") != null) {
+            nl.ljack2k.ae2organizer.dev.DevHarness.init(modBus, dist);
+            LOGGER.info("[AE2Organizer] Dev harness enabled (ae2organizer.devHarness).");
         }
     }
 }

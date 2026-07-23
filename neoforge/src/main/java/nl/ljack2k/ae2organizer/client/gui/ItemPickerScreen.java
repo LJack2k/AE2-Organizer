@@ -60,7 +60,7 @@ public final class ItemPickerScreen extends Screen {
         gridTop = top + 44;
         visibleRows = Math.max(1, (top + panelH - 8 - gridTop) / CELL);
 
-        EditBox search = Ae2Style.textField(this.font, left + 8, top + 20, panelW - 16, 16, Component.literal("Search"));
+        EditBox search = RsStyle.textField(this.font, left + 8, top + 20, panelW - 16, 16, Component.literal("Search"));
         search.setHint(Component.literal("search items…"));
         search.setResponder(this::applyFilter);
         addRenderableWidget(search);
@@ -92,9 +92,9 @@ public final class ItemPickerScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 8, top + 7, Ae2Style.textColor(), false);
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        RsStyle.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 8, top + 7, RsStyle.textColor(), false);
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class ItemPickerScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
             // A click off the search field drops its focus and selection (vanilla keeps it).
-            Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
+            RsStyle.blurFieldOnOutsideClick(this, mouseX, mouseY);
         }
         if (button == 0 && mouseX >= gridLeft && mouseY >= gridTop) {
             int col = (int) ((mouseX - gridLeft) / CELL);

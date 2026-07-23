@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -10,7 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Per-window visibility editor: a small list of the terminal types the window
+ * Per-window visibility editor: a small list of the grid types the window
  * already has coordinates for, each a toggle to show/hide the window there.
  * Edits the passed {@code hidden} set in place; the editor persists it on Save.
  */
@@ -22,15 +21,18 @@ public final class WindowVisibilityScreen extends Screen {
     private final List<String> terminals;
     private final Set<String> hidden;
     private final String currentKey;
+    private final TabManager.Store store;
 
     private int left, top, panelW, panelH;
 
-    public WindowVisibilityScreen(Screen parent, List<String> terminals, Set<String> hidden, String currentKey) {
-        super(Component.literal("Show on terminals"));
+    public WindowVisibilityScreen(Screen parent, List<String> terminals, Set<String> hidden, String currentKey,
+                                  TabManager.Store store) {
+        super(Component.literal("Show on grids"));
         this.parent = parent;
         this.terminals = terminals;
         this.hidden = hidden;
         this.currentKey = currentKey;
+        this.store = store;
     }
 
     @Override
@@ -53,7 +55,7 @@ public final class WindowVisibilityScreen extends Screen {
             final String k = key;
             boolean vis = !hidden.contains(k);
             String label = displayName(k) + (k.equals(currentKey) ? " (this one)" : "") + " — " + (vis ? "Shown" : "Hidden");
-            addRenderableWidget(new AE2Button(x, y, w, BTN_H, Component.literal(label), b -> {
+            addRenderableWidget(new RsButton(x, y, w, BTN_H, Component.literal(label), b -> {
                 if (hidden.contains(k)) {
                     hidden.remove(k);
                 } else {
@@ -64,44 +66,38 @@ public final class WindowVisibilityScreen extends Screen {
             y += 22;
         }
 
-        addRenderableWidget(new AE2Button(left + panelW - 68, top + panelH - 26, 58, 20,
+        addRenderableWidget(new RsButton(left + panelW - 68, top + panelH - 26, 58, 20,
                 Component.literal("Done"), b -> onClose()));
     }
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        int tc = Ae2Style.textColor();
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        RsStyle.panel(graphics, left, top, panelW, panelH);
+        int tc = RsStyle.textColor();
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
     }
 
-    /** A captured screen title if there was one, else a known AE2 name, else prettified id. */
-    static String displayName(String key) {
-        String remembered = TabManager.terminalName(key);
+    /** A captured screen title if there was one, else a known Refined Storage name, else prettified id. */
+    String displayName(String key) {
+        String remembered = store.terminalName(key);
         if (remembered != null && !remembered.isBlank()) {
             return remembered;
         }
         return switch (key) {
-            case "ae2:item_terminal" -> "ME Terminal";
-            case "ae2:craftingterm" -> "Crafting Terminal";
-            case "ae2:patternterm" -> "Pattern Encoding Terminal";
-            case "ae2:patternaccessterm" -> "Pattern Access Terminal";
-            case "ae2:wirelessterm" -> "Wireless Terminal";
-            case "ae2:wirelesscraftingterm" -> "Wireless Crafting Terminal";
+            case "refinedstorage:grid" -> "Grid";
+            case "refinedstorage:crafting_grid" -> "Crafting Grid";
+            case "refinedstorage:pattern_grid" -> "Pattern Grid";
+            case "refinedstorage:wireless_grid" -> "Wireless Grid";
             default -> pretty(key);
         };
     }
 
-    /** "ae2:crafting_terminal" → "Crafting Terminal"; also turns a trailing "term" into " Terminal". */
+    /** "refinedstorage:crafting_grid" → "Crafting Grid". */
     static String pretty(String key) {
         int colon = key.indexOf(':');
         String ns = colon >= 0 ? key.substring(0, colon) : "";
         String path = colon >= 0 ? key.substring(colon + 1) : key;
-        // A trailing abbreviated "term" reads better as a full "terminal" word.
-        if (path.endsWith("term") && !path.endsWith("_term")) {
-            path = path.substring(0, path.length() - 4) + "_terminal";
-        }
         StringBuilder sb = new StringBuilder();
         for (String part : path.split("_")) {
             if (part.isEmpty()) {
@@ -113,7 +109,7 @@ public final class WindowVisibilityScreen extends Screen {
         if (name.isEmpty()) {
             name = key;
         }
-        if (!ns.isEmpty() && !ns.equals("ae2") && !ns.equals("minecraft")) {
+        if (!ns.isEmpty() && !ns.equals("refinedstorage") && !ns.equals("minecraft")) {
             name += " (" + ns + ")";
         }
         return name;

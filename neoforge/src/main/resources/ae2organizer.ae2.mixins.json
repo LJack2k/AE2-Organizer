@@ -1,8 +1,9 @@
 {
   "required": true,
   "minVersion": "0.8.5",
-  "package": "nl.ljack2k.ae2organizer.mixin",
+  "package": "nl.ljack2k.ae2organizer.backend.ae2",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "nl.ljack2k.ae2organizer.backend.ae2.Ae2MixinPlugin",
   "client": [
     "AbstractContainerScreenAccessor",
     "MEStorageScreenAccessor",

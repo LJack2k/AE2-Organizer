@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -51,7 +50,7 @@ public final class WindowPickerScreen extends Screen {
             final int index = i;
             boolean current = i == currentIndex;
             String label = windowNames.get(i) + (current ? "  (current)" : "");
-            AE2Button btn = new AE2Button(x, y, w, BTN_H, Component.literal(label), b -> {
+            RsButton btn = new RsButton(x, y, w, BTN_H, Component.literal(label), b -> {
                 onPick.accept(index);
                 onClose();
             });
@@ -60,15 +59,15 @@ public final class WindowPickerScreen extends Screen {
             y += 22;
         }
 
-        addRenderableWidget(new AE2Button(left + panelW - 68, top + panelH - 26, 58, 20,
+        addRenderableWidget(new RsButton(left + panelW - 68, top + panelH - 26, 58, 20,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        RsStyle.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 10, top + 9, RsStyle.textColor(), false);
     }
 
     @Override

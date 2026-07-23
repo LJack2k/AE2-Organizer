@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -58,17 +57,17 @@ public final class TagChooserScreen extends Screen {
         if (tags.isEmpty()) {
             addRenderableWidget(new StringWidget(left + 10, top + 44, panelW - 20, 12,
                     Component.literal("This item has no tags."), this.font).alignLeft()
-                    .setColor(Ae2Style.textColor()));
+                    .setColor(RsStyle.textColor()));
         } else {
             int count = Math.min(visible, tags.size() - offset);
             for (int i = 0; i < count; i++) {
                 final TagKey<Item> tag = tags.get(offset + i);
-                addRenderableWidget(new AE2Button(left + 10, listTop + i * 20, panelW - 20, 18,
+                addRenderableWidget(new RsButton(left + 10, listTop + i * 20, panelW - 20, 18,
                         Component.literal(tag.location().toString()),
                         b -> onPick.accept(tag.location().toString())));
             }
         }
-        addRenderableWidget(new AE2Button(left + panelW - 66, top + panelH - 24, 56, 18,
+        addRenderableWidget(new RsButton(left + panelW - 66, top + panelH - 24, 56, 18,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
@@ -85,9 +84,9 @@ public final class TagChooserScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        RsStyle.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 10, top + 9, RsStyle.textColor(), false);
     }
 
     @Override

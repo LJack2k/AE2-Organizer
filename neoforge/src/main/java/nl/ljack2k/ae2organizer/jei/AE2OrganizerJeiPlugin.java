@@ -7,7 +7,7 @@ import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
 import nl.ljack2k.ae2organizer.AE2Organizer;
-import nl.ljack2k.ae2organizer.client.JeiSync;
+import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 import nl.ljack2k.ae2organizer.filter.Condition;
 import nl.ljack2k.ae2organizer.filter.MatchMode;
@@ -24,7 +24,8 @@ import java.util.List;
  * Optional JEI integration. Loaded only when JEI is present (JEI scans for
  * {@code @JeiPlugin}). Registers a ghost-ingredient handler so items can be
  * dragged from JEI directly onto the tab editor's icon slot and condition
- * fields. Also wires {@link JeiSync} so tab selection can update JEI's search.
+ * fields, and a screen handler so JEI draws its list beside the (non-container)
+ * editor. Also wires {@link ViewerSync} so tab selection updates JEI's search.
  */
 @JeiPlugin
 public class AE2OrganizerJeiPlugin implements IModPlugin {
@@ -43,7 +44,7 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
     @Override
     public void onRuntimeAvailable(IJeiRuntime runtime) {
         IIngredientFilter filter = runtime.getIngredientFilter();
-        JeiSync.setHandler(tab -> {
+        ViewerSync.setHandler(tab -> {
             String search = buildJeiFilter(tab);
             if (search != null) {
                 filter.setFilterText(search);
@@ -53,12 +54,12 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeUnavailable() {
-        JeiSync.setHandler(null);
+        ViewerSync.setHandler(null);
     }
 
     /**
      * Translates a tab's conditions to a JEI filter string, mirroring the tab's
-     * match logic so JEI shows the same items as the terminal.
+     * match logic so JEI shows the same items as the grid.
      * <p>
      * Semantics match {@link Tab#toPredicate()}: positives combine by mode
      * (ANY → OR, ALL → AND), and negated conditions are exclusions AND-combined
@@ -73,7 +74,7 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
      * Returns {@code ""} for the "All" pseudo-tab (clears JEI's search) and
      * {@code null} when no condition is translatable. Note {@code COMPONENT}
      * conditions can't be expressed in JEI's grammar; a negated component is
-     * therefore dropped, so JEI may show slightly more than the terminal.
+     * therefore dropped, so JEI may show slightly more than the grid.
      */
     @Nullable
     private static String buildJeiFilter(@Nullable Tab tab) {
@@ -96,7 +97,6 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
 
         String exclusionSuffix = String.join(" ", exclusions);
         if (positives.isEmpty()) {
-            // Only exclusions: show everything except these (single chunk).
             return exclusionSuffix;
         }
         if (tab.mode() == MatchMode.ALL) {
@@ -104,7 +104,6 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
             all.addAll(exclusions);
             return String.join(" ", all);
         }
-        // ANY: OR of positives, each branch carrying the exclusions.
         List<String> branches = new ArrayList<>(positives.size());
         for (String positive : positives) {
             branches.add(exclusions.isEmpty() ? positive : positive + " " + exclusionSuffix);
@@ -117,9 +116,8 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
         return switch (condition.type()) {
             case MOD -> "@" + ((ModCondition) condition).modId();
             case TAG -> "#" + ((TagCondition) condition).tagId().getPath();
-            // Quote so a multi-word name stays one phrase token (mirrors the
-            // terminal's substring match); unquoted it would split into ANDed
-            // words, and a negated "-oak drawer" would leak "drawer" as positive.
+            // Quote so a multi-word name stays one phrase token (mirrors the grid's
+            // substring match); unquoted it would split into ANDed words.
             case TEXT -> {
                 String text = ((TextCondition) condition).text().trim();
                 yield text.isEmpty() ? null : (text.contains(" ") ? "\"" + text + "\"" : text);

@@ -6,9 +6,9 @@ import net.minecraft.client.gui.screens.Screen;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 
 /**
- * Tells JEI the editor's panel bounds so JEI draws its ingredient-list overlay
- * in the free space beside the panel (and thus allows dragging items out of it
- * onto the editor's ghost targets). Without this, JEI shows nothing on a plain
+ * Tells JEI the editor's panel bounds so JEI draws its ingredient-list overlay in
+ * the free space beside the panel (and thus allows dragging items out of it onto
+ * the editor's ghost targets). Without this, JEI shows nothing on a plain
  * (non-container) screen.
  */
 public record EditorGuiProperties(TabEditorScreen screen) implements IGuiProperties {

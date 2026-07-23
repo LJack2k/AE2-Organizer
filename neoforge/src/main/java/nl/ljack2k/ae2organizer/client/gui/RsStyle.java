@@ -51,24 +51,17 @@ public final class RsStyle {
     }
 
     /**
-     * Renders Refined Storage's own <em>wrench</em> item as the editor button icon —
-     * a native, good-looking match for RS's aesthetic with no duplicated art. Falls
-     * back to a vanilla item only if RS somehow isn't present (it always is).
+     * The editor/settings button icon — a mod-bundled wrench sprite
+     * ({@code assets/ae2organizer/textures/gui/sprites/settings.png}). Bundled
+     * deliberately so it works on ANY install (AE2-only, RS-only, both, neither):
+     * an earlier version rendered RS's own {@code refinedstorage:wrench} item, which
+     * both looked wrong in an AE2 terminal and would have failed with RS absent.
      */
+    private static final ResourceLocation SETTINGS_SPRITE =
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "settings");
+
     public static void settingsIcon(GuiGraphics graphics, int x, int y) {
-        graphics.renderItem(wrenchStack(), x, y);
-    }
-
-    private static ItemStack wrenchIcon;
-
-    private static ItemStack wrenchStack() {
-        if (wrenchIcon == null) {
-            var item = net.minecraft.core.registries.BuiltInRegistries.ITEM
-                    .getOptional(ResourceLocation.fromNamespaceAndPath("refinedstorage", "wrench"))
-                    .orElse(net.minecraft.world.item.Items.COMPARATOR);
-            wrenchIcon = new ItemStack(item);
-        }
-        return wrenchIcon;
+        graphics.blitSprite(SETTINGS_SPRITE, x, y, 16, 16);
     }
 
     /**

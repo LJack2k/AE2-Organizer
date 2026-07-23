@@ -1,5 +1,17 @@
 # Unify AE2 + RS into one mod (branch `unify-storage-backends`)
 
+## Status — ✅ COMPLETE (stages 1–8), on branch `unify-storage-backends`
+Unified jar builds and boots clean with **both** AE2 and RS present. Verified in a dev
+server+client: mixins gate per-mod, each backend keeps its own store (`tabs.json` / `rs.json`),
+filters never cross, viewer sync + JEI + clipboard work, and each backend renders in its **own
+mod's look** — AE2 terminals use AE2's `BackgroundGenerator`/palette (inherits AE2 dark-mode
+packs) + AE2's `Icon.COG`; RS grids use the nine-slice panel + RS's own wrench item icon.
+The RS side is screenshot-verified; the AE2 terminal side is boot-verified (harness can only
+open RS grids headlessly) and needs a maintainer's eyes for the final visual sign-off.
+
+**Not done (deliberately, needs maintainer go-ahead):** stage 9 rebrand of the display name, and
+the merge of `unify-storage-backends` → `1.21.1`. Nothing outward-facing (no push/publish).
+
 Goal: one client-side mod (kept mod id **`ae2organizer`**) that adds filter tabs to **both**
 Applied Energistics 2 terminals **and** Refined Storage 2 grids, with a **hard separation** between the
 two — each storage system has its own independent tabs/windows/settings/active-tab, never mixed. Manual

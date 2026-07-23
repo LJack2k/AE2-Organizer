@@ -27,14 +27,6 @@ public final class RsTheme implements Theme {
     private static final ResourceLocation PANEL_SPRITE =
             ResourceLocation.fromNamespaceAndPath("ae2organizer", "panel");
 
-    /**
-     * The editor/settings wrench sprite
-     * ({@code assets/ae2organizer/textures/gui/sprites/settings.png}). Bundled so it
-     * works on any install without depending on RS's own item textures.
-     */
-    private static final ResourceLocation SETTINGS_SPRITE =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "settings");
-
     @Override
     public void panel(GuiGraphics g, int x, int y, int w, int h) {
         g.blitSprite(PANEL_SPRITE, x, y, w, h);
@@ -52,6 +44,7 @@ public final class RsTheme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        g.blitSprite(SETTINGS_SPRITE, x, y, 16, 16);
+        // Shared white gear sprite tinted to the RS panel's dark text colour.
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, TEXT);
     }
 }

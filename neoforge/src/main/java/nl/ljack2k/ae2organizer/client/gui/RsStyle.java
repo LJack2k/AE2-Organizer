@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -23,6 +24,29 @@ public final class RsStyle {
 
     /** Translucent dim drawn behind our popup screens instead of vanilla's blur. */
     public static final int DIM = 0xB0101018;
+
+    /**
+     * The shared settings-gear sprite ({@code assets/ae2organizer/textures/gui/sprites/settings.png}).
+     * Authored WHITE so {@link #settingsIcon} can tint it to any colour — each backend's
+     * {@code Theme} tints it to its own text colour, which gives free dark-mode inversion
+     * (AE2's palette colour is dark on light packs, light on dark packs).
+     */
+    public static final ResourceLocation SETTINGS_SPRITE =
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "settings");
+
+    /** Blits the 16×16 settings gear at (x, y), tinted to {@code argb}. */
+    public static void settingsIcon(GuiGraphics graphics, int x, int y, int argb) {
+        float a = ((argb >> 24) & 0xFF) / 255f;
+        if (a == 0f) {
+            a = 1f; // treat a bare RGB (no alpha) as opaque
+        }
+        float r = ((argb >> 16) & 0xFF) / 255f;
+        float g = ((argb >> 8) & 0xFF) / 255f;
+        float b = (argb & 0xFF) / 255f;
+        graphics.setColor(r, g, b, a);
+        graphics.blitSprite(SETTINGS_SPRITE, x, y, 16, 16);
+        graphics.setColor(1f, 1f, 1f, 1f);
+    }
 
     /**
      * Dark label text baked into the vanilla-style {@link #labelButton} and

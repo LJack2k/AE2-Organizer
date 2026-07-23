@@ -1,6 +1,5 @@
 package nl.ljack2k.ae2organizer.backend.ae2;
 
-import appeng.client.gui.Icon;
 import appeng.client.gui.style.BackgroundGenerator;
 import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;
@@ -85,6 +84,8 @@ public final class Ae2Theme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        Icon.COG.getBlitter().dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
+        // Same shared white gear the RS theme uses, tinted to AE2's palette text
+        // colour — so it inverts automatically under AE2 dark-mode resource packs.
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, textColor());
     }
 }

@@ -1,14 +1,17 @@
 package nl.ljack2k.ae2organizer.backend.rs;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.backend.Theme;
 
 /**
- * Refined Storage look: the bundled nine-slice panel sprite and wrench icon, with
- * the classic light-gray RS grid palette (dark {@code 0x404040} text, RS-blue
- * selection). All drawing uses bundled sprites + vanilla {@link GuiGraphics}, so
- * nothing here ties us to RS internals. A singleton (see {@link RsBackend#theme()}).
+ * Refined Storage look: the bundled nine-slice panel sprite + RS's own wrench item
+ * as the settings icon, with the classic light-gray RS grid palette (dark
+ * {@code 0x404040} text, RS-blue selection). Only loaded when RS is present (see
+ * {@link RsBackend#theme()}), so referencing RS's wrench item here is safe.
  */
 public final class RsTheme implements Theme {
 
@@ -42,11 +45,22 @@ public final class RsTheme implements Theme {
         return SELECTION;
     }
 
-    private static final ResourceLocation WRENCH =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_rs");
+    private static ItemStack wrench;
+
+    /** Refined Storage's own wrench item (RsTheme only loads when RS is present). */
+    private static ItemStack wrench() {
+        if (wrench == null) {
+            var item = BuiltInRegistries.ITEM
+                    .getOptional(ResourceLocation.fromNamespaceAndPath("refinedstorage", "wrench"))
+                    .orElse(Items.COMPARATOR);
+            wrench = new ItemStack(item);
+        }
+        return wrench;
+    }
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        g.blitSprite(WRENCH, x, y, 16, 16);
+        // RS's own wrench item icon (matches RS; native art, no bundled sprite).
+        g.renderItem(wrench(), x, y);
     }
 }

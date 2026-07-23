@@ -5,18 +5,18 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Renders our client-only screens and the tab panel in a look that matches
- * Refined Storage's grid GUI: the classic light-gray Minecraft container panel
- * with a raised bevel and dark ({@code 0x404040}) label text. RS's own grid uses
- * this vanilla-container styling, so approximating it here keeps the tab UI
- * visually native without depending on RS's internal (sprite-based) style API.
+ * Theme-neutral drawing helpers shared by both backends' screens and the tab
+ * panel: bevelled buttons, insets, slots, dividers, scaled item/text, and vanilla
+ * text-field widgets. All drawing uses vanilla {@link GuiGraphics}, so nothing
+ * here ties us to RS or AE2 internals.
  * <p>
- * All drawing uses vanilla {@link GuiGraphics}, so nothing here ties us to RS or
- * AE2 internals — only the grid <em>filter</em> hook does.
+ * The <em>backend-specific</em> look (the background panel, its text/selection
+ * colours, the settings icon) lives on each backend's {@code Theme} instead
+ * ({@code RsTheme} / {@code Ae2Theme}), so an AE2 terminal and an RS grid can
+ * differ. These helpers are the parts that are the same on either theme.
  */
 public final class RsStyle {
     private RsStyle() {}
@@ -24,45 +24,13 @@ public final class RsStyle {
     /** Translucent dim drawn behind our popup screens instead of vanilla's blur. */
     public static final int DIM = 0xB0101018;
 
-    private static final int TEXT = 0xFF404040;
-    private static final int SELECTION = 0xFF2A7FFF;
-
     /**
-     * Nine-slice panel sprite ({@code assets/ae2organizer/textures/gui/sprites/panel.png}
-     * + {@code .mcmeta}). Its pixels are RS's own grid-GUI border: a black rounded outer
-     * border, a white top-left bevel, a {@code C6C6C6} body, and a {@code 555555}
-     * bottom-right bevel — so a bundled sprite gives the native RS look at any size,
-     * rather than hand-drawn fills.
+     * Dark label text baked into the vanilla-style {@link #labelButton} and
+     * {@link #checkbox} drop-ins. These widgets are deliberately theme-neutral
+     * (they read on the light bevelled faces they draw), so they carry their own
+     * fixed colour rather than a backend's {@code Theme.textColor()}.
      */
-    private static final ResourceLocation PANEL_SPRITE =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "panel");
-
-    public static int textColor() {
-        return TEXT;
-    }
-
-    public static int selectionColor() {
-        return SELECTION;
-    }
-
-    /** An RS-styled container panel at any size (bundled nine-slice sprite). */
-    public static void panel(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.blitSprite(PANEL_SPRITE, x, y, width, height);
-    }
-
-    /**
-     * The editor/settings button icon — a mod-bundled wrench sprite
-     * ({@code assets/ae2organizer/textures/gui/sprites/settings.png}). Bundled
-     * deliberately so it works on ANY install (AE2-only, RS-only, both, neither):
-     * an earlier version rendered RS's own {@code refinedstorage:wrench} item, which
-     * both looked wrong in an AE2 terminal and would have failed with RS absent.
-     */
-    private static final ResourceLocation SETTINGS_SPRITE =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "settings");
-
-    public static void settingsIcon(GuiGraphics graphics, int x, int y) {
-        graphics.blitSprite(SETTINGS_SPRITE, x, y, 16, 16);
-    }
+    private static final int LABEL_TEXT = 0xFF404040;
 
     /**
      * A plain (vanilla) text box, readable on the light panel.
@@ -148,7 +116,7 @@ public final class RsStyle {
         bevelButton(graphics, x, y, w, h, active, hovered);
         int off = active ? 1 : 0;
         int tw = font.width(label);
-        graphics.drawString(font, label, x + (w - tw) / 2 + off, y + (h - 8) / 2 + off, TEXT, false);
+        graphics.drawString(font, label, x + (w - tw) / 2 + off, y + (h - 8) / 2 + off, LABEL_TEXT, false);
     }
 
     /**
@@ -160,9 +128,9 @@ public final class RsStyle {
         int box = 11;
         bevelButton(graphics, x, y, box, box, true, hovered);
         if (checked) {
-            graphics.drawString(font, "✔", x + 2, y + 1, TEXT, false);
+            graphics.drawString(font, "✔", x + 2, y + 1, LABEL_TEXT, false);
         }
-        graphics.drawString(font, label, x + box + 4, y + 2, TEXT, false);
+        graphics.drawString(font, label, x + box + 4, y + 2, LABEL_TEXT, false);
     }
 
     /** Renders an item icon scaled to {@code size} pixels (vanilla renderItem is fixed 16px). */
@@ -207,9 +175,4 @@ public final class RsStyle {
         graphics.fill(x, y + 17, x + 18, y + 18, 0x33FFFFFF);
         graphics.fill(x + 17, y, x + 18, y + 18, 0x33FFFFFF);
     }
-
-    /** The cog/gear sprite location (generated asset), kept for any screen that blits it. */
-    public static final ResourceLocation COG =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "textures/gui/cog.png");
-
 }

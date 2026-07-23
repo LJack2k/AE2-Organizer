@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.StorageBackend;
+import nl.ljack2k.ae2organizer.backend.Theme;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
@@ -29,6 +30,11 @@ public final class RsBackend implements StorageBackend {
     @Override
     public ScreenAdapter adapt(Screen screen) {
         return new RsScreenAdapter((AbstractGridScreen<?>) screen);
+    }
+
+    @Override
+    public Theme theme() {
+        return RsTheme.INSTANCE;
     }
 
     @Override

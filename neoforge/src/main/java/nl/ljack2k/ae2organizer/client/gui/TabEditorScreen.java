@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.filter.ComponentCondition;
 import nl.ljack2k.ae2organizer.filter.ComponentMatch;
@@ -68,6 +69,7 @@ public final class TabEditorScreen extends Screen {
     private final Screen parent;
     private final String terminalKey;
     private final TabManager.Store store;
+    private final Theme theme;
     private final List<WindowDraft> windows = new ArrayList<>();
     private final List<GhostTarget> ghostTargets = new ArrayList<>();
     // Tree selection: selWindow indexes windows; selTab indexes that window's tabs
@@ -107,11 +109,12 @@ public final class TabEditorScreen extends Screen {
     private boolean condNeedScroll;
     private int condMaxScroll;
 
-    public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store) {
+    public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store, Theme theme) {
         super(Component.translatable("ae2organizer.gui.editor.title"));
         this.parent = parent;
         this.terminalKey = terminalKey;
         this.store = store;
+        this.theme = theme;
         for (FilterWindow w : store.windows()) {
             windows.add(WindowDraft.from(w, store));
         }
@@ -265,7 +268,7 @@ public final class TabEditorScreen extends Screen {
         }
 
         addRenderableWidget(new RsButton(innerX, footerY, 62, BTN_H,
-                Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this, store))));
+                Component.literal("Settings…"), b -> this.minecraft.setScreen(new SettingsScreen(this, store, theme))));
         addRenderableWidget(new RsButton(innerX + 66, footerY, 66, BTN_H,
                 Component.literal("Move…"), b -> commitThenMove()));
         addRenderableWidget(new RsButton(innerR - 120, footerY, 58, BTN_H,
@@ -332,7 +335,7 @@ public final class TabEditorScreen extends Screen {
         addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal(hidden == 0 ? "Grids… (all shown)" : "Grids… (" + hidden + " hidden)"),
                 b -> this.minecraft.setScreen(
-                        new WindowVisibilityScreen(this, knownTerminals(), w.hiddenOn, terminalKey, store))));
+                        new WindowVisibilityScreen(this, knownTerminals(), w.hiddenOn, terminalKey, store, theme))));
         rowY += 22;
 
         // Positions are per-grid; this recenters the window for THIS grid.
@@ -563,8 +566,8 @@ public final class TabEditorScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
-        RsStyle.panel(graphics, left, top, panelW, panelH);
-        int tc = RsStyle.textColor();
+        theme.panel(graphics, left, top, panelW, panelH);
+        int tc = theme.textColor();
         graphics.drawString(this.font, getTitle(), left + PAD, top + 8, tc, false);
 
         graphics.drawString(this.font, "Windows & Tabs", tabsX, tabsHeaderY, tc, false);
@@ -675,16 +678,16 @@ public final class TabEditorScreen extends Screen {
             if (isWindow) {
                 // Filled chevron at normal height, aligned with the window name.
                 String caret = w.collapsed ? "▶" : "▼";
-                graphics.drawString(this.font, caret, rowX + 3 + off, y + 5 + off, RsStyle.textColor(), false);
+                graphics.drawString(this.font, caret, rowX + 3 + off, y + 5 + off, theme.textColor(), false);
                 String label = (w.name.isBlank() ? "Window" : w.name);
                 String text = this.font.plainSubstrByWidth(label, rowW - CARET_W - 2);
-                graphics.drawString(this.font, text, rowX + CARET_W + off, y + 5 + off, RsStyle.textColor(), false);
+                graphics.drawString(this.font, text, rowX + CARET_W + off, y + 5 + off, theme.textColor(), false);
             } else {
                 TabDraft t = w.tabs.get(ti);
                 RsStyle.scaledItem(graphics, iconStack(t.icon), rowX + 2 + off, y + 1 + off, 14);
                 String label = t.name.isBlank() ? t.id : t.name;
                 String text = this.font.plainSubstrByWidth(label, rowW - 20);
-                graphics.drawString(this.font, text, rowX + 18 + off, y + 5 + off, RsStyle.textColor(), false);
+                graphics.drawString(this.font, text, rowX + 18 + off, y + 5 + off, theme.textColor(), false);
             }
         }
         if (listNeedScroll) {
@@ -739,7 +742,7 @@ public final class TabEditorScreen extends Screen {
     // ---- Item-picking ------------------------------------------------------
 
     private void openIconPicker(TabDraft draft) {
-        this.minecraft.setScreen(new ItemPickerScreen(this, Component.literal("Pick tab icon"), item -> {
+        this.minecraft.setScreen(new ItemPickerScreen(this, Component.literal("Pick tab icon"), theme, item -> {
             draft.icon = BuiltInRegistries.ITEM.getKey(item).toString();
             this.minecraft.setScreen(this);
         }));
@@ -748,18 +751,18 @@ public final class TabEditorScreen extends Screen {
     private void openConditionPicker(CondDraft cond) {
         switch (cond.type) {
             case MOD -> this.minecraft.setScreen(new ItemPickerScreen(this,
-                    Component.literal("Pick item — uses its mod"), item -> {
+                    Component.literal("Pick item — uses its mod"), theme, item -> {
                 cond.value = BuiltInRegistries.ITEM.getKey(item).getNamespace();
                 this.minecraft.setScreen(this);
             }));
             case TEXT -> this.minecraft.setScreen(new ItemPickerScreen(this,
-                    Component.literal("Pick item — uses its name"), item -> {
+                    Component.literal("Pick item — uses its name"), theme, item -> {
                 cond.value = new ItemStack(item).getHoverName().getString();
                 this.minecraft.setScreen(this);
             }));
             case TAG -> this.minecraft.setScreen(new ItemPickerScreen(this,
-                    Component.literal("Pick item — choose its tag"), item ->
-                    this.minecraft.setScreen(new TagChooserScreen(this, item, tag -> {
+                    Component.literal("Pick item — choose its tag"), theme, item ->
+                    this.minecraft.setScreen(new TagChooserScreen(this, item, theme, tag -> {
                         cond.value = tag;
                         this.minecraft.setScreen(this);
                     }))));
@@ -777,7 +780,7 @@ public final class TabEditorScreen extends Screen {
                 cond.value = stack.getHoverName().getString();
                 rebuildWidgets();
             }
-            case TAG -> this.minecraft.setScreen(new TagChooserScreen(this, stack.getItem(), tag -> {
+            case TAG -> this.minecraft.setScreen(new TagChooserScreen(this, stack.getItem(), theme, tag -> {
                 cond.value = tag;
                 this.minecraft.setScreen(this);
             }));
@@ -967,7 +970,7 @@ public final class TabEditorScreen extends Screen {
         for (WindowDraft w : windows) {
             names.add(w.name.isBlank() ? w.id : w.name);
         }
-        this.minecraft.setScreen(new WindowPickerScreen(this, names, selWindow, this::moveSelectedTabToWindow));
+        this.minecraft.setScreen(new WindowPickerScreen(this, names, selWindow, theme, this::moveSelectedTabToWindow));
     }
 
     /** Move the selected tab into the given window (by index). */

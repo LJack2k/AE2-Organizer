@@ -3,6 +3,7 @@ package nl.ljack2k.ae2organizer.client.gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.filter.Settings;
 import nl.ljack2k.ae2organizer.persist.TabShare;
@@ -24,6 +25,7 @@ public final class SettingsScreen extends Screen {
 
     private final Screen parent;
     private final TabManager.Store store;
+    private final Theme theme;
     private boolean resetFilterOnOpen;
     private boolean clearSearchOnTabSelect;
     private boolean syncViewerOnTabSelect;
@@ -39,10 +41,11 @@ public final class SettingsScreen extends Screen {
     private int panelH;
     private int row1Y, row2Y, row3Y;
 
-    public SettingsScreen(Screen parent, TabManager.Store store) {
+    public SettingsScreen(Screen parent, TabManager.Store store, Theme theme) {
         super(Component.translatable("ae2organizer.gui.settings.title"));
         this.parent = parent;
         this.store = store;
+        this.theme = theme;
         Settings current = store.getSettings();
         this.resetFilterOnOpen = current.resetFilterOnOpen();
         this.clearSearchOnTabSelect = current.clearSearchOnTabSelect();
@@ -147,8 +150,8 @@ public final class SettingsScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
-        RsStyle.panel(graphics, left, top, panelW, panelH);
-        int tc = RsStyle.textColor();
+        theme.panel(graphics, left, top, panelW, panelH);
+        int tc = theme.textColor();
         int noteColor = (tc & 0x00FFFFFF) | 0xBB000000;
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
 

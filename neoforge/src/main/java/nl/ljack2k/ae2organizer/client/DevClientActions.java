@@ -40,7 +40,7 @@ public final class DevClientActions {
         String key = (parent != null && backend.handles(parent))
                 ? backend.adapt(parent).terminalKey()
                 : "refinedstorage:grid";
-        mc.setScreen(new TabEditorScreen(parent, key, store));
+        mc.setScreen(new TabEditorScreen(parent, key, store, backend.theme()));
     }
 
     /** Select a tab by id (empty/null = the All tab), applying filter + viewer sync. */

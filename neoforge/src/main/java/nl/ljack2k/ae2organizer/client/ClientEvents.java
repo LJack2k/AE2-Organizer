@@ -9,7 +9,6 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import nl.ljack2k.ae2organizer.backend.BackendRegistry;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.StorageBackend;
-import nl.ljack2k.ae2organizer.client.gui.RsStyle;
 import nl.ljack2k.ae2organizer.client.gui.TabBarWidget;
 import nl.ljack2k.ae2organizer.filter.FilterWindow;
 import org.jetbrains.annotations.Nullable;
@@ -78,7 +77,7 @@ public final class ClientEvents {
     private static void rebuild(StorageBackend backend, Screen screen, ScreenAdapter adapter, TabManager.Store store) {
         BARS.clear();
         for (FilterWindow w : store.visibleWindows(adapter.terminalKey())) {
-            BARS.add(new TabBarWidget(screen, adapter, store, w.id()));
+            BARS.add(new TabBarWidget(screen, adapter, store, backend.theme(), w.id()));
         }
         activeBackend = backend;
         activeBarScreen = screen;
@@ -114,21 +113,22 @@ public final class ClientEvents {
             bar.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
         if (activeStore != null && activeStore.isMoveMode()) {
-            renderMoveBanner(event.getGuiGraphics(), event.getScreen(), event.getMouseX(), event.getMouseY());
+            renderMoveBanner(backend.theme(), event.getGuiGraphics(), event.getScreen(), event.getMouseX(), event.getMouseY());
         }
     }
 
     private static final String MOVE_MSG = "Move mode: drag panels (or hold Alt anytime) — click here when done";
 
-    private static void renderMoveBanner(net.minecraft.client.gui.GuiGraphics g, Screen screen, int mouseX, int mouseY) {
+    private static void renderMoveBanner(nl.ljack2k.ae2organizer.backend.Theme theme,
+                                         net.minecraft.client.gui.GuiGraphics g, Screen screen, int mouseX, int mouseY) {
         int[] r = bannerRect(screen);
         boolean hover = mouseX >= r[0] && mouseX < r[0] + r[2] && mouseY >= r[1] && mouseY < r[1] + r[3];
-        RsStyle.panel(g, r[0], r[1], r[2], r[3]);
+        theme.panel(g, r[0], r[1], r[2], r[3]);
         if (hover) {
             g.fill(r[0] + 1, r[1] + 1, r[0] + r[2] - 1, r[1] + r[3] - 1, 0x2200B4FF);
         }
         var font = net.minecraft.client.Minecraft.getInstance().font;
-        g.drawString(font, MOVE_MSG, r[0] + 6, r[1] + (r[3] - 8) / 2, RsStyle.textColor(), false);
+        g.drawString(font, MOVE_MSG, r[0] + 6, r[1] + (r[3] - 8) / 2, theme.textColor(), false);
     }
 
     private static int[] bannerRect(Screen screen) {

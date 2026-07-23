@@ -3,6 +3,7 @@ package nl.ljack2k.ae2organizer.client.gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.TabManager;
 
 import java.util.List;
@@ -22,17 +23,19 @@ public final class WindowVisibilityScreen extends Screen {
     private final Set<String> hidden;
     private final String currentKey;
     private final TabManager.Store store;
+    private final Theme theme;
 
     private int left, top, panelW, panelH;
 
     public WindowVisibilityScreen(Screen parent, List<String> terminals, Set<String> hidden, String currentKey,
-                                  TabManager.Store store) {
+                                  TabManager.Store store, Theme theme) {
         super(Component.literal("Show on grids"));
         this.parent = parent;
         this.terminals = terminals;
         this.hidden = hidden;
         this.currentKey = currentKey;
         this.store = store;
+        this.theme = theme;
     }
 
     @Override
@@ -73,8 +76,8 @@ public final class WindowVisibilityScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
-        RsStyle.panel(graphics, left, top, panelW, panelH);
-        int tc = RsStyle.textColor();
+        theme.panel(graphics, left, top, panelW, panelH);
+        int tc = theme.textColor();
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
     }
 

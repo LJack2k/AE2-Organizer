@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.SearchClearable;
+import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
 import nl.ljack2k.ae2organizer.client.TabManager;
 import nl.ljack2k.ae2organizer.client.ViewerSync;
@@ -54,6 +55,7 @@ public final class TabBarWidget extends AbstractWidget {
     private final Screen screen;
     private final ScreenAdapter adapter;
     private final TabManager.Store store;
+    private final Theme theme;
     private final String windowId;
     private final String terminalKey;
     private int scroll = 0;
@@ -64,11 +66,12 @@ public final class TabBarWidget extends AbstractWidget {
     private int dragGrabX, dragGrabY;
     private int dragX, dragY;
 
-    public TabBarWidget(Screen screen, ScreenAdapter adapter, TabManager.Store store, String windowId) {
+    public TabBarWidget(Screen screen, ScreenAdapter adapter, TabManager.Store store, Theme theme, String windowId) {
         super(0, 0, 1, 1, Component.literal("Storage Filter Tabs"));
         this.screen = screen;
         this.adapter = adapter;
         this.store = store;
+        this.theme = theme;
         this.windowId = windowId;
         this.terminalKey = adapter.terminalKey();
         Layout l = layout();
@@ -310,18 +313,18 @@ public final class TabBarWidget extends AbstractWidget {
         var font = Minecraft.getInstance().font;
         boolean move = moveActive();
 
-        RsStyle.panel(graphics, l.panelX, l.panelY, l.panelW, l.panelH);
+        theme.panel(graphics, l.panelX, l.panelY, l.panelW, l.panelH);
 
         if (!l.horizontal && l.labels && w != null) {
             RsStyle.scaledText(graphics, font, w.name(),
-                    l.contentX, l.contentY + 4, RsStyle.textColor(), l.textScale);
+                    l.contentX, l.contentY + 4, theme.textColor(), l.textScale);
         }
         if (l.gear) {
             boolean gearHover = !move && inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ);
             if (gearHover) {
                 graphics.fill(l.gearX, l.gearY, l.gearX + GEAR_SZ, l.gearY + GEAR_SZ, 0x33FFFFFF);
             }
-            RsStyle.settingsIcon(graphics, l.gearX, l.gearY);
+            theme.settingsIcon(graphics, l.gearX, l.gearY);
         }
         if (!l.horizontal && l.hasTitle) {
             graphics.fill(l.contentX, l.contentY + TITLE_H, l.contentX + l.cellMain, l.contentY + TITLE_H + 1, 0x40000000);
@@ -352,7 +355,7 @@ public final class TabBarWidget extends AbstractWidget {
                 int textW = r[2] - l.iconCell - 4;
                 String text = font.plainSubstrByWidth(label.getString(), (int) (textW / l.textScale));
                 RsStyle.scaledText(graphics, font, text, r[0] + l.iconCell + 2 + off,
-                        r[1] + (r[3] - Math.round(8 * l.textScale)) / 2 + off, RsStyle.textColor(), l.textScale);
+                        r[1] + (r[3] - Math.round(8 * l.textScale)) / 2 + off, theme.textColor(), l.textScale);
             } else if (hovered) {
                 hoverTip = label;
             }
@@ -401,7 +404,7 @@ public final class TabBarWidget extends AbstractWidget {
         }
         if (l.gear && inRect(mouseX, mouseY, l.gearX, l.gearY, GEAR_SZ, GEAR_SZ)) {
             playClick();
-            Minecraft.getInstance().setScreen(new TabEditorScreen(screen, terminalKey, store));
+            Minecraft.getInstance().setScreen(new TabEditorScreen(screen, terminalKey, store, theme));
             return true;
         }
         if (!l.horizontal && l.needScroll

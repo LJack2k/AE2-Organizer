@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.ljack2k.ae2organizer.backend.Theme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ public final class ItemPickerScreen extends Screen {
     private static final int CELL = 18;
 
     private final Screen parent;
+    private final Theme theme;
     private final Consumer<Item> onPick;
     private final List<Item> all;
     private List<Item> filtered;
@@ -37,9 +39,10 @@ public final class ItemPickerScreen extends Screen {
     private int gridTop;
     private int visibleRows;
 
-    public ItemPickerScreen(Screen parent, Component title, Consumer<Item> onPick) {
+    public ItemPickerScreen(Screen parent, Component title, Theme theme, Consumer<Item> onPick) {
         super(title);
         this.parent = parent;
+        this.theme = theme;
         this.onPick = onPick;
         this.all = BuiltInRegistries.ITEM.stream().filter(item -> item != Items.AIR).toList();
         this.filtered = this.all;
@@ -93,8 +96,8 @@ public final class ItemPickerScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
-        RsStyle.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 8, top + 7, RsStyle.textColor(), false);
+        theme.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 8, top + 7, theme.textColor(), false);
     }
 
     @Override

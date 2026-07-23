@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import nl.ljack2k.ae2organizer.backend.Theme;
 
 import java.util.Comparator;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.function.Consumer;
  */
 public final class TagChooserScreen extends Screen {
     private final Screen parent;
+    private final Theme theme;
     private final Consumer<String> onPick;
     private final List<TagKey<Item>> tags;
     private int offset = 0;
@@ -31,9 +33,10 @@ public final class TagChooserScreen extends Screen {
     private int listTop;
     private int visible;
 
-    public TagChooserScreen(Screen parent, Item item, Consumer<String> onPick) {
+    public TagChooserScreen(Screen parent, Item item, Theme theme, Consumer<String> onPick) {
         super(Component.literal("Choose a tag"));
         this.parent = parent;
+        this.theme = theme;
         this.onPick = onPick;
         this.tags = new ItemStack(item).getTags()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
@@ -57,7 +60,7 @@ public final class TagChooserScreen extends Screen {
         if (tags.isEmpty()) {
             addRenderableWidget(new StringWidget(left + 10, top + 44, panelW - 20, 12,
                     Component.literal("This item has no tags."), this.font).alignLeft()
-                    .setColor(RsStyle.textColor()));
+                    .setColor(theme.textColor()));
         } else {
             int count = Math.min(visible, tags.size() - offset);
             for (int i = 0; i < count; i++) {
@@ -85,8 +88,8 @@ public final class TagChooserScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
-        RsStyle.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, RsStyle.textColor(), false);
+        theme.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
     }
 
     @Override

@@ -29,6 +29,13 @@ public interface StorageBackend {
     ScreenAdapter adapt(Screen screen);
 
     /**
+     * This backend's visual look for the tab panel and this mod's client-only
+     * screens. A singleton per backend. RS returns its bundled-sprite theme; AE2
+     * returns a theme that renders through AE2's own GUI pipeline.
+     */
+    Theme theme();
+
+    /**
      * Push the active tab's predicate into this backend's client-side filter
      * bridge (which its mixin reads). {@code null} clears the filter (the "All"
      * tab). Predicate operates on an {@link ItemStack}; non-item resources are

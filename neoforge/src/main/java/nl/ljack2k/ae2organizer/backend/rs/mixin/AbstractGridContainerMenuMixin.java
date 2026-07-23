@@ -1,9 +1,10 @@
-package nl.ljack2k.ae2organizer.backend.rs;
+package nl.ljack2k.ae2organizer.backend.rs.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.refinedmods.refinedstorage.api.resource.repository.ResourceRepositoryFilter;
 import com.refinedmods.refinedstorage.common.api.grid.view.GridResource;
 import com.refinedmods.refinedstorage.common.grid.AbstractGridContainerMenu;
+import nl.ljack2k.ae2organizer.backend.rs.GridFilterBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 

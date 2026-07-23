@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8.5",
-  "package": "nl.ljack2k.ae2organizer.backend.ae2",
+  "package": "nl.ljack2k.ae2organizer.backend.ae2.mixin",
   "compatibilityLevel": "JAVA_21",
   "plugin": "nl.ljack2k.ae2organizer.backend.ae2.Ae2MixinPlugin",
   "client": [

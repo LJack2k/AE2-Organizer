@@ -8,6 +8,8 @@ import net.minecraft.world.inventory.Slot;
 import nl.ljack2k.ae2organizer.AE2Organizer;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.SearchClearable;
+import nl.ljack2k.ae2organizer.backend.ae2.mixin.AbstractContainerScreenAccessor;
+import nl.ljack2k.ae2organizer.backend.ae2.mixin.MEStorageScreenAccessor;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;

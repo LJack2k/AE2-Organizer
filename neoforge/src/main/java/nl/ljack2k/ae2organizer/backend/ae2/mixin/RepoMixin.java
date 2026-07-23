@@ -1,8 +1,9 @@
-package nl.ljack2k.ae2organizer.backend.ae2;
+package nl.ljack2k.ae2organizer.backend.ae2.mixin;
 
 import appeng.api.stacks.AEKey;
 import appeng.client.gui.me.common.Repo;
 import appeng.menu.me.common.GridInventoryEntry;
+import nl.ljack2k.ae2organizer.backend.ae2.RepoFilterBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;

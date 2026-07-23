@@ -1,4 +1,4 @@
-package nl.ljack2k.ae2organizer.backend.ae2;
+package nl.ljack2k.ae2organizer.backend.ae2.mixin;
 
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.Repo;

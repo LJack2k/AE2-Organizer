@@ -1,4 +1,4 @@
-package nl.ljack2k.ae2organizer.backend.ae2;
+package nl.ljack2k.ae2organizer.backend.ae2.mixin;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.spongepowered.asm.mixin.Mixin;

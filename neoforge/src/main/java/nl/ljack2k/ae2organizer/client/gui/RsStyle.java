@@ -26,21 +26,24 @@ public final class RsStyle {
     public static final int DIM = 0xB0101018;
 
     /**
-     * The 48×16 settings-wrench sheet ({@code assets/ae2organizer/textures/gui/setting.png}):
-     * three 16×16 frames — {@link #WRENCH_AE2_LIGHT}, {@link #WRENCH_AE2_DARK}, {@link #WRENCH_RS}.
-     * A standalone texture (not under {@code sprites/}) so we can blit a single frame.
+     * The settings-wrench frames, sliced from the maintainer's {@code setting.png} sheet
+     * into atlas sprites. Rendered via {@link GuiGraphics#blitSprite}, which alpha-blends
+     * the sprites' anti-aliased edges (a standalone-texture {@code blit} did not).
      */
-    public static final ResourceLocation WRENCH_SHEET =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "textures/gui/setting.png");
+    private static final ResourceLocation[] WRENCH = {
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_ae2"),       // AE2 light mode
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_ae2_dark"),  // AE2 dark mode
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_rs"),        // RS
+    };
 
-    /** Frame indices into {@link #WRENCH_SHEET}: AE2 light-mode, AE2 dark-mode, RS. */
+    /** Frame indices for {@link #settingsIcon}: AE2 light-mode, AE2 dark-mode, RS. */
     public static final int WRENCH_AE2_LIGHT = 0;
     public static final int WRENCH_AE2_DARK = 1;
     public static final int WRENCH_RS = 2;
 
-    /** Blits one 16×16 {@code frame} of the wrench sheet at (x, y). */
+    /** Blits the 16×16 settings wrench {@code frame} at (x, y), alpha-blended. */
     public static void settingsIcon(GuiGraphics graphics, int x, int y, int frame) {
-        graphics.blit(WRENCH_SHEET, x, y, frame * 16f, 0f, 16, 16, 48, 16);
+        graphics.blitSprite(WRENCH[frame], x, y, 16, 16);
     }
 
     /**

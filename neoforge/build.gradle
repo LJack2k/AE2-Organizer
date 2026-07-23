@@ -61,6 +61,11 @@ dependencies {
     runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
     runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
 
+    // Refined Storage 2 — the other optional backend. compileOnly to build the RS
+    // hooks; runtimeOnly so the dev client can exercise RS grids alongside AE2.
+    compileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    runtimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+
     // JEI — OPTIONAL integration. compileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
     // dormant unless JEI is actually present at runtime, and JEI is not declared
@@ -78,6 +83,7 @@ tasks.named('processResources', ProcessResources).configure {
         neo_version_range       : neo_version_range,
         loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
+        rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
         mod_license             : mod_license,

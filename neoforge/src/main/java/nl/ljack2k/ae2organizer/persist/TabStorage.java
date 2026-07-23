@@ -8,7 +8,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLPaths;
-import nl.ljack2k.ae2organizer.AE2Organizer;
+import nl.ljack2k.ae2organizer.TerminalOrganizer;
 import nl.ljack2k.ae2organizer.filter.ComponentCondition;
 import nl.ljack2k.ae2organizer.filter.ComponentMatch;
 import nl.ljack2k.ae2organizer.filter.FilterWindow;
@@ -52,7 +52,7 @@ public final class TabStorage {
     public static StoredData load(String fileName) {
         Path path = file(fileName);
         if (!Files.exists(path)) {
-            AE2Organizer.LOGGER.info("[AE2Organizer] No {} found — seeding default tabs.", fileName);
+            TerminalOrganizer.LOGGER.info("[TerminalOrganizer] No {} found — seeding default tabs.", fileName);
             return new StoredData(Settings.DEFAULT, List.of(defaultWindow()), defaults(), new HashMap<>());
         }
         try {
@@ -62,7 +62,7 @@ public final class TabStorage {
             Settings settings = Settings.DEFAULT;
             if (obj.has("settings")) {
                 settings = Settings.CODEC.parse(JsonOps.INSTANCE, obj.get("settings"))
-                        .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Bad settings: {}", err))
+                        .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Bad settings: {}", err))
                         .orElse(Settings.DEFAULT);
             }
 
@@ -72,7 +72,7 @@ public final class TabStorage {
                 tabs = defaults();
             } else {
                 tabs = Tab.CODEC.listOf().parse(JsonOps.INSTANCE, tabsElement)
-                        .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Bad tab: {}", err))
+                        .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Bad tab: {}", err))
                         .<List<Tab>>map(ArrayList::new)
                         .orElseGet(TabStorage::defaults);
             }
@@ -84,7 +84,7 @@ public final class TabStorage {
                 windows.add(migratedWindow(obj.getAsJsonObject("settings")));
             } else {
                 windows = FilterWindow.CODEC.listOf().parse(JsonOps.INSTANCE, windowsElement)
-                        .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Bad window: {}", err))
+                        .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Bad window: {}", err))
                         .<List<FilterWindow>>map(ArrayList::new)
                         .orElseGet(() -> new ArrayList<>(List.of(defaultWindow())));
             }
@@ -104,7 +104,7 @@ public final class TabStorage {
             }
             return new StoredData(settings, windows, tabs, terminalNames);
         } catch (Exception e) {
-            AE2Organizer.LOGGER.error("[AE2Organizer] Could not read tabs.json — using defaults.", e);
+            TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Could not read tabs.json — using defaults.", e);
             return new StoredData(Settings.DEFAULT, List.of(defaultWindow()), defaults(), new HashMap<>());
         }
     }
@@ -114,13 +114,13 @@ public final class TabStorage {
         Path path = file(fileName);
         try {
             JsonElement windowsElement = FilterWindow.CODEC.listOf().encodeStart(JsonOps.INSTANCE, windows)
-                    .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Failed to encode windows: {}", err))
+                    .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Failed to encode windows: {}", err))
                     .orElseThrow(() -> new IllegalStateException("window encoding failed"));
             JsonElement tabsElement = Tab.CODEC.listOf().encodeStart(JsonOps.INSTANCE, tabs)
-                    .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Failed to encode tabs: {}", err))
+                    .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Failed to encode tabs: {}", err))
                     .orElseThrow(() -> new IllegalStateException("tab encoding failed"));
             JsonElement settingsElement = Settings.CODEC.encodeStart(JsonOps.INSTANCE, settings)
-                    .resultOrPartial(err -> AE2Organizer.LOGGER.error("[AE2Organizer] Failed to encode settings: {}", err))
+                    .resultOrPartial(err -> TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Failed to encode settings: {}", err))
                     .orElseThrow(() -> new IllegalStateException("settings encoding failed"));
 
             JsonObject namesObj = new JsonObject();
@@ -140,7 +140,7 @@ public final class TabStorage {
             Files.writeString(tmp, GSON.toJson(out));
             Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (Exception e) {
-            AE2Organizer.LOGGER.error("[AE2Organizer] Could not write tabs.json.", e);
+            TerminalOrganizer.LOGGER.error("[TerminalOrganizer] Could not write tabs.json.", e);
         }
     }
 

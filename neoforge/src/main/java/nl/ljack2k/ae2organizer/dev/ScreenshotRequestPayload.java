@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import nl.ljack2k.ae2organizer.AE2Organizer;
+import nl.ljack2k.ae2organizer.TerminalOrganizer;
 
 /**
  * Server → client trigger: "take a screenshot now". Empty payload; it's just a
@@ -15,7 +15,7 @@ import nl.ljack2k.ae2organizer.AE2Organizer;
  */
 public record ScreenshotRequestPayload() implements CustomPacketPayload {
     public static final Type<ScreenshotRequestPayload> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath(AE2Organizer.MODID, "screenshot"));
+            new Type<>(ResourceLocation.fromNamespaceAndPath(TerminalOrganizer.MODID, "screenshot"));
 
     public static final StreamCodec<ByteBuf, ScreenshotRequestPayload> STREAM_CODEC =
             StreamCodec.unit(new ScreenshotRequestPayload());

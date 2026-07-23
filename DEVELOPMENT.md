@@ -1,4 +1,4 @@
-# AE2Organizer — Development
+# TerminalOrganizer — Development
 
 Technical reference: building, the config-file format, and how the mod works. For player-facing usage see **[README.md](README.md)**.
 
@@ -12,7 +12,7 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Building
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
 ./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI) for testing
 ```
 

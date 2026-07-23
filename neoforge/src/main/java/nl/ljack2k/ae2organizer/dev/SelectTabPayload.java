@@ -5,7 +5,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import nl.ljack2k.ae2organizer.AE2Organizer;
+import nl.ljack2k.ae2organizer.TerminalOrganizer;
 
 /**
  * Dev-only server → client trigger: "select this tab" (empty id = the All tab).
@@ -13,7 +13,7 @@ import nl.ljack2k.ae2organizer.AE2Organizer;
  */
 public record SelectTabPayload(String tabId) implements CustomPacketPayload {
     public static final Type<SelectTabPayload> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath(AE2Organizer.MODID, "select_tab"));
+            new Type<>(ResourceLocation.fromNamespaceAndPath(TerminalOrganizer.MODID, "select_tab"));
 
     public static final StreamCodec<ByteBuf, SelectTabPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8, SelectTabPayload::tabId,

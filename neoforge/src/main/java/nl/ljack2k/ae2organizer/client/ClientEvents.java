@@ -155,7 +155,7 @@ public final class ClientEvents {
                         store.resetWindowLayout();
                     }
                     ctx.getSource().sendSuccess(() -> Component.literal(
-                            "[AE2Organizer] Filter windows reset: first docked, rest centered, gears shown."), false);
+                            "[TerminalOrganizer] Filter windows reset: first docked, rest centered, gears shown."), false);
                     return 1;
                 })));
     }

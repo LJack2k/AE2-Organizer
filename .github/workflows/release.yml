@@ -60,7 +60,7 @@ jobs:
           files: |
             **/build/libs/!(*-sources).jar
 
-          name: AE2Organizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
+          name: TerminalOrganizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
           # +<mc> build-metadata keeps the version unique per MC line on Modrinth
           # (e.g. 1.2.0+1.21.1 vs 1.2.0+26.1), which requires unique version numbers.
           version: "${{ steps.props.outputs.modver }}+${{ steps.props.outputs.mc }}"

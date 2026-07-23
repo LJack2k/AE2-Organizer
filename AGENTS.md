@@ -1,4 +1,4 @@
-# AGENTS.md — guide for AI agents working on AE2Organizer
+# AGENTS.md — guide for AI agents working on TerminalOrganizer
 
 Orientation + hard-won knowledge so future sessions are fast and don't repeat mistakes.
 Player docs: **[README.md](README.md)**. Architecture detail: **[DEVELOPMENT.md](DEVELOPMENT.md)**.
@@ -21,12 +21,12 @@ vanilla-AE2 server that doesn't have this mod.
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
 ./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI), opens a real window
 ```
 
 - **Always `compileJava` after edits** — it's fast and catches AE2/Mojang API mismatches.
-- After `runClient`, confirm a clean boot by grepping the log for `AE2Organizer ... Client loaded`,
+- After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
   `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`. You can't drive the
   GUI from here — the maintainer does interactive testing.
 - **The dev client only has AE2 + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are

@@ -67,7 +67,7 @@ jobs:
 
           files: dist/*.jar
 
-          name: AE2Organizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
+          name: TerminalOrganizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
           # +<mc> build-metadata keeps the version unique per MC line on the platforms.
           version: "${{ steps.props.outputs.modver }}+${{ steps.props.outputs.mc }}"
           version-type: release

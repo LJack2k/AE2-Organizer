@@ -6,7 +6,7 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
-import nl.ljack2k.ae2organizer.AE2Organizer;
+import nl.ljack2k.ae2organizer.TerminalOrganizer;
 import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 import nl.ljack2k.ae2organizer.filter.Condition;
@@ -28,11 +28,11 @@ import java.util.List;
  * editor. Also wires {@link ViewerSync} so tab selection updates JEI's search.
  */
 @JeiPlugin
-public class AE2OrganizerJeiPlugin implements IModPlugin {
+public class TerminalOrganizerJeiPlugin implements IModPlugin {
 
     @Override
     public ResourceLocation getPluginUid() {
-        return ResourceLocation.fromNamespaceAndPath(AE2Organizer.MODID, "jei_plugin");
+        return ResourceLocation.fromNamespaceAndPath(TerminalOrganizer.MODID, "jei_plugin");
     }
 
     @Override

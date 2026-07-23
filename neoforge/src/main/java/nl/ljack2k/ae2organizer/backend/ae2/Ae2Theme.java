@@ -85,8 +85,11 @@ public final class Ae2Theme implements Theme {
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
         // AE2's palette text is dark on normal packs, light on dark-mode packs — so a
-        // light text colour means a dark panel → use the white wrench.
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, darkPanel());
+        // light text colour means a dark panel → the AE2-dark (white) wrench frame.
+        int frame = darkPanel()
+                ? nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_AE2_DARK
+                : nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_AE2_LIGHT;
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, frame);
     }
 
     /** True when the AE2 palette indicates a dark background (its text colour is light). */

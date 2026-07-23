@@ -25,18 +25,22 @@ public final class RsStyle {
     /** Translucent dim drawn behind our popup screens instead of vanilla's blur. */
     public static final int DIM = 0xB0101018;
 
-    /** The settings wrench sprites (bundled, 16×16). Dark for light panels, white for dark. */
-    public static final ResourceLocation WRENCH =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench");
-    public static final ResourceLocation WRENCH_WHITE =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_white");
-
     /**
-     * Blits the 16×16 settings wrench at (x, y). Pass {@code darkBackground = true}
-     * on a dark panel (e.g. an AE2 dark-mode resource pack) to use the white variant.
+     * The 48×16 settings-wrench sheet ({@code assets/ae2organizer/textures/gui/setting.png}):
+     * three 16×16 frames — {@link #WRENCH_AE2_LIGHT}, {@link #WRENCH_AE2_DARK}, {@link #WRENCH_RS}.
+     * A standalone texture (not under {@code sprites/}) so we can blit a single frame.
      */
-    public static void settingsIcon(GuiGraphics graphics, int x, int y, boolean darkBackground) {
-        graphics.blitSprite(darkBackground ? WRENCH_WHITE : WRENCH, x, y, 16, 16);
+    public static final ResourceLocation WRENCH_SHEET =
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "textures/gui/setting.png");
+
+    /** Frame indices into {@link #WRENCH_SHEET}: AE2 light-mode, AE2 dark-mode, RS. */
+    public static final int WRENCH_AE2_LIGHT = 0;
+    public static final int WRENCH_AE2_DARK = 1;
+    public static final int WRENCH_RS = 2;
+
+    /** Blits one 16×16 {@code frame} of the wrench sheet at (x, y). */
+    public static void settingsIcon(GuiGraphics graphics, int x, int y, int frame) {
+        graphics.blit(WRENCH_SHEET, x, y, frame * 16f, 0f, 16, 16, 48, 16);
     }
 
     /**

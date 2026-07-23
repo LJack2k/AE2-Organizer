@@ -44,7 +44,7 @@ public final class RsTheme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        // RS panel is always light → the dark wrench.
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, false);
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(
+                g, x, y, nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_RS);
     }
 }

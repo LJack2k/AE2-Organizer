@@ -42,9 +42,11 @@ public final class RsTheme implements Theme {
         return SELECTION;
     }
 
+    private static final ResourceLocation WRENCH =
+            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_rs");
+
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(
-                g, x, y, nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_RS);
+        g.blitSprite(WRENCH, x, y, 16, 16);
     }
 }

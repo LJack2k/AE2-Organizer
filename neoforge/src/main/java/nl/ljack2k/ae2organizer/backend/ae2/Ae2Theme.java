@@ -1,5 +1,6 @@
 package nl.ljack2k.ae2organizer.backend.ae2;
 
+import appeng.client.gui.Icon;
 import appeng.client.gui.style.BackgroundGenerator;
 import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;
@@ -84,19 +85,8 @@ public final class Ae2Theme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        // AE2's palette text is dark on normal packs, light on dark-mode packs — so a
-        // light text colour means a dark panel → the AE2-dark (white) wrench frame.
-        int frame = darkPanel()
-                ? nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_AE2_DARK
-                : nl.ljack2k.ae2organizer.client.gui.RsStyle.WRENCH_AE2_LIGHT;
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, frame);
-    }
-
-    /** True when the AE2 palette indicates a dark background (its text colour is light). */
-    private boolean darkPanel() {
-        int c = textColor();
-        int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
-        double luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
-        return luminance > 0.5;
+        // AE2's own settings gear (from its GUI), tinted to the palette text colour so
+        // it renders natively and adapts to AE2 dark-mode resource packs.
+        Icon.COG.getBlitter().dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
     }
 }

@@ -5,7 +5,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -25,26 +24,6 @@ public final class RsStyle {
     /** Translucent dim drawn behind our popup screens instead of vanilla's blur. */
     public static final int DIM = 0xB0101018;
 
-    /**
-     * The settings-wrench frames, sliced from the maintainer's {@code setting.png} sheet
-     * into atlas sprites. Rendered via {@link GuiGraphics#blitSprite}, which alpha-blends
-     * the sprites' anti-aliased edges (a standalone-texture {@code blit} did not).
-     */
-    private static final ResourceLocation[] WRENCH = {
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_ae2"),       // AE2 light mode
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_ae2_dark"),  // AE2 dark mode
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "wrench_rs"),        // RS
-    };
-
-    /** Frame indices for {@link #settingsIcon}: AE2 light-mode, AE2 dark-mode, RS. */
-    public static final int WRENCH_AE2_LIGHT = 0;
-    public static final int WRENCH_AE2_DARK = 1;
-    public static final int WRENCH_RS = 2;
-
-    /** Blits the 16×16 settings wrench {@code frame} at (x, y), alpha-blended. */
-    public static void settingsIcon(GuiGraphics graphics, int x, int y, int frame) {
-        graphics.blitSprite(WRENCH[frame], x, y, 16, 16);
-    }
 
     /**
      * Dark label text baked into the vanilla-style {@link #labelButton} and

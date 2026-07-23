@@ -84,8 +84,16 @@ public final class Ae2Theme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        // Same shared white gear the RS theme uses, tinted to AE2's palette text
-        // colour — so it inverts automatically under AE2 dark-mode resource packs.
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, textColor());
+        // AE2's palette text is dark on normal packs, light on dark-mode packs — so a
+        // light text colour means a dark panel → use the white wrench.
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, darkPanel());
+    }
+
+    /** True when the AE2 palette indicates a dark background (its text colour is light). */
+    private boolean darkPanel() {
+        int c = textColor();
+        int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+        double luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+        return luminance > 0.5;
     }
 }

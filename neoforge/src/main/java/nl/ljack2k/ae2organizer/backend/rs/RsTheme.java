@@ -44,7 +44,7 @@ public final class RsTheme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        // Shared white gear sprite tinted to the RS panel's dark text colour.
-        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, TEXT);
+        // RS panel is always light → the dark wrench.
+        nl.ljack2k.ae2organizer.client.gui.RsStyle.settingsIcon(g, x, y, false);
     }
 }

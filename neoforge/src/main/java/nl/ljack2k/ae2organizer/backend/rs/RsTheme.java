@@ -8,10 +8,10 @@ import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.backend.Theme;
 
 /**
- * Refined Storage look: the bundled nine-slice panel sprite + RS's own wrench item
- * as the settings icon, with the classic light-gray RS grid palette (dark
- * {@code 0x404040} text, RS-blue selection). Only loaded when RS is present (see
- * {@link RsBackend#theme()}), so referencing RS's wrench item here is safe.
+ * Refined Storage look: the classic light-gray RS grid panel (drawn directly as a
+ * bevel — see {@link #panel}) + RS's own wrench item as the settings icon, with the
+ * RS palette (dark {@code 0x404040} text, RS-blue selection). Only loaded when RS is
+ * present (see {@link RsBackend#theme()}), so referencing RS's wrench item here is safe.
  */
 public final class RsTheme implements Theme {
 
@@ -22,17 +22,31 @@ public final class RsTheme implements Theme {
     private static final int TEXT = 0xFF404040;
     private static final int SELECTION = 0xFF2A7FFF;
 
-    /**
-     * Nine-slice panel sprite ({@code assets/ae2organizer/textures/gui/sprites/panel.png}
-     * + {@code .mcmeta}): RS's own grid-GUI border (black rounded outer border, white
-     * top-left bevel, {@code C6C6C6} body, {@code 555555} bottom-right bevel).
-     */
-    private static final ResourceLocation PANEL_SPRITE =
-            ResourceLocation.fromNamespaceAndPath("ae2organizer", "panel");
+    // RS/vanilla grid-panel bevel colours.
+    private static final int PANEL_BORDER = 0xFF000000;
+    private static final int PANEL_HILIGHT = 0xFFFFFFFF;
+    private static final int PANEL_SHADOW = 0xFF555555;
+    private static final int PANEL_BODY = 0xFFC6C6C6;
 
+    /**
+     * Draws the RS grid panel directly with four {@code fill}s (1px black outline,
+     * 2px white top-left bevel, 2px {@code #555555} bottom-right bevel, {@code #C6C6C6}
+     * body) instead of a nine-slice sprite.
+     * <p>
+     * A tiled nine-slice sprite (the previous approach) stamped the small centre as
+     * thousands of quads per panel per frame ({@code blitTiledSprite}) — a client
+     * profile put it at ~52% of the render thread. 1.21.1's nine-slice has no
+     * {@code stretch_inner} option (added in 1.21.2), so the flat bevel is drawn by
+     * hand: ~4 quads, pixel-identical to the old sprite.
+     */
     @Override
     public void panel(GuiGraphics g, int x, int y, int w, int h) {
-        g.blitSprite(PANEL_SPRITE, x, y, w, h);
+        int right = x + w;
+        int bottom = y + h;
+        g.fill(x, y, right, bottom, PANEL_BORDER);              // 1px black outline
+        g.fill(x + 1, y + 1, right - 1, bottom - 1, PANEL_SHADOW);   // bottom-right bevel base
+        g.fill(x + 1, y + 1, right - 3, bottom - 3, PANEL_HILIGHT);  // top-left bevel over it
+        g.fill(x + 3, y + 3, right - 3, bottom - 3, PANEL_BODY);     // body
     }
 
     @Override

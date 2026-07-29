@@ -6,11 +6,12 @@ server+client: mixins gate per-mod, each backend keeps its own store (`tabs.json
 filters never cross, viewer sync + JEI + clipboard work, and each backend renders in its **own
 mod's look** — AE2 terminals use AE2's `BackgroundGenerator`/palette (inherits AE2 dark-mode
 packs) + AE2's `Icon.COG`; RS grids use the nine-slice panel + RS's own wrench item icon.
-The RS side is screenshot-verified; the AE2 terminal side is boot-verified (harness can only
-open RS grids headlessly) and needs a maintainer's eyes for the final visual sign-off.
+The RS side is screenshot-verified; the AE2 terminal side was **signed off by the maintainer in a
+dev server+client on 2026-07-29** ("styling is good on all places") — the last verification gap on
+this branch is closed. Stage 9 (display-name rebrand to TerminalOrganizer) is done.
 
-**Not done (deliberately, needs maintainer go-ahead):** stage 9 rebrand of the display name, and
-the merge of `unify-storage-backends` → `1.21.1`. Nothing outward-facing (no push/publish).
+**Not done (needs maintainer go-ahead):** the merge of `unify-storage-backends` → `1.21.1` and a
+release. The 26.1 port of this work is tracked on its own branch.
 
 Goal: one client-side mod (kept mod id **`ae2organizer`**) that adds filter tabs to **both**
 Applied Energistics 2 terminals **and** Refined Storage 2 grids, with a **hard separation** between the

@@ -37,8 +37,9 @@ Architecture section before touching cross-backend code.
   `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
 - **RCON/screenshot harness** (`dev/`): gated on `-Dae2organizer.devHarness` (set on `runServer`/
   `runClientJoin`). RCON on `:25575` (password `rsorg`); `/rsorgtest build|open` places+opens an RS grid,
-  `/rsorgshot` screenshots. **Only RS grids can be opened headlessly** — AE2 terminals need the
-  maintainer's eyes for visual sign-off. Free ports 25565/25575 before relaunch (stale JVMs hold them).
+  `/rsorgshot` screenshots. **Only RS grids can be opened headlessly** — for AE2 terminals, start
+  `runServer` + `runClientJoin` and let the maintainer look (that is how the AE2 styling and the
+  autocraft/JEI fixes were signed off). Free ports 25565/25575 before relaunch (stale JVMs hold them).
 - **The dev client has AE2 + RS + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are
   **not** here, so bugs specific to them can't be reproduced in dev — the maintainer tests those in
   their real modpack. To reproduce one here, add the addon as a dev-only `runtimeOnly` in
@@ -138,7 +139,9 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - JEI: `IGhostIngredientHandler#getTargetsTyped(T, ITypedIngredient<I>, boolean)`,
   `ITypedIngredient#getItemStack(): Optional<ItemStack>`; `IGuiHandlerRegistration#addGhostIngredientHandler`
   and `#addGuiScreenHandler(Class<T>, IScreenHandler<T>)` where `IScreenHandler` returns an `IGuiProperties`
-  (panel bounds → lets JEI draw its overlay beside a non-container screen).
+  (panel bounds → lets JEI draw its overlay beside a non-container screen);
+  `#addGlobalGuiHandler(IGlobalGuiHandler)` → `getGuiExtraAreas(): Collection<Rect2i>` are the exclusion
+  rects JEI's grid wraps around (all its methods are `default`, so it can't be a lambda target).
 - NeoForge: `Screen.render` calls `renderBackground`; `ScreenEvent.Init.Post#addListener` adds a
   renderable widget; `ScreenEvent.Mouse{ButtonPressed,ButtonReleased,Dragged,Scrolled}.Pre` are cancelable.
 

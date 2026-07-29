@@ -48,6 +48,18 @@ public final class BackendRegistry {
         return null;
     }
 
+    /** Whether any backend treats this screen as a terminal round-trip companion
+     *  (craft amount/confirm, crafting status, terminal settings — see
+     *  {@link StorageBackend#isCompanionScreen}). */
+    public static boolean isCompanionScreen(Screen screen) {
+        for (StorageBackend backend : BACKENDS) {
+            if (backend.isCompanionScreen(screen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Nullable
     public static StorageBackend byId(String id) {
         for (StorageBackend backend : BACKENDS) {

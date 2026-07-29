@@ -29,6 +29,18 @@ public interface StorageBackend {
     ScreenAdapter adapt(Screen screen);
 
     /**
+     * Whether this screen is a companion the terminal <em>bounces through</em> and
+     * returns from — a craft amount/confirm dialog, a crafting status view, a
+     * terminal settings page. Both AE2 and RS serve those from a fresh server-side
+     * menu, so the terminal that comes back is a brand-new screen instance; without
+     * this, "reset filter when opening a grid" would fire on every autocraft
+     * request. Returning is not opening, so the active tab is kept.
+     */
+    default boolean isCompanionScreen(Screen screen) {
+        return false;
+    }
+
+    /**
      * This backend's visual look for the tab panel and this mod's client-only
      * screens. A singleton per backend. RS returns its bundled-sprite theme; AE2
      * returns a theme that renders through AE2's own GUI pipeline.

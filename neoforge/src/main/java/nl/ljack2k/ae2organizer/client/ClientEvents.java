@@ -1,6 +1,7 @@
 package nl.ljack2k.ae2organizer.client;
 
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -46,10 +47,39 @@ public final class ClientEvents {
     @Nullable
     private static TabManager.Store activeStore;
 
+    /**
+     * Ticks left during which reopening a terminal counts as a round trip rather
+     * than a fresh open. Refreshed every tick a companion screen is on top and
+     * counted down afterwards, so a preview that is escaped out of stops
+     * suppressing the reset after ~half a second.
+     */
+    private static final int ROUND_TRIP_GRACE_TICKS = 10;
+    private static int roundTripTicks;
+    /** Weak so a closed terminal (and its menu contents) isn't pinned in memory. */
+    @Nullable
+    private static java.lang.ref.WeakReference<Screen> lastInitScreen;
+
+    /**
+     * Keeps {@link #roundTripTicks} alive while a backend companion screen (craft
+     * preview/amount/status) is open. Cheap: one screen check per client tick.
+     */
+    @SubscribeEvent
+    public static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+        Screen screen = net.minecraft.client.Minecraft.getInstance().screen;
+        if (screen != null && BackendRegistry.forScreen(screen) == null && BackendRegistry.isCompanionScreen(screen)) {
+            roundTripTicks = ROUND_TRIP_GRACE_TICKS;
+        } else if (roundTripTicks > 0) {
+            roundTripTicks--;
+        }
+    }
+
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         StorageBackend backend = BackendRegistry.forScreen(event.getScreen());
         if (backend == null) {
+            if (BackendRegistry.isCompanionScreen(event.getScreen())) {
+                roundTripTicks = ROUND_TRIP_GRACE_TICKS;
+            }
             return;
         }
         Screen screen = event.getScreen();
@@ -57,7 +87,14 @@ public final class ClientEvents {
         if (!store.isLoaded()) {
             store.load();
         }
-        if (store.getSettings().resetFilterOnOpen()) {
+        // Init.Post also fires on a window resize (same screen instance) and on the
+        // terminal that comes back from a craft preview / settings page — neither is
+        // the player opening a terminal, so the active tab survives both.
+        boolean reinit = lastInitScreen != null && lastInitScreen.get() == screen;
+        boolean freshOpen = !reinit && roundTripTicks == 0;
+        lastInitScreen = new java.lang.ref.WeakReference<>(screen);
+        roundTripTicks = 0;
+        if (freshOpen && store.getSettings().resetFilterOnOpen()) {
             store.setActive(null);
         }
         ScreenAdapter adapter = backend.adapt(screen);
@@ -158,6 +195,29 @@ public final class ClientEvents {
                             "[TerminalOrganizer] Filter windows reset: first docked, rest centered, gears shown."), false);
                     return 1;
                 })));
+    }
+
+    /**
+     * The panel rectangles of the filter windows currently on screen, for item-list
+     * mods to keep clear (JEI reads these through its global GUI handler and drops
+     * the grid slots that intersect them, so its list wraps around our panels).
+     * Empty unless one of our bars is really being drawn on the open screen — the
+     * bar list outlives a closed terminal, and stale rects would blank out JEI slots
+     * on unrelated screens. Recomputed per call, so dragging a panel reflows JEI live.
+     */
+    public static List<Rect2i> activeBarBounds() {
+        Screen screen = net.minecraft.client.Minecraft.getInstance().screen;
+        if (screen == null || screen != activeBarScreen || BARS.isEmpty()) {
+            return List.of();
+        }
+        List<Rect2i> areas = new ArrayList<>(BARS.size());
+        for (TabBarWidget bar : BARS) {
+            Rect2i r = bar.bounds();
+            if (r != null) {
+                areas.add(r);
+            }
+        }
+        return areas;
     }
 
     private static boolean isActive(Screen screen) {

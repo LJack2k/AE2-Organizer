@@ -1,6 +1,7 @@
 package nl.ljack2k.ae2organizer.backend.rs;
 
 import com.refinedmods.refinedstorage.common.grid.screen.AbstractGridScreen;
+import com.refinedmods.refinedstorage.common.support.amount.AbstractAmountScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
@@ -30,6 +31,17 @@ public final class RsBackend implements StorageBackend {
     @Override
     public ScreenAdapter adapt(Screen screen) {
         return new RsScreenAdapter((AbstractGridScreen<?>) screen);
+    }
+
+    /**
+     * RS serves the autocrafting preview (and every other amount prompt) from its
+     * own menu, so requesting a craft closes the grid and reopens it afterwards as
+     * a new screen. {@code AbstractAmountScreen} is the shared base of the preview
+     * and every other amount prompt, so one check covers them all.
+     */
+    @Override
+    public boolean isCompanionScreen(Screen screen) {
+        return screen instanceof AbstractAmountScreen<?, ?>;
     }
 
     @Override

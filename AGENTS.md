@@ -6,55 +6,113 @@ This file is the *how to work here* layer on top of those.
 
 ## What this is
 
-A **client-side** NeoForge mod that adds user-defined **filter tabs** to **both** Applied
-Energistics 2 terminals **and** Refined Storage 2 grids. It hooks each mod's *client-side* item
-view (a mixin per backend) and draws a tab panel; there is **no server component**. The two systems
-are **hard-separated** — independent stores/windows/settings, no shared filter. It must keep working
-when joining a server that doesn't have this mod, and load cleanly with **either, both, or neither**
-storage mod present. The separation seam is the backend SPI in `backend/` — read DEVELOPMENT.md's
-Architecture section before touching cross-backend code.
+A **client-side** Forge mod that adds user-defined **filter tabs** to Applied Energistics 2
+terminals. It hooks AE2's *client-side* item view (a mixin into AE2's `Repo`) and draws a tab
+panel on the terminal; there is **no server component**. It must keep working when joining a
+vanilla-AE2 server that doesn't have this mod.
 
 ## Stack (don't guess — these are pinned)
 
-- Minecraft **1.21.1**, NeoForge **21.1.242+** (RS 2.0.9 needs `.242`; AE2 is fine on it), Java **21**.
-- AE2 **[19.2,19.3)** and RS **[2.0,3.0)** — **both optional**, declared `side = "CLIENT"`. JEI optional.
-- Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + `neoforge/` subproject.
-- **Display name `TerminalOrganizer`; mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.**
-  Never change the id/package — configs, modpack refs, and the published project depend on them.
-  Versions live in `gradle.properties`.
+This is the **1.20.1 (Forge)** line. (Sibling branches: `1.21.1` and `26.1`, both NeoForge.)
+
+- Minecraft **1.20.1**, **MinecraftForge 47.4.20** (NOT NeoForge — AE2 15.4.10 ships only Forge/Fabric on
+  1.20.1, and NeoForge 1.20.1 uses the same `net.minecraftforge` packages anyway). Java **17**.
+- AE2 **[15.4,15.5)** — *required*, `side = "CLIENT"`. guideme **20.1.x** is a required runtime dep of AE2
+  (standalone mod, not jar-in-jar — the dev client needs it explicitly). JEI **15.x** optional (dev-only).
+- Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin; reobf to SRG +
+  mixin refmap). Multi-project: minimal root + `neoforge/` subproject — the dir name is *historical*, it
+  builds a Forge jar; kept so the shared default-branch CI's `:neoforge:build` keeps matching.
+- Mod id `ae2organizer`, base package `nl.ljack2k.ae2organizer`. Versions live in `gradle.properties`.
+- **Gradle launcher JDK:** Gradle 8.10.2 can't run on JDK 25 (this machine's default for the 26.1 line) —
+  launch it on JDK 17/21, e.g. `JAVA_HOME="…/Eclipse Adoptium/jdk-21…" ./gradlew …`. The Java-17 toolchain
+  (for the mod itself) is auto-provisioned via foojay regardless of the launcher JDK.
+
+## MC 1.20.1 (Forge) deltas from the 1.21.1 source
+
+Ported from `1.21.1`. The filter-core mixin targets are **UNCHANGED** on AE2 15.4
+(`Repo.addEntriesToView`, `MEStorageScreen.repo`/`searchField`, `GridInventoryEntry.getWhat`), so the
+mechanism ports 1:1. What differs (all verified via `javap` + a dev-client boot):
+
+- **Loader API:** `net.neoforged.*` → `net.minecraftforge.*`. `@Mod` takes a **no-arg constructor**; get the
+  mod bus via `FMLJavaModLoadingContext.get().getModEventBus()`, gate on `FMLEnvironment.dist`, use
+  `MinecraftForge.EVENT_BUS`. `ScreenEvent.MouseScrolled.Pre#getScrollDelta()` (one delta, not `…Y()`).
+- **Metadata:** `META-INF/mods.toml` (not `neoforge.mods.toml`). Deps use **`mandatory = true`** — NOT
+  NeoForge's `type = "required"` (FML throws `InvalidModFileException: Missing required field mandatory`
+  and the *whole* mod scan aborts, which also cascades into bogus "Missing language javafml" errors).
+  `pack_format` **15**.
+- **Vanilla Screen API:** `Screen.renderBackground(GuiGraphics)` is **1-arg** AND `Screen.render` does
+  **not** call it — override the 1-arg form *and* call `this.renderBackground(graphics)` yourself at the top
+  of `render`. `mouseScrolled` is **3-arg** `(double,double,double)`. `EditBox.moveCursorToEnd()` takes **no**
+  arg. (`ResourceLocation.fromNamespaceAndPath/parse/withDefaultNamespace` all exist on 1.20.1 — keep using
+  the factories; the bare constructors are deprecated-for-removal.)
+- **No data components:** the `COMPONENT` filter is reworked to NBT (`ItemStack.isEnchanted()` +
+  `StoredEnchantments`, `hasCustomHoverName()`, `isDamaged()`, top-level NBT key). `HAS_COMPONENT_TYPE`
+  needs the component registry, so it is **kept in the enum but marked unsupported**
+  (`ComponentMatch#supported()`): it still parses — a config or clipboard export from a 1.21+ line
+  would otherwise fail to load — but never matches and is skipped by the editor's cycle button.
+- **JEI 15.x** names `IGuiProperties` getters `getGuiLeft()/getScreenWidth()/…`; JEI 19.x dropped the
+  `get` prefix.
+- **AE2 15.4's `Icon` sheet has no `COG`** — `Icon.WRENCH` is the settings glyph on this line
+  (`appeng.client.gui.Icon`, drawn via `Icon#getBlitter()`).
+- **Gradle 8.10.2 cannot run on JDK 25.** `JAVA_HOME` here points at JDK 25 for the newer lines, so every
+  Gradle call on this branch needs
+  `-Dorg.gradle.java.home="C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"`
+  (the Java **17** toolchain for compilation is resolved separately and is unaffected).
+
+## Unified architecture, AE2 backend only
+
+This line carries the same **backend SPI** as the newer ones (`backend/StorageBackend` + `ScreenAdapter` +
+`Theme`, per-backend stores in `TabManager`), but registers **only the AE2 backend**. Refined Storage for
+1.20.1 is **RS 1.12** — pre-rewrite, with a grid API unrelated to the RS2 one the 1.21.1/26.1 backends hook —
+so that backend is not present here at all (no `backend/rs/`, no RS mixin config, no RS dependency). A legacy-RS
+backend would slot into `BackendRegistry.init()` without touching the core.
+
+Consequences to remember: the mixin config is **`ae2organizer.ae2.mixins.json`** (package
+`…backend.ae2.mixin`, gated by `Ae2MixinPlugin`), and its name appears in **three** places that must agree —
+the file, `mods.toml`, and `mixin { config … }` in `neoforge/build.gradle`. A stale name there fails at launch
+with `MixinInitialisationError: … was invalid or could not be read`, because the dev run passes it as
+`--mixin.config`.
+- **Codec dispatch:** DFU 6.0.8's `Codec.dispatch("type", …, fn)` wants the fn to return a **Codec** (1.21.1's
+  wants a MapCodec) — `Condition.CODEC` adapts with `t -> t.codec().codec()`.
+- **AE2 widgets:** AE2 15.4 has **no `AE2Button`** → local `client/gui/Ae2Button` (extends vanilla `Button`,
+  draws via `Ae2Style.bevelButton`). Gear icon `Icon.COG` → **`Icon.WRENCH`** (15.4 has no COG). `AECheckbox`,
+  `BackgroundGenerator`, `StyleManager`, `Icon#getBlitter()`/`Blitter` are unchanged.
+- **Mixins need a refmap** (reobf to SRG). Top-level `mixin { add sourceSets.main, 'ae2organizer.refmap.json';
+  config 'ae2organizer.mixins.json' }` **plus** `annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'`
+  (the plugin does NOT add the AP). Only the **vanilla** `AbstractContainerScreenAccessor` (imageWidth/Height
+  → SRG) is in the refmap; the **AE2**-targeting mixins use **`@Mixin(…, remap = false)`** (AE2 ships
+  un-obfuscated — otherwise the AP fails with *"Unable to locate obfuscation mapping"*). `compatibilityLevel`
+  **JAVA_17**. The dev-runtime `Reference map … could not be read` WARN is expected (the refmap is for the
+  reobf production jar).
+- **JEI tag-search prefix is `$`** on JEI 15.x (1.20.1), not `#` (which is `#` on JEI 19.x / the 1.21.1
+  line — JEI changed it). The JEI-sync `conditionToJei` emits `$<tagpath>` for TAG conditions; `@mod` and
+  name search are unchanged. (JEI indexes tags by `ResourceLocation.getPath()`, so the namespace is dropped.)
+  Verified in the dev client 2026-06-28.
 
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
-./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
-./gradlew :neoforge:runClientJoin  # dev client that quick-joins localhost:25565 (devHarness on)
-./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
+./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI), opens a real window
 ```
 
-- **Always `compileJava` after edits** — it's fast and catches AE2/RS/Mojang API mismatches.
+- **Always `compileJava` after edits** — it's fast and catches AE2/Mojang API mismatches.
 - After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
-  `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
-- **RCON/screenshot harness** (`dev/`): gated on `-Dae2organizer.devHarness` (set on `runServer`/
-  `runClientJoin`). RCON on `:25575` (password `rsorg`); `/rsorgtest build|open` places+opens an RS grid,
-  `/rsorgshot` screenshots. **Only RS grids can be opened headlessly** — for AE2 terminals, start
-  `runServer` + `runClientJoin` and let the maintainer look (that is how the AE2 styling and the
-  autocraft/JEI fixes were signed off). Free ports 25565/25575 before relaunch (stale JVMs hold them).
-- **The dev client has AE2 + RS + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are
+  `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`. You can't drive the
+  GUI from here — the maintainer does interactive testing.
+- **The dev client only has AE2 + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are
   **not** here, so bugs specific to them can't be reproduced in dev — the maintainer tests those in
   their real modpack. To reproduce one here, add the addon as a dev-only `runtimeOnly` in
   `neoforge/build.gradle` (ask which mod first).
 - `runClient` is long-running; launch it in the background and poll the log. Kill a stray client by
-  PID (CIM filter on `CommandLine` containing `AE2-Organizer` and `forgeclientdev`/`forgeserverdev`,
+  PID (CIM filter on `CommandLine` containing `AE2-Organizer` and `minecraft|fml|bootstraplauncher`,
   excluding `GradleDaemon`).
 
-## THE GOLDEN RULE: verify AE2/RS/MC APIs with `javap` before writing code
+## THE GOLDEN RULE: verify AE2/MC APIs with `javap` before writing code
 
-AE2's terminal classes (`appeng.client.gui.style.*` / `widgets.*`) **and** RS's grid classes
-(`com.refinedmods.refinedstorage.common.grid.*`) are **internal, not public API**. Method
-names/locations differ from what you'd assume and shift between versions. Every time this session
-guessed, it cost a build cycle; every time it `javap`'d first, it was right. The RS jar lives in the
-Gradle cache under `curse.maven/refined-storage-243076/**` — Glob for the hashed path.
+AE2's terminal classes and the `appeng.client.gui.style.*` / `widgets.*` classes are **internal,
+not public API**. Method names/locations differ from what you'd assume and shift between versions.
+Every time this session guessed, it cost a build cycle; every time it `javap`'d first, it was right.
 
 JDK 21 (`javap`) is on PATH (Adoptium). Recipe:
 
@@ -65,13 +123,12 @@ javap -c -p -classpath "<jar>" appeng.client.gui.style.BackgroundGenerator   # b
 
 Jars to inspect (find the hashed ones with Glob — paths drift):
 
-- **AE2**: `D:/Projects/JackItToMe/libs/applied-energistics-2-*.jar` (stable, in the sibling repo).
-- **JEI**: `~/.gradle/caches/modules-2/files-2.1/curse.maven/jei-238222/**/**.jar`.
-- **NeoForge sources** (read patched MC/NeoForge `.java`, e.g. `Screen`, `ScreenEvent`):
-  `~/.gradle/caches/modules-2/files-2.1/net.neoforged/neoforge/<ver>/**/neoforge-<ver>-sources.jar`
-  (extract a single entry with `System.IO.Compression.ZipFile` in PowerShell, then Read it).
-- **Compiled MC+NeoForge** (Mojang-mapped, for `javap` on vanilla classes like `ItemStack`,
-  `GuiGraphics`, `Screen`): `~/.gradle/caches/neoformruntime/intermediate_results/compiledWithNeoForge_*_output.jar`.
+- **AE2 15.4 + JEI 15.x**: the *real modpack* jars (the maintainer's pack) —
+  `C:/Users/ljack/AppData/Local/.ftba/instances/ftb presents architects exodus/mods/appliedenergistics2-forge-15.4.10.jar`
+  and `…/mods/jei-1.20.1-forge-15.20.0.132.jar`. (AE2 internals shift between versions — javap *this* AE2, not 19.x.)
+- **Compiled MC+Forge** (Mojang-mapped, for `javap` on vanilla `Screen`/`EditBox`/`ResourceLocation`/`GuiGraphics`):
+  `neoforge/build/moddev/artifacts/forge-1.20.1-47.4.20.jar` (exists after a build). Forge sources for reading
+  patched `.java`: `forge-1.20.1-47.4.20-sources.jar` alongside it.
 
 JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gradle/toml patterns.
 
@@ -80,47 +137,30 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - **Plain `Screen`, never `AEBaseScreen`.** AEBaseScreen needs a server-side container menu, which
   breaks the client-only/any-server guarantee (and would desync inventory). All our screens are
   vanilla `Screen`s, themed manually.
-- **Backend-specific look lives in each `Theme`; neutral helpers in `RsStyle`.** `Ae2Theme` themes
-  through AE2 so dark-mode packs apply — `BackgroundGenerator.draw(w,h,g,x,y)` for the panel,
-  `StyleManager.loadStyleDoc(...).getColor(PaletteColor.*)` for text (reads `background.png`/`palette.json`,
-  what AE2 dark-mode packs override), `Icon.COG` via `Icon#getBlitter()` for the settings icon. `RsTheme`
-  uses the bundled `panel.png` + RS's wrench item. `RsStyle` holds the theme-neutral bevel buttons,
-  checkboxes, scaled item/text, `DIM`, etc. shared by both (drop-in vanilla replacements for AE2 widgets,
-  since AE2's widgets can't be used on an RS screen).
-- **AE2's `AETextField` renders border artifacts outside a container screen** — use a vanilla `EditBox`
-  (`RsStyle.textField`).
-- **The menu blur is from `Screen.render` → `renderBackground` → `renderBlurredBackground`**, called
-  every frame. A dim drawn in your own `render` gets overdrawn. Fix: **override `renderBackground`**
-  to a plain dim (`RsStyle.DIM`) + your panel.
+- **Theme through AE2 so dark-mode packs apply.** Use `BackgroundGenerator.draw(w,h,g,x,y)` for the
+  panel, `StyleManager.loadStyleDoc(...).getColor(PaletteColor.*)` for text, AE2 widgets
+  (`AECheckbox`, `Icon.WRENCH` via `Icon#getBlitter()`), and a local `Ae2Button` (AE2 15.4 has no text button).
+  These read `background.png`/`palette.json`,
+  which is exactly what AE2 dark-mode resource packs override. All wrapped in `Ae2Style`.
+- **AE2's `AETextField` renders border artifacts outside a container screen** — use a vanilla `EditBox`.
+- **Replace the vanilla menu background** by overriding `renderBackground` to a plain dim (`Ae2Style.DIM`)
+  + your panel. On 1.20.1 it's the **1-arg** `renderBackground(GuiGraphics)`, and `Screen.render` does *not*
+  call it — so invoke `this.renderBackground(graphics)` yourself at the top of `render` (see 1.20.1 deltas).
 - **AE2's terminal eats scroll/drag.** `MEStorageScreen` overrides `mouseScrolled`/`mouseDragged` and
   consumes them before added widgets get them (clicks *do* forward). Route the tab bar's wheel/drag
   through cancelable **`ScreenEvent.Mouse*.Pre`** events (see `ClientEvents`); the widget only renders.
 - **Item icons render at a fixed 16px** (`GuiGraphics#renderItem`). To make them smaller, scale the
-  pose (`RsStyle.scaledItem`). Don't enlarge the buttons to "fit" — the maintainer means smaller icons.
+  pose (`Ae2Style.scaledItem`). Don't enlarge the buttons to "fit" — the maintainer means smaller icons.
 - **Tab-bar offset:** anchor past the panel image *and* any real `menu.slots`, measured to the slot's
   **18px frame** (item is 16px + a 1px border). This clears terminals with extra card slots. Do **not**
   use `getExclusionZones()` — it includes the top-right help button and overshoots.
-- **Tags use the `c:` namespace** on 1.21 NeoForge (`c:ingots`), not `forge:`.
+- **Tags use the `forge:` namespace** on Forge 1.20.1 (`forge:ingots`), not NeoForge's `c:`.
 - **The `Repo` filter funnel** is `addEntriesToView(Collection)` — both `updateView()` branches pass
   through it before sorting, so `@ModifyVariable` at HEAD there filters the whole view and AND-combines
   with AE2's search box. `updateView()` is public — call it to re-filter.
 - **`GridInventoryEntry` is in `appeng.menu.me.common`**, not `client.gui`.
-- **RS filter hook** is `AbstractGridContainerMenu#createBaseFilter()` (MixinExtras `@ModifyReturnValue`,
-  wrap RS's `ResourceRepositoryFilter`); re-filter via `menu.getRepository().sort()`; item extraction via
-  `ItemGridResource#getItemStack()`.
-- **Two mixin configs**, one per backend (`ae2organizer.ae2.mixins.json` / `.rs.mixins.json`), each with
-  an `IMixinConfigPlugin` gating `shouldApplyMixin` on the target mod's presence — so a missing mod's
-  mixins are skipped, not crashed. `required: true`, no refmap (both mods ship official names).
-- **Mixins/accessors MUST live in the `…mixin` subpackage** (`backend.ae2.mixin` / `backend.rs.mixin`),
-  never beside plain classes — a class in a declared mixin package can't be referenced directly
-  (`IllegalClassLoadError`). Plain backend classes (`Ae2Backend`, themes, bridges) sit one level up.
-- **Backend classes only load when their mod is present** — `BackendRegistry.init()` gates on
-  `ModList.isLoaded`. So `Ae2Theme`/`RsTheme`/backends may freely reference `appeng.*`/`com.refinedmods.*`;
-  **never** reference those from common/`client/` code.
-- **Per-backend theming via `Theme`**: AE2 → AE2's `BackgroundGenerator`/palette + `Icon.COG`; RS → bundled
-  `panel.png` nine-slice + `refinedstorage:wrench` item (`g.renderItem`). Each backend uses its mod's
-  **native** icon — don't reintroduce a bundled gear/wrench sprite (that road was a dead end: the 16px GUI
-  pipeline renders partial-alpha edges as an opaque cutout, not a blend).
+- Mixins: `required: true`, all under `client`. **Refmap required** (reobf to SRG) for the vanilla
+  `AbstractContainerScreenAccessor`; AE2-targeting mixins use `@Mixin(…, remap = false)`. See the 1.20.1 deltas.
 
 ## Verified API quick-reference (confirmed via javap this session)
 
@@ -128,20 +168,20 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
   `public final void updateView()`, `getSearchString/setSearchString`.
 - `MEStorageScreen`: `protected final Repo repo` (→ `@Accessor`). Extends `AEBaseScreen` which has
   `public final int getGuiLeft()/getGuiTop()`.
-- `AEKey`: `getModId()`, `getDisplayName()`, `isTagged(TagKey<?>)`, `<T> get(DataComponentType<T>)`,
-  `hasComponents()`. `AEItemKey`: `getReadOnlyStack()`, `isDamaged()`, `getItem()`.
+- `AEKey` (AE2 15.4): `getModId()`, `getDisplayName()`, `isTagged(TagKey<?>)`, `getId()`. **No** data-component
+  methods on 1.20.1. `AEItemKey`: `getReadOnlyStack()`, `toStack()`, `getItem()`, `isDamaged()`, `getTag()`,
+  `copyTag()`, `hasTag()` (NBT-based, not components).
 - `appeng.client.gui.style.BackgroundGenerator.draw(int width, int height, GuiGraphics, int x, int y)`.
 - `appeng.client.gui.style.StyleManager.loadStyleDoc(String)` → `ScreenStyle.getColor(PaletteColor)` →
   `Color.toARGB()`. Palette paths: `/screens/common/common.json` (includes `palette.json`).
 - `appeng.client.gui.style.Blitter`: `texture(...)/.src(...).dest(x,y,w,h).colorArgb(int).blit(GuiGraphics)`.
-- Widgets: `AE2Button(x,y,w,h,Component,OnPress)` extends Button; `AECheckbox(x,y,w,h,ScreenStyle,Component)`
-  with `isSelected/setSelected`; `appeng.client.gui.Icon.COG` + `Icon#getBlitter()`.
+- Widgets (AE2 15.4): **no `AE2Button`** — use local `client/gui/Ae2Button` (extends `Button`).
+  `AECheckbox(x,y,w,h,ScreenStyle,Component)` with `isSelected/setSelected`; `appeng.client.gui.Icon.WRENCH`
+  (no `COG`) + `Icon#getBlitter()` → `Blitter`.
 - JEI: `IGhostIngredientHandler#getTargetsTyped(T, ITypedIngredient<I>, boolean)`,
   `ITypedIngredient#getItemStack(): Optional<ItemStack>`; `IGuiHandlerRegistration#addGhostIngredientHandler`
   and `#addGuiScreenHandler(Class<T>, IScreenHandler<T>)` where `IScreenHandler` returns an `IGuiProperties`
-  (panel bounds → lets JEI draw its overlay beside a non-container screen);
-  `#addGlobalGuiHandler(IGlobalGuiHandler)` → `getGuiExtraAreas(): Collection<Rect2i>` are the exclusion
-  rects JEI's grid wraps around (all its methods are `default`, so it can't be a lambda target).
+  (panel bounds → lets JEI draw its overlay beside a non-container screen).
 - NeoForge: `Screen.render` calls `renderBackground`; `ScreenEvent.Init.Post#addListener` adds a
   renderable widget; `ScreenEvent.Mouse{ButtonPressed,ButtonReleased,Dragged,Scrolled}.Pre` are cancelable.
 
@@ -164,9 +204,8 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 
 ## Working with the maintainer
 
-- Wants each backend to look **native to its own mod** — AE2 terminals like a proper AE2 addon
-  (respect AE2 dark-mode packs; real AE2 textures/widgets over hand-drawn), RS grids like RS. Prefer
-  each mod's own art/icons over bundled approximations.
+- Wants it to look like a **proper AE2 addon** and respect AE2 dark-mode packs — prefer real AE2
+  textures/widgets over hand-drawn approximations.
 - Iterates on UI from screenshots; read the request precisely (e.g. "smaller icons" ≠ "bigger buttons").
 - Verifies addon-terminal behavior in their **own modpack**, so ship a jar for those and don't claim a
   fix is confirmed until they say so.

@@ -148,7 +148,7 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         int tc = theme.textColor();
@@ -163,13 +163,6 @@ public final class SettingsScreen extends Screen {
             return;
         }
 
-        RsStyle.checkbox(graphics, this.font, Component.literal("Reset filter when opening a grid"),
-                left + 10, row1Y, resetFilterOnOpen, inRow(mouseX, mouseY, row1Y));
-        RsStyle.checkbox(graphics, this.font, Component.literal("Clear search bar when selecting a tab"),
-                left + 10, row2Y, clearSearchOnTabSelect, inRow(mouseX, mouseY, row2Y));
-        RsStyle.checkbox(graphics, this.font, Component.literal("Sync JEI search bar when selecting a tab"),
-                left + 10, row3Y, syncViewerOnTabSelect, inRow(mouseX, mouseY, row3Y));
-
         RsStyle.divider(graphics, left + 10, top + 100, panelW - 20);
         RsStyle.scaledText(graphics, this.font,
                 "Viewer sync supports: mod (@mod), tag (#tag), name; Not → exclude (-).",
@@ -182,6 +175,25 @@ public final class SettingsScreen extends Screen {
         if (!status.isEmpty()) {
             RsStyle.scaledText(graphics, this.font, status, left + 10, top + panelH - 38, noteColor, 0.85f);
         }
+    }
+
+    /**
+     * The checkboxes draw here rather than in {@link #renderBackground} because
+     * 1.20.1's {@code renderBackground} takes no mouse coordinates and they need
+     * the hover state. Drawn before {@code super.render} so the buttons stay on top.
+     */
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics);
+        if (pendingImportAll == null) {
+            RsStyle.checkbox(graphics, this.font, Component.literal("Reset filter when opening a grid"),
+                    left + 10, row1Y, resetFilterOnOpen, inRow(mouseX, mouseY, row1Y));
+            RsStyle.checkbox(graphics, this.font, Component.literal("Clear search bar when selecting a tab"),
+                    left + 10, row2Y, clearSearchOnTabSelect, inRow(mouseX, mouseY, row2Y));
+            RsStyle.checkbox(graphics, this.font, Component.literal("Sync JEI search bar when selecting a tab"),
+                    left + 10, row3Y, syncViewerOnTabSelect, inRow(mouseX, mouseY, row3Y));
+        }
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

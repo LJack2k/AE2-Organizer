@@ -1,6 +1,6 @@
 package nl.ljack2k.ae2organizer.client;
 
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import nl.ljack2k.ae2organizer.backend.BackendRegistry;
 import nl.ljack2k.ae2organizer.backend.StorageBackend;
 

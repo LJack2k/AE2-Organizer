@@ -550,7 +550,7 @@ public final class TabEditorScreen extends Screen {
 
     private RsButton matchButton(CondDraft cond, int x, int y, int width) {
         return new RsButton(x, y, width, BTN_H, Component.literal(cond.componentMatch.getSerializedName()), b -> {
-            cond.componentMatch = cycle(cond.componentMatch);
+            cond.componentMatch = cycleMatch(cond.componentMatch);
             rebuildWidgets();
         });
     }
@@ -560,11 +560,24 @@ public final class TabEditorScreen extends Screen {
         return values[(value.ordinal() + 1) % values.length];
     }
 
+    /**
+     * Like {@link #cycle} but skips matches this Minecraft line can't honour — on
+     * 1.20.1 {@code component_type} needs a registry that doesn't exist, so it must
+     * not be selectable even though it still parses (see {@link ComponentMatch#supported()}).
+     */
+    private static ComponentMatch cycleMatch(ComponentMatch value) {
+        ComponentMatch next = cycle(value);
+        while (!next.supported() && next != value) {
+            next = cycle(next);
+        }
+        return next;
+    }
+
 
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         int tc = theme.textColor();
@@ -1156,7 +1169,7 @@ public final class TabEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (listNeedScroll && inRect(mouseX, mouseY, listX, listY, listW, listVisible * ROW_HE)) {
             listScroll = Math.max(0, Math.min(listScroll + (scrollY < 0 ? 1 : -1), listMaxScroll));
             return true;
@@ -1170,7 +1183,7 @@ public final class TabEditorScreen extends Screen {
             }
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     // ---- Size slider -------------------------------------------------------

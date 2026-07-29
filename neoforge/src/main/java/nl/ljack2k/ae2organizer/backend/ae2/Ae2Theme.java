@@ -85,8 +85,9 @@ public final class Ae2Theme implements Theme {
 
     @Override
     public void settingsIcon(GuiGraphics g, int x, int y) {
-        // AE2's own settings gear (from its GUI), tinted to the palette text colour so
-        // it renders natively and adapts to AE2 dark-mode resource packs.
-        Icon.COG.getBlitter().dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
+        // AE2's own settings icon (from its GUI), tinted to the palette text colour so
+        // it renders natively and adapts to AE2 dark-mode resource packs. AE2 15.4 has
+        // no COG in its Icon sheet — WRENCH is its settings glyph on this line.
+        Icon.WRENCH.getBlitter().dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
     }
 }

@@ -75,18 +75,18 @@ public final class TagChooserScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (!tags.isEmpty()) {
             int max = Math.max(0, tags.size() - visible);
             offset = Math.max(0, Math.min(offset - (int) Math.signum(scrollY), max));
             rebuildWidgets();
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);

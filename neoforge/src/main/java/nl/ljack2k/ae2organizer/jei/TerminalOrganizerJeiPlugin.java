@@ -132,7 +132,8 @@ public class TerminalOrganizerJeiPlugin implements IModPlugin {
     private static String conditionToJei(Condition condition) {
         return switch (condition.type()) {
             case MOD -> "@" + ((ModCondition) condition).modId();
-            case TAG -> "#" + ((TagCondition) condition).tagId().getPath();
+            // JEI 15.x (the 1.20.1 line) prefixes tags with '$'; JEI 19.x uses '#'.
+            case TAG -> "$" + ((TagCondition) condition).tagId().getPath();
             // Quote so a multi-word name stays one phrase token (mirrors the grid's
             // substring match); unquoted it would split into ANDed words.
             case TEXT -> {

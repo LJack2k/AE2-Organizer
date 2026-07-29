@@ -67,7 +67,7 @@ public final class WindowPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);

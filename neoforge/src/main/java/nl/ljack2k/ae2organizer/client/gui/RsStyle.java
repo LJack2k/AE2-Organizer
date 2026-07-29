@@ -70,7 +70,7 @@ public final class RsStyle {
         @Override
         public void onClick(double mouseX, double mouseY) {
             if (selectAllOnClick) {
-                moveCursorToEnd(false);
+                moveCursorToEnd();
                 setHighlightPos(0);
             } else {
                 super.onClick(mouseX, mouseY);

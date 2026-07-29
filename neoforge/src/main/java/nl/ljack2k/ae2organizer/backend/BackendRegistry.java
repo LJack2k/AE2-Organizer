@@ -1,7 +1,7 @@
 package nl.ljack2k.ae2organizer.backend;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.neoforged.fml.ModList;
+import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -9,10 +9,13 @@ import java.util.List;
 
 /**
  * Registers the storage backends whose mod is actually present, and resolves the
- * backend for an open screen. The {@code ModList} gates in {@link #init()} are
- * what keep a missing mod's backend class (and its transitive AE2/RS references)
- * from ever being classloaded — so the jar runs cleanly with either, both, or
- * neither storage mod installed.
+ * backend for an open screen. The {@code ModList} gate in {@link #init()} is what
+ * keeps a missing mod's backend class (and its transitive AE2 references) from
+ * ever being classloaded — so the jar runs cleanly without the storage mod.
+ * <p>
+ * The Forge/1.20.1 line ships the AE2 backend only: Refined Storage for 1.20.1 is
+ * RS 1.12, whose grid API predates the rewrite the RS2 backend hooks. The SPI is
+ * unchanged, so a legacy-RS backend would just register itself here.
  */
 public final class BackendRegistry {
     private BackendRegistry() {}
@@ -23,9 +26,6 @@ public final class BackendRegistry {
         BACKENDS.clear();
         if (ModList.get().isLoaded("ae2")) {
             register(new nl.ljack2k.ae2organizer.backend.ae2.Ae2Backend());
-        }
-        if (ModList.get().isLoaded("refinedstorage")) {
-            register(new nl.ljack2k.ae2organizer.backend.rs.RsBackend());
         }
     }
 

@@ -4,9 +4,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.client.event.ScreenEvent;
 import nl.ljack2k.ae2organizer.backend.BackendRegistry;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.StorageBackend;
@@ -64,7 +64,10 @@ public final class ClientEvents {
      * preview/amount/status) is open. Cheap: one screen check per client tick.
      */
     @SubscribeEvent
-    public static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event) {
+        if (event.phase != net.minecraftforge.event.TickEvent.Phase.END) {
+            return;
+        }
         Screen screen = net.minecraft.client.Minecraft.getInstance().screen;
         if (screen != null && BackendRegistry.forScreen(screen) == null && BackendRegistry.isCompanionScreen(screen)) {
             roundTripTicks = ROUND_TRIP_GRACE_TICKS;
@@ -272,7 +275,7 @@ public final class ClientEvents {
             return;
         }
         for (int i = BARS.size() - 1; i >= 0; i--) {
-            if (BARS.get(i).handleScroll(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY())) {
+            if (BARS.get(i).handleScroll(event.getMouseX(), event.getMouseY(), event.getScrollDelta())) {
                 event.setCanceled(true);
                 return;
             }

@@ -1,7 +1,7 @@
 package nl.ljack2k.ae2organizer.client;
 
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 /**
  * Central client-side wiring, called once from the {@code @Mod} constructor on
@@ -15,8 +15,8 @@ public final class ClientBootstrap {
     private ClientBootstrap() {
     }
 
-    public static void init(IEventBus modBus) {
-        NeoForge.EVENT_BUS.register(ClientEvents.class);
-        modBus.addListener(ClientSetup::onClientSetup);
+    public static void init() {
+        MinecraftForge.EVENT_BUS.register(ClientEvents.class);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(ClientSetup::onClientSetup);
     }
 }

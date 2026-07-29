@@ -3,20 +3,23 @@ package nl.ljack2k.ae2organizer.filter;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.function.Predicate;
 
 /**
- * Matches item stacks by a per-stack data component. {@link #arg()} is unused
- * for presence checks and carries the data key / component-type id for the
- * argument-taking matches. Empty stacks (non-item resources) never match.
+ * Matches item stacks by per-stack NBT. 1.20.1 predates data components, so this
+ * is the NBT analogue of the newer lines' component checks — {@code custom_data_key}
+ * looks for a top-level NBT key rather than a key inside {@code minecraft:custom_data}.
+ * <p>
+ * {@link ComponentMatch#HAS_COMPONENT_TYPE} has no meaning without the component
+ * registry and never matches here; it is kept only so a config or clipboard export
+ * from a 1.21+ line still parses (see {@link ComponentMatch#supported()}).
+ * <p>
+ * {@link #arg()} is unused for presence checks and carries the NBT key for the
+ * argument-taking match. Empty stacks (non-item resources) never match.
  */
 public record ComponentCondition(ComponentMatch match, String arg, boolean negate) implements Condition {
 
@@ -35,35 +38,31 @@ public record ComponentCondition(ComponentMatch match, String arg, boolean negat
     public Predicate<ItemStack> toPredicate() {
         return switch (match) {
             case ENCHANTED -> stack -> !stack.isEmpty() && isEnchanted(stack);
-            case HAS_CUSTOM_NAME -> stack -> !stack.isEmpty() && stack.has(DataComponents.CUSTOM_NAME);
+            case HAS_CUSTOM_NAME -> stack -> !stack.isEmpty() && stack.hasCustomHoverName();
             case DAMAGED -> stack -> !stack.isEmpty() && stack.isDamaged();
             case HAS_CUSTOM_DATA_KEY -> {
                 String dataKey = arg.trim();
                 yield dataKey.isEmpty()
                         ? stack -> false
-                        : stack -> !stack.isEmpty() && hasCustomDataKey(stack, dataKey);
+                        : stack -> !stack.isEmpty() && hasNbtKey(stack, dataKey);
             }
-            case HAS_COMPONENT_TYPE -> {
-                ResourceLocation rl = ResourceLocation.tryParse(arg.trim());
-                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl);
-                yield componentType == null
-                        ? stack -> false
-                        : stack -> !stack.isEmpty() && stack.has(componentType);
-            }
+            // No data-component registry on 1.20.1 — parses, never matches.
+            case HAS_COMPONENT_TYPE -> stack -> false;
         };
     }
 
+    /** Active enchantments (tools/armour) or stored ones (enchanted books). */
     private static boolean isEnchanted(ItemStack stack) {
-        ItemEnchantments enchantments = stack.get(DataComponents.ENCHANTMENTS);
-        if (enchantments != null && !enchantments.isEmpty()) {
+        if (stack.isEnchanted()) {
             return true;
         }
-        ItemEnchantments stored = stack.get(DataComponents.STORED_ENCHANTMENTS);
-        return stored != null && !stored.isEmpty();
+        CompoundTag tag = stack.getTag();
+        return tag != null && !tag.getList("StoredEnchantments", Tag.TAG_COMPOUND).isEmpty();
     }
 
-    private static boolean hasCustomDataKey(ItemStack stack, String dataKey) {
-        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-        return customData != null && customData.copyTag().contains(dataKey);
+    /** True if the stack's NBT carries a top-level key. */
+    private static boolean hasNbtKey(ItemStack stack, String dataKey) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(dataKey);
     }
 }

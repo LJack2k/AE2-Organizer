@@ -94,7 +94,7 @@ public final class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         graphics.drawString(this.font, getTitle(), left + 8, top + 7, theme.textColor(), false);
@@ -146,7 +146,7 @@ public final class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         scrollRow = Math.max(0, Math.min(scrollRow - (int) Math.signum(scrollY), maxScrollRow()));
         return true;
     }

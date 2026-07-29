@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.backend.rs;
 import com.refinedmods.refinedstorage.common.grid.screen.AbstractGridScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.Slot;
 import nl.ljack2k.ae2organizer.TerminalOrganizer;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
@@ -52,7 +52,7 @@ public final class RsScreenAdapter implements ScreenAdapter, SearchClearable {
     @Override
     public String terminalKey() {
         try {
-            ResourceLocation id = BuiltInRegistries.MENU.getKey(screen.getMenu().getType());
+            Identifier id = BuiltInRegistries.MENU.getKey(screen.getMenu().getType());
             if (id != null) {
                 return id.toString();
             }

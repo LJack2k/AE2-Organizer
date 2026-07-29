@@ -17,7 +17,6 @@ public final class ClientScreenshot {
         Minecraft mc = Minecraft.getInstance();
         Screenshot.grab(
                 FMLPaths.GAMEDIR.get().toFile(),
-                "rsorgshot.png",
                 mc.getMainRenderTarget(),
                 component -> {});
     }

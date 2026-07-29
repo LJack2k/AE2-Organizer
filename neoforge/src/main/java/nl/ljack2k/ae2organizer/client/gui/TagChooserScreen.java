@@ -1,6 +1,6 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -38,7 +38,7 @@ public final class TagChooserScreen extends Screen {
         this.parent = parent;
         this.theme = theme;
         this.onPick = onPick;
-        this.tags = new ItemStack(item).getTags()
+        this.tags = new ItemStack(item).typeHolder().tags()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
                 .toList();
     }
@@ -59,8 +59,7 @@ public final class TagChooserScreen extends Screen {
 
         if (tags.isEmpty()) {
             addRenderableWidget(new StringWidget(left + 10, top + 44, panelW - 20, 12,
-                    Component.literal("This item has no tags."), this.font).alignLeft()
-                    .setColor(theme.textColor()));
+                    Component.literal("This item has no tags."), this.font));
         } else {
             int count = Math.min(visible, tags.size() - offset);
             for (int i = 0; i < count; i++) {
@@ -86,15 +85,15 @@ public final class TagChooserScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

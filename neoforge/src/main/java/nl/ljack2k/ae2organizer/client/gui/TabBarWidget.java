@@ -1,7 +1,8 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -10,7 +11,7 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -114,7 +115,11 @@ public final class TabBarWidget extends AbstractWidget {
      * Shift — Shift collides with viewer cheat-grab and vanilla shift-click transfer.)
      */
     private boolean moveActive() {
-        return store.isMoveMode() || Screen.hasAltDown();
+        // 26.1 dropped Screen.hasAltDown(); poll GLFW directly instead.
+        var window = Minecraft.getInstance().getWindow();
+        boolean alt = InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT)
+                || InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_ALT);
+        return store.isMoveMode() || alt;
     }
 
     /**
@@ -315,7 +320,7 @@ public final class TabBarWidget extends AbstractWidget {
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Layout l = layout();
         if (l == null) {
             return;
@@ -378,14 +383,14 @@ public final class TabBarWidget extends AbstractWidget {
             drawScrollbar(graphics, l);
         }
         if (move) {
-            graphics.renderOutline(l.panelX - 1, l.panelY - 1, l.panelW + 2, l.panelH + 2, 0xFF00B4FF);
+            graphics.outline(l.panelX - 1, l.panelY - 1, l.panelW + 2, l.panelH + 2, 0xFF00B4FF);
         }
         if (hoverTip != null) {
-            graphics.renderTooltip(font, hoverTip, mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, hoverTip, mouseX, mouseY);
         }
     }
 
-    private void drawScrollbar(GuiGraphics graphics, Layout l) {
+    private void drawScrollbar(GuiGraphicsExtractor graphics, Layout l) {
         int sbTop = l.listTop;
         int sbH = l.visible * l.rowH;
         graphics.fill(l.sbX, sbTop, l.sbX + SB_W, sbTop + sbH, 0x66000000);
@@ -396,7 +401,7 @@ public final class TabBarWidget extends AbstractWidget {
         RsStyle.bevelButton(graphics, l.sbX, thumbY, SB_W, thumbH, false, draggingScrollbar);
     }
 
-    private static ItemStack iconStack(ResourceLocation id) {
+    private static ItemStack iconStack(Identifier id) {
         return new ItemStack(BuiltInRegistries.ITEM.getOptional(id).orElse(Items.CHEST));
     }
 

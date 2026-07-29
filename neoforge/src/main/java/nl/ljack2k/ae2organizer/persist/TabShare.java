@@ -9,7 +9,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nl.ljack2k.ae2organizer.filter.Condition;
 import nl.ljack2k.ae2organizer.filter.FilterWindow;
 import nl.ljack2k.ae2organizer.filter.MatchMode;
@@ -40,7 +40,7 @@ public final class TabShare {
     private static final Codec<Tab> SHARE = RecordCodecBuilder.create(i -> i.group(
             Codec.STRING.optionalFieldOf("id", "").forGetter(Tab::id),
             Codec.STRING.fieldOf("name").forGetter(Tab::name),
-            ResourceLocation.CODEC.optionalFieldOf("icon", Tab.DEFAULT_ICON).forGetter(Tab::icon),
+            Identifier.CODEC.optionalFieldOf("icon", Tab.DEFAULT_ICON).forGetter(Tab::icon),
             MatchMode.CODEC.optionalFieldOf("mode", MatchMode.ANY).forGetter(Tab::mode),
             Condition.CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(Tab::conditions),
             Codec.STRING.optionalFieldOf("window", "main").forGetter(Tab::window)

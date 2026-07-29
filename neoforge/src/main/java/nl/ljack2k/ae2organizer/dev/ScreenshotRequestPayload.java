@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.dev;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nl.ljack2k.ae2organizer.TerminalOrganizer;
 
 /**
@@ -15,7 +15,7 @@ import nl.ljack2k.ae2organizer.TerminalOrganizer;
  */
 public record ScreenshotRequestPayload() implements CustomPacketPayload {
     public static final Type<ScreenshotRequestPayload> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath(TerminalOrganizer.MODID, "screenshot"));
+            new Type<>(Identifier.fromNamespaceAndPath(TerminalOrganizer.MODID, "screenshot"));
 
     public static final StreamCodec<ByteBuf, ScreenshotRequestPayload> STREAM_CODEC =
             StreamCodec.unit(new ScreenshotRequestPayload());

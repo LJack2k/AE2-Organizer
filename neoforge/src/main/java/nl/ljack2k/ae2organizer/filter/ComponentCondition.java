@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -44,8 +44,8 @@ public record ComponentCondition(ComponentMatch match, String arg, boolean negat
                         : stack -> !stack.isEmpty() && hasCustomDataKey(stack, dataKey);
             }
             case HAS_COMPONENT_TYPE -> {
-                ResourceLocation rl = ResourceLocation.tryParse(arg.trim());
-                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl);
+                Identifier rl = Identifier.tryParse(arg.trim());
+                DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(rl);
                 yield componentType == null
                         ? stack -> false
                         : stack -> !stack.isEmpty() && stack.has(componentType);

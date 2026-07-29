@@ -10,7 +10,7 @@ import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.SearchClearable;
 import nl.ljack2k.ae2organizer.backend.ae2.mixin.AbstractContainerScreenAccessor;
 import nl.ljack2k.ae2organizer.backend.ae2.mixin.MEStorageScreenAccessor;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
@@ -56,7 +56,7 @@ public final class Ae2ScreenAdapter implements ScreenAdapter, SearchClearable {
     @Override
     public String terminalKey() {
         try {
-            ResourceLocation id = BuiltInRegistries.MENU.getKey(screen.getMenu().getType());
+            Identifier id = BuiltInRegistries.MENU.getKey(screen.getMenu().getType());
             if (id != null) {
                 return id.toString();
             }

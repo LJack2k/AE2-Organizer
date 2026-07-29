@@ -1,7 +1,7 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -20,7 +20,7 @@ public final class RsButton extends Button {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         boolean hovered = this.active && isHoveredOrFocused();
         RsStyle.labelButton(graphics, Minecraft.getInstance().font, getMessage(),
                 getX(), getY(), getWidth(), getHeight(), hovered, false);

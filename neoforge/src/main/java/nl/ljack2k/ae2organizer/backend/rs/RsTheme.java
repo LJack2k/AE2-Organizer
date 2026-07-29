@@ -1,8 +1,8 @@
 package nl.ljack2k.ae2organizer.backend.rs;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.backend.Theme;
@@ -40,7 +40,7 @@ public final class RsTheme implements Theme {
      * hand: ~4 quads, pixel-identical to the old sprite.
      */
     @Override
-    public void panel(GuiGraphics g, int x, int y, int w, int h) {
+    public void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         int right = x + w;
         int bottom = y + h;
         g.fill(x, y, right, bottom, PANEL_BORDER);              // 1px black outline
@@ -65,7 +65,7 @@ public final class RsTheme implements Theme {
     private static ItemStack wrench() {
         if (wrench == null) {
             var item = BuiltInRegistries.ITEM
-                    .getOptional(ResourceLocation.fromNamespaceAndPath("refinedstorage", "wrench"))
+                    .getOptional(Identifier.fromNamespaceAndPath("refinedstorage", "wrench"))
                     .orElse(Items.COMPARATOR);
             wrench = new ItemStack(item);
         }
@@ -73,8 +73,8 @@ public final class RsTheme implements Theme {
     }
 
     @Override
-    public void settingsIcon(GuiGraphics g, int x, int y) {
+    public void settingsIcon(GuiGraphicsExtractor g, int x, int y) {
         // RS's own wrench item icon (matches RS; native art, no bundled sprite).
-        g.renderItem(wrench(), x, y);
+        g.item(wrench(), x, y);
     }
 }

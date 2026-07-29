@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.filter;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Locale;
@@ -32,7 +32,7 @@ public record ModCondition(String modId, boolean negate) implements Condition {
             if (stack.isEmpty()) {
                 return false;
             }
-            ResourceLocation key = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            Identifier key = BuiltInRegistries.ITEM.getKey(stack.getItem());
             return id.equals(key.getNamespace());
         };
     }

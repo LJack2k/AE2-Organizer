@@ -1,14 +1,15 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -564,56 +565,56 @@ public final class TabEditorScreen extends Screen {
     // ---- Rendering ---------------------------------------------------------
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         int tc = theme.textColor();
-        graphics.drawString(this.font, getTitle(), left + PAD, top + 8, tc, false);
+        graphics.text(this.font, getTitle(), left + PAD, top + 8, tc, false);
 
-        graphics.drawString(this.font, "Windows & Tabs", tabsX, tabsHeaderY, tc, false);
+        graphics.text(this.font, "Windows & Tabs", tabsX, tabsHeaderY, tc, false);
         RsStyle.inset(graphics, tabsX, tabsInsetY, tabsW, tabsInsetH);
         RsStyle.divider(graphics, tabsX + 3, toolbarDivY, tabsW - 6);
 
         if (pendingImport != null) {
-            graphics.drawString(this.font, "Confirm import", rightX, mainTop, tc, false);
+            graphics.text(this.font, "Confirm import", rightX, mainTop, tc, false);
             RsStyle.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
             WindowDraft w = selWindowDraft();
             int have = w == null ? 0 : w.tabs.size();
-            graphics.drawString(this.font, "Replace this window's " + have + " tab(s)",
+            graphics.text(this.font, "Replace this window's " + have + " tab(s)",
                     rightX + 6, mainTop + HEADER_H + 8, tc, false);
-            graphics.drawString(this.font, "with " + pendingImport.size() + " imported tab(s)?",
+            graphics.text(this.font, "with " + pendingImport.size() + " imported tab(s)?",
                     rightX + 6, mainTop + HEADER_H + 20, tc, false);
         } else if (pendingDeleteWindow >= 0) {
-            graphics.drawString(this.font, "Confirm", rightX, mainTop, tc, false);
+            graphics.text(this.font, "Confirm", rightX, mainTop, tc, false);
             RsStyle.inset(graphics, rightX, mainTop + HEADER_H, rightW, 60);
             WindowDraft w = (pendingDeleteWindow < windows.size()) ? windows.get(pendingDeleteWindow) : null;
             int n = w == null ? 0 : w.tabs.size();
-            graphics.drawString(this.font, "Delete window \"" + (w == null ? "" : w.name) + "\"",
+            graphics.text(this.font, "Delete window \"" + (w == null ? "" : w.name) + "\"",
                     rightX + 6, mainTop + HEADER_H + 8, tc, false);
-            graphics.drawString(this.font, "and its " + n + " tab(s)?", rightX + 6, mainTop + HEADER_H + 20, tc, false);
+            graphics.text(this.font, "and its " + n + " tab(s)?", rightX + 6, mainTop + HEADER_H + 20, tc, false);
         } else if (editingWindow()) {
-            graphics.drawString(this.font, "Window", rightX, mainTop, tc, false);
+            graphics.text(this.font, "Window", rightX, mainTop, tc, false);
             RsStyle.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
             int ly = propsInsetY + 4;
-            graphics.drawString(this.font, "Name", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Layout", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Display", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Size", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Gear", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "All", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Visible", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Position", rightX + 4, ly + 5, tc, false); ly += 22;
-            graphics.drawString(this.font, "Tabs", rightX + 4, ly + 5, tc, false);
+            graphics.text(this.font, "Name", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Layout", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Display", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Size", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Gear", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "All", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Visible", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Position", rightX + 4, ly + 5, tc, false); ly += 22;
+            graphics.text(this.font, "Tabs", rightX + 4, ly + 5, tc, false);
         } else {
-            graphics.drawString(this.font, "Properties", rightX, propsHeaderY, tc, false);
+            graphics.text(this.font, "Properties", rightX, propsHeaderY, tc, false);
             RsStyle.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
-            graphics.drawString(this.font, "Conditions", rightX, condHeaderY, tc, false);
+            graphics.text(this.font, "Conditions", rightX, condHeaderY, tc, false);
             RsStyle.inset(graphics, rightX, condInsetY, rightW, condInsetH);
             RsStyle.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
-            graphics.drawString(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
+            graphics.text(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
             RsStyle.inset(graphics, invPanelX, invPanelY + HEADER_H, invPanelW, invPanelH);
-            graphics.drawString(this.font, "Name", labelX, nameRowY + 5, tc, false);
-            graphics.drawString(this.font, "Icon", labelX, iconRowY + 5, tc, false);
+            graphics.text(this.font, "Name", labelX, nameRowY + 5, tc, false);
+            graphics.text(this.font, "Icon", labelX, iconRowY + 5, tc, false);
         }
 
         RsStyle.divider(graphics, innerX, dividerY, innerR - innerX);
@@ -624,8 +625,8 @@ public final class TabEditorScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         drawTree(graphics, mouseX, mouseY);
 
         if (!editingWindow() && pendingDeleteWindow < 0) {
@@ -634,9 +635,9 @@ public final class TabEditorScreen extends Screen {
                 RsStyle.slot(graphics, iconX, iconY);
                 ItemStack icon = iconStack(draft.icon);
                 if (!icon.isEmpty()) {
-                    graphics.renderItem(icon, iconX + 1, iconY + 1);
+                    graphics.item(icon, iconX + 1, iconY + 1);
                     if (inRect(mouseX, mouseY, iconX, iconY, 18, 18) && draggingStack == null) {
-                        graphics.renderTooltip(this.font, icon, mouseX, mouseY);
+                        graphics.setTooltipForNextFrame(this.font, icon, mouseX, mouseY);
                     }
                 }
                 drawCondScrollbar(graphics);
@@ -651,13 +652,13 @@ public final class TabEditorScreen extends Screen {
                 boolean over = inRect(mouseX, mouseY, a.getX(), a.getY(), a.getWidth(), a.getHeight());
                 graphics.fill(a.getX(), a.getY(), a.getX() + a.getWidth(), a.getY() + a.getHeight(),
                         over ? 0x9040FF40 : 0x5040FF40);
-                graphics.renderOutline(a.getX(), a.getY(), a.getWidth(), a.getHeight(), 0xFF40C040);
+                graphics.outline(a.getX(), a.getY(), a.getWidth(), a.getHeight(), 0xFF40C040);
             }
-            graphics.renderItem(draggingStack, mouseX - 8, mouseY - 8);
+            graphics.item(draggingStack, mouseX - 8, mouseY - 8);
         }
     }
 
-    private void drawTree(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void drawTree(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int rows = Math.min(listVisible, treeRows.size() - listScroll);
         for (int i = 0; i < rows; i++) {
             int idx = listScroll + i;
@@ -678,16 +679,16 @@ public final class TabEditorScreen extends Screen {
             if (isWindow) {
                 // Filled chevron at normal height, aligned with the window name.
                 String caret = w.collapsed ? "▶" : "▼";
-                graphics.drawString(this.font, caret, rowX + 3 + off, y + 5 + off, theme.textColor(), false);
+                graphics.text(this.font, caret, rowX + 3 + off, y + 5 + off, theme.textColor(), false);
                 String label = (w.name.isBlank() ? "Window" : w.name);
                 String text = this.font.plainSubstrByWidth(label, rowW - CARET_W - 2);
-                graphics.drawString(this.font, text, rowX + CARET_W + off, y + 5 + off, theme.textColor(), false);
+                graphics.text(this.font, text, rowX + CARET_W + off, y + 5 + off, theme.textColor(), false);
             } else {
                 TabDraft t = w.tabs.get(ti);
                 RsStyle.scaledItem(graphics, iconStack(t.icon), rowX + 2 + off, y + 1 + off, 14);
                 String label = t.name.isBlank() ? t.id : t.name;
                 String text = this.font.plainSubstrByWidth(label, rowW - 20);
-                graphics.drawString(this.font, text, rowX + 18 + off, y + 5 + off, theme.textColor(), false);
+                graphics.text(this.font, text, rowX + 18 + off, y + 5 + off, theme.textColor(), false);
             }
         }
         if (listNeedScroll) {
@@ -700,7 +701,7 @@ public final class TabEditorScreen extends Screen {
         }
     }
 
-    private void drawCondScrollbar(GuiGraphics graphics) {
+    private void drawCondScrollbar(GuiGraphicsExtractor graphics) {
         if (!condNeedScroll) {
             return;
         }
@@ -717,7 +718,7 @@ public final class TabEditorScreen extends Screen {
         RsStyle.bevelButton(graphics, condSbX, thumbY, SBW, thumbH, false, draggingCondScrollbar);
     }
 
-    private void drawInventory(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void drawInventory(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (this.minecraft == null || this.minecraft.player == null) {
             return;
         }
@@ -727,15 +728,15 @@ public final class TabEditorScreen extends Screen {
             RsStyle.slot(graphics, p[0], p[1]);
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
             if (!stack.isEmpty()) {
-                graphics.renderItem(stack, p[0] + 1, p[1] + 1);
-                graphics.renderItemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
+                graphics.item(stack, p[0] + 1, p[1] + 1);
+                graphics.itemDecorations(this.font, stack, p[0] + 1, p[1] + 1);
                 if (inRect(mouseX, mouseY, p[0], p[1], 18, 18)) {
                     hovered = stack;
                 }
             }
         }
         if (!hovered.isEmpty() && draggingStack == null) {
-            graphics.renderTooltip(this.font, hovered, mouseX, mouseY);
+            graphics.setTooltipForNextFrame(this.font, hovered, mouseX, mouseY);
         }
     }
 
@@ -793,7 +794,7 @@ public final class TabEditorScreen extends Screen {
     }
 
     private static ItemStack iconStack(String id) {
-        ResourceLocation rl = ResourceLocation.tryParse(id.trim());
+        Identifier rl = Identifier.tryParse(id.trim());
         Item item = rl == null ? Items.CHEST : BuiltInRegistries.ITEM.getOptional(rl).orElse(Items.CHEST);
         return new ItemStack(item);
     }
@@ -1074,7 +1075,10 @@ public final class TabEditorScreen extends Screen {
     // ---- Input -------------------------------------------------------------
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0) {
             RsStyle.blurFieldOnOutsideClick(this, mouseX, mouseY);
             if (!editingWindow() && pendingDeleteWindow < 0) {
@@ -1120,11 +1124,14 @@ public final class TabEditorScreen extends Screen {
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (draggingListScrollbar) {
             listScrollTo(mouseY);
             return true;
@@ -1133,11 +1140,14 @@ public final class TabEditorScreen extends Screen {
             condScrollTo(mouseY);
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        return super.mouseDragged(event, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         draggingListScrollbar = false;
         draggingCondScrollbar = false;
         if (draggingStack != null) {
@@ -1152,7 +1162,7 @@ public final class TabEditorScreen extends Screen {
             }
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -1292,7 +1302,7 @@ public final class TabEditorScreen extends Screen {
                     built.add(condition);
                 }
             }
-            ResourceLocation iconId = ResourceLocation.tryParse(icon.trim());
+            Identifier iconId = Identifier.tryParse(icon.trim());
             String finalName = name.isBlank() ? id : name;
             return new Tab(id, finalName, iconId != null ? iconId : Tab.DEFAULT_ICON, mode, built, windowId);
         }
@@ -1336,7 +1346,7 @@ public final class TabEditorScreen extends Screen {
             return switch (type) {
                 case MOD -> value.isBlank() ? null : new ModCondition(value.trim(), negate);
                 case TAG -> {
-                    ResourceLocation rl = ResourceLocation.tryParse(value.trim());
+                    Identifier rl = Identifier.tryParse(value.trim());
                     yield rl == null ? null : new TagCondition(rl, negate);
                 }
                 case TEXT -> value.isBlank() ? null : new TextCondition(value.trim(), negate);

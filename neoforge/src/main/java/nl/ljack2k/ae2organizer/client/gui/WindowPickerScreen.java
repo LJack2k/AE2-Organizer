@@ -1,6 +1,6 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import nl.ljack2k.ae2organizer.backend.Theme;
@@ -67,10 +67,10 @@ public final class WindowPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
     }
 
     @Override

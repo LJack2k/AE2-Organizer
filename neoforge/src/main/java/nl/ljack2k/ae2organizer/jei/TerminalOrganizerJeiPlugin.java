@@ -7,7 +7,7 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nl.ljack2k.ae2organizer.TerminalOrganizer;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
 import nl.ljack2k.ae2organizer.client.ViewerSync;
@@ -37,8 +37,8 @@ import java.util.List;
 public class TerminalOrganizerJeiPlugin implements IModPlugin {
 
     @Override
-    public ResourceLocation getPluginUid() {
-        return ResourceLocation.fromNamespaceAndPath(TerminalOrganizer.MODID, "jei_plugin");
+    public Identifier getPluginUid() {
+        return Identifier.fromNamespaceAndPath(TerminalOrganizer.MODID, "jei_plugin");
     }
 
     @Override

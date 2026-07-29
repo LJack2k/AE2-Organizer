@@ -1,6 +1,6 @@
 package nl.ljack2k.ae2organizer.backend;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * The per-backend visual look for this mod's client-only screens and the tab
@@ -16,7 +16,7 @@ import net.minecraft.client.gui.GuiGraphics;
 public interface Theme {
 
     /** The background panel at any size, drawn at {@code (x, y)}. */
-    void panel(GuiGraphics g, int x, int y, int w, int h);
+    void panel(GuiGraphicsExtractor g, int x, int y, int w, int h);
 
     /** ARGB colour for label/body text on {@link #panel}. */
     int textColor();
@@ -25,5 +25,5 @@ public interface Theme {
     int selectionColor();
 
     /** A 16x16 gear/wrench icon at {@code (x, y)} (the editor/settings button). */
-    void settingsIcon(GuiGraphics g, int x, int y);
+    void settingsIcon(GuiGraphicsExtractor g, int x, int y);
 }

@@ -7,7 +7,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
@@ -41,10 +41,10 @@ import org.jetbrains.annotations.Nullable;
 public final class DevHarness {
     private DevHarness() {}
 
-    private static final ResourceLocation CREATIVE_CONTROLLER =
-            ResourceLocation.fromNamespaceAndPath("refinedstorage", "creative_controller");
-    private static final ResourceLocation GRID =
-            ResourceLocation.fromNamespaceAndPath("refinedstorage", "grid");
+    private static final Identifier CREATIVE_CONTROLLER =
+            Identifier.fromNamespaceAndPath("refinedstorage", "creative_controller");
+    private static final Identifier GRID =
+            Identifier.fromNamespaceAndPath("refinedstorage", "grid");
 
     @Nullable
     private static BlockPos lastGridPos;
@@ -58,7 +58,7 @@ public final class DevHarness {
         // optional(): dev-only channels must never break the connection handshake on
         // a version/side skew (and keeps faith with the mod's client-only, any-server design).
         var registrar = event.registrar("1").optional();
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             // Client actually performs these. Referenced only on the client dist so
             // the dedicated server never classloads net.minecraft.client.* .
             registrar.playToClient(ScreenshotRequestPayload.TYPE, ScreenshotRequestPayload.STREAM_CODEC,
@@ -101,7 +101,7 @@ public final class DevHarness {
             src.sendFailure(Component.literal("[TerminalOrganizer] build needs a player context."));
             return 0;
         }
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = player.level();
         Block controller = BuiltInRegistries.BLOCK.getOptional(CREATIVE_CONTROLLER).orElse(null);
         Block grid = BuiltInRegistries.BLOCK.getOptional(GRID).orElse(null);
         if (controller == null || grid == null) {
@@ -124,7 +124,7 @@ public final class DevHarness {
             src.sendFailure(Component.literal("[TerminalOrganizer] open needs a player context."));
             return 0;
         }
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = player.level();
         BlockPos pos = lastGridPos != null ? lastGridPos : findGrid(level, player.blockPosition());
         if (pos == null) {
             src.sendFailure(Component.literal("[TerminalOrganizer] No grid found — run /rsorgtest build first."));

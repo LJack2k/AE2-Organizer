@@ -1,11 +1,12 @@
 package nl.ljack2k.ae2organizer.backend.ae2;
 
-import appeng.client.gui.Icon;
+import appeng.util.Icon;
 import appeng.client.gui.style.BackgroundGenerator;
 import appeng.client.gui.style.PaletteColor;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.StyleManager;
-import net.minecraft.client.gui.GuiGraphics;
+import appeng.client.gui.style.Blitter;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import nl.ljack2k.ae2organizer.backend.Theme;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,7 +54,7 @@ public final class Ae2Theme implements Theme {
     }
 
     @Override
-    public void panel(GuiGraphics g, int x, int y, int w, int h) {
+    public void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         BackgroundGenerator.draw(w, h, g, x, y);
     }
 
@@ -84,9 +85,9 @@ public final class Ae2Theme implements Theme {
     }
 
     @Override
-    public void settingsIcon(GuiGraphics g, int x, int y) {
+    public void settingsIcon(GuiGraphicsExtractor g, int x, int y) {
         // AE2's own settings gear (from its GUI), tinted to the palette text colour so
         // it renders natively and adapts to AE2 dark-mode resource packs.
-        Icon.COG.getBlitter().dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
+        Blitter.icon(Icon.COG).dest(x, y, 16, 16).colorArgb(textColor()).blit(g);
     }
 }

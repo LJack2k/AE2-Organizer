@@ -1,7 +1,8 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.TabManager;
@@ -125,7 +126,10 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0 && pendingImportAll == null) {
             if (inRow(mouseX, mouseY, row1Y)) {
                 resetFilterOnOpen = !resetFilterOnOpen;
@@ -140,7 +144,7 @@ public final class SettingsScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     private boolean inRow(double mx, double my, int rowY) {
@@ -148,17 +152,17 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         int tc = theme.textColor();
         int noteColor = (tc & 0x00FFFFFF) | 0xBB000000;
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, tc, false);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, tc, false);
 
         if (pendingImportAll != null) {
-            graphics.drawString(this.font, "Replace ALL windows and tabs with the",
+            graphics.text(this.font, "Replace ALL windows and tabs with the",
                     left + 10, top + 30, tc, false);
-            graphics.drawString(this.font, pendingImportAll.windows().size() + " imported window(s)? This cannot be undone.",
+            graphics.text(this.font, pendingImportAll.windows().size() + " imported window(s)? This cannot be undone.",
                     left + 10, top + 42, tc, false);
             return;
         }
@@ -177,7 +181,7 @@ public final class SettingsScreen extends Screen {
         RsStyle.scaledText(graphics, this.font,
                 "Window size, labels, orientation & position: edit per window.",
                 left + 10, top + 118, noteColor, 0.75f);
-        graphics.drawString(this.font, "Import / export all windows + tabs (clipboard):",
+        graphics.text(this.font, "Import / export all windows + tabs (clipboard):",
                 left + 10, top + 128, tc, false);
         if (!status.isEmpty()) {
             RsStyle.scaledText(graphics, this.font, status, left + 10, top + panelH - 38, noteColor, 0.85f);

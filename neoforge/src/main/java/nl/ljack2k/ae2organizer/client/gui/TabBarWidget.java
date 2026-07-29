@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -85,6 +86,18 @@ public final class TabBarWidget extends AbstractWidget {
 
     public String windowId() {
         return windowId;
+    }
+
+    /**
+     * This window's current panel rectangle, or {@code null} if it isn't drawing.
+     * Recomputed from the live layout (position, scale and tab count can all change
+     * between frames), which is what lets JEI's item list reflow around a panel as
+     * it is dragged. {@link Rect2i} is vanilla, so nothing here depends on JEI.
+     */
+    @Nullable
+    public Rect2i bounds() {
+        Layout l = layout();
+        return l == null ? null : new Rect2i(l.panelX, l.panelY, l.panelW, l.panelH);
     }
 
     @Nullable

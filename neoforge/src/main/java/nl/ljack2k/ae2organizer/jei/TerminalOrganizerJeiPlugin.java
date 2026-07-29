@@ -2,11 +2,14 @@ package nl.ljack2k.ae2organizer.jei;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.gui.handlers.IGlobalGuiHandler;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
 import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.client.ClientEvents;
 import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 import nl.ljack2k.ae2organizer.filter.Condition;
@@ -18,6 +21,7 @@ import nl.ljack2k.ae2organizer.filter.TextCondition;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -25,7 +29,9 @@ import java.util.List;
  * {@code @JeiPlugin}). Registers a ghost-ingredient handler so items can be
  * dragged from JEI directly onto the tab editor's icon slot and condition
  * fields, and a screen handler so JEI draws its list beside the (non-container)
- * editor. Also wires {@link ViewerSync} so tab selection updates JEI's search.
+ * editor, and a global GUI handler that reports our filter panels as extra areas
+ * so JEI's item list wraps around them. Also wires {@link ViewerSync} so tab
+ * selection updates JEI's search.
  */
 @JeiPlugin
 public class TerminalOrganizerJeiPlugin implements IModPlugin {
@@ -39,6 +45,17 @@ public class TerminalOrganizerJeiPlugin implements IModPlugin {
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGhostIngredientHandler(TabEditorScreen.class, new EditorGhostHandler());
         registration.addGuiScreenHandler(TabEditorScreen.class, EditorGuiProperties::new);
+        // Global (not per-screen): our panels can appear over any AE2 terminal or RS
+        // grid, including addon terminals we never name. JEI adds these to whatever
+        // the host mod already excludes and skips the item slots they cover, so the
+        // list wraps around a panel instead of being drawn under it.
+        // (IGlobalGuiHandler has no abstract method, so it can't be a lambda target.)
+        registration.addGlobalGuiHandler(new IGlobalGuiHandler() {
+            @Override
+            public Collection<Rect2i> getGuiExtraAreas() {
+                return ClientEvents.activeBarBounds();
+            }
+        });
     }
 
     @Override

@@ -14,7 +14,10 @@ this branch is closed. Stage 9 (display-name rebrand to TerminalOrganizer) is do
 26.1.2.76 / Java 25 against AE2 26.1.10-beta and RS 3.2.1. It was branched from
 `unify-storage-backends` and forward-ported, *not* merged from the old pre-unify `26.1` branch
 (that fork predates the backend SPI and conflicts in ~20 files); the old branch is superseded and
-should be replaced by this one when the port is signed off.
+should be replaced by this one. **Maintainer-tested on 2026-07-29 and signed off** — filtering on
+both backends, all terminal types, input (click/scroll/Alt-drag), the autocraft round-trip fix,
+JEI exclusion areas + search sync, the editor, and persistence. One known cosmetic regression:
+26.1's `StringWidget` dropped `setColor()`, so the tag chooser's "no tags" label is untinted.
 
 **Not done (needs maintainer go-ahead):** replacing `26.1` with this branch, the merge of
 `unify-storage-backends` → `1.21.1`, and a release on either line.

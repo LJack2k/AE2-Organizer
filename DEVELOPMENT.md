@@ -4,17 +4,17 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 
 ## Requirements / toolchain
 
-- Minecraft **1.21.1**, NeoForge **21.1.242+**, Java **21**.
-- Applied Energistics 2 **[19.2,19.3)** and Refined Storage 2 **[2.0,3.0)** — both **optional** backends, client side. The mod hooks whichever is present.
+- Minecraft **26.1.2**, NeoForge **26.1.2.76+**, Java **25**.
+- Applied Energistics 2 **[26.1,26.2)** and Refined Storage **[3.0,4.0)** — both **optional** backends, client side. The mod hooks whichever is present.
 - JEI — optional; compiled against for the drag integration, never bundled.
-- Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + the `neoforge/` subproject (so a `fabric/` module could be added later).
+- Gradle **9.2.1** + ModDevGradle **2.0.141**. Multi-project: minimal root + the `neoforge/` subproject (so a `fabric/` module could be added later).
 
-> **NeoForge floor is 21.1.242.** RS 2.0.9 calls `AttachmentType.Builder.sync(StreamCodec)`, which is absent in earlier 21.1.x. AE2 19.2.x runs fine on it.
+> **This is the 26.1 line.** The same code targets MC 1.21.1 on `unify-storage-backends`; the two differ only in the toolchain and the platform API renames (see AGENTS.md's 26.1 quick-reference). Keep behaviour changes in step across both.
 
 ## Building
 
 ```bash
-./gradlew :neoforge:build         # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build         # -> neoforge/build/libs/TerminalOrganizer-neoforge-26.1.2-<ver>.jar
 ./gradlew :neoforge:runClient     # dev client with AE2 + RS (+ JEI) for testing
 ./gradlew :neoforge:runClientJoin # dev client that quick-joins localhost:25565 (pairs with runServer)
 ./gradlew :neoforge:runServer     # dev server for the RCON/screenshot harness (see dev/)

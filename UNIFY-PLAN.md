@@ -10,8 +10,14 @@ The RS side is screenshot-verified; the AE2 terminal side was **signed off by th
 dev server+client on 2026-07-29** ("styling is good on all places") — the last verification gap on
 this branch is closed. Stage 9 (display-name rebrand to TerminalOrganizer) is done.
 
-**Not done (needs maintainer go-ahead):** the merge of `unify-storage-backends` → `1.21.1` and a
-release. The 26.1 port of this work is tracked on its own branch.
+**This branch (`unify-26.1`) is the 26.1 port of that work** — same code on MC 26.1.2 / NeoForge
+26.1.2.76 / Java 25 against AE2 26.1.10-beta and RS 3.2.1. It was branched from
+`unify-storage-backends` and forward-ported, *not* merged from the old pre-unify `26.1` branch
+(that fork predates the backend SPI and conflicts in ~20 files); the old branch is superseded and
+should be replaced by this one when the port is signed off.
+
+**Not done (needs maintainer go-ahead):** replacing `26.1` with this branch, the merge of
+`unify-storage-backends` → `1.21.1`, and a release on either line.
 
 Goal: one client-side mod (kept mod id **`ae2organizer`**) that adds filter tabs to **both**
 Applied Energistics 2 terminals **and** Refined Storage 2 grids, with a **hard separation** between the

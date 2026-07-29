@@ -16,9 +16,9 @@ Architecture section before touching cross-backend code.
 
 ## Stack (don't guess — these are pinned)
 
-- Minecraft **1.21.1**, NeoForge **21.1.242+** (RS 2.0.9 needs `.242`; AE2 is fine on it), Java **21**.
-- AE2 **[19.2,19.3)** and RS **[2.0,3.0)** — **both optional**, declared `side = "CLIENT"`. JEI optional.
-- Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + `neoforge/` subproject.
+- Minecraft **26.1.2**, NeoForge **26.1.2.76+**, Java **25**.
+- AE2 **[26.1,26.2)** and RS **[3.0,4.0)** — **both optional**, declared `side = "CLIENT"`. JEI optional.
+- Gradle **9.2.1** + ModDevGradle **2.0.141**. Multi-project: minimal root + `neoforge/` subproject.
 - **Display name `TerminalOrganizer`; mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.**
   Never change the id/package — configs, modpack refs, and the published project depend on them.
   Versions live in `gradle.properties`.
@@ -26,7 +26,7 @@ Architecture section before touching cross-backend code.
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-neoforge-26.1.2-<ver>.jar
 ./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
 ./gradlew :neoforge:runClientJoin  # dev client that quick-joins localhost:25565 (devHarness on)
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
@@ -123,6 +123,26 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
   pipeline renders partial-alpha edges as an opaque cutout, not a blend).
 
 ## Verified API quick-reference (confirmed via javap this session)
+
+> **26.1 vs 1.21.1 platform deltas** — the full list this port needed, in case a change has to be
+> carried the other way (the `unify-storage-backends` branch is the same code on 1.21.1):
+> `ResourceLocation`→`Identifier` (same factories); `GuiGraphics`→`GuiGraphicsExtractor`; draw
+> overrides are `extractRenderState` / `extractWidgetRenderState` / `extractBackground`, and
+> `AbstractButton.extractWidgetRenderState` is **final** — buttons override `extractContents`;
+> `g.drawString`→`g.text`, `g.renderItem`→`g.item`, `g.renderItemDecorations`→`g.itemDecorations`,
+> `g.renderTooltip`→`g.setTooltipForNextFrame`, `g.renderOutline`→`g.outline`; `pose()` is a 2D
+> `Matrix3x2fStack` (`pushMatrix`/`popMatrix`, 2-arg `translate`/`scale`); mouse handlers take
+> `net.minecraft.client.input.MouseButtonEvent` (`.x()/.y()/.button()`) — `mouseClicked(event,
+> doubleClick)`, `mouseDragged(event, dx, dy)`, `mouseReleased(event)`, `EditBox.onClick(event,
+> doubleClick)`; `Screen.hasAltDown()` is gone (poll GLFW via `InputConstants`); `StringWidget` lost
+> `alignLeft()`/`setColor()`; `ItemStack.getTags()`→`typeHolder().tags()`; `Registry.get(Identifier)`
+> returns `Optional<Holder.Reference<T>>` — use `getValue(...)` for the old behaviour;
+> `FMLEnvironment.dist`→`FMLEnvironment.getDist()`; `ServerPlayer.serverLevel()`→`level()`;
+> `Screenshot.grab` lost its filename argument; AE2's `Icon` is `appeng.util.Icon`, drawn via
+> `Blitter.icon(...)` (no `Icon#getBlitter`). **Mixin/filter-core targets are UNCHANGED**
+> (`Repo.addEntriesToView`, `AbstractGridContainerMenu.createBaseFilter`, `MEStorageScreen.repo`,
+> `AbstractContainerScreen.imageWidth/Height`). javap needs a **JDK 25+** for 26.1 bytecode; the
+> patched MC jar is `neoforge/build/moddev/artifacts/minecraft-patched-<neo_version>-merged.jar`.
 
 - `appeng.client.gui.me.common.Repo`: `private void addEntriesToView(Collection<GridInventoryEntry>)`,
   `public final void updateView()`, `getSearchString/setSearchString`.

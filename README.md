@@ -4,9 +4,9 @@ A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **fi
 
 ![TerminalOrganizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
-- **Minecraft** 1.21.1 · **NeoForge** 21.1.x · **Java** 21
-- **Applied Energistics 2** 19.2.x — *optional* backend
-- **Refined Storage** 2.0.x — *optional* backend
+- **Minecraft** 26.1.2 · **NeoForge** 26.1.x · **Java** 25
+- **Applied Energistics 2** 26.1.x — *optional* backend
+- **Refined Storage** 3.x — *optional* backend
 - **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
 
 Both storage mods are optional: the jar loads cleanly with **either, both, or neither** installed, adding its tabs to whichever is present. It does nothing on its own.

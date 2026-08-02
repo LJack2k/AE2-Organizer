@@ -1,19 +1,25 @@
 # TerminalOrganizer
 
-A client-side [Forge](https://minecraftforge.net/) mod that adds user-defined **filter tabs** to Applied Energistics 2 terminals. Create tabs that narrow the ME/Crafting terminal to just the items you want — by mod, item tag, name, or per-stack NBT — and switch between them with one click.
+A client-side [Forge](https://minecraftforge.net/) mod that adds user-defined **filter tabs** to **Applied Energistics 2 terminals** *and* **Refined Storage grids**. Create tabs that narrow the view to just the items you want — by mod, item tag, name, or per-stack NBT — and switch between them with one click.
 
 ![TerminalOrganizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
-- **Minecraft** 1.20.1 · **Forge** 47.4.x · **AE2** 15.4.x (required)
+- **Minecraft** 1.20.1 · **Forge** 47.4.x · **Java** 17
+- **Applied Energistics 2** 15.4.x — *optional* backend
+- **Refined Storage** 1.12.x — *optional* backend
 - **JEI** optional (drag-and-drop in the editor; its item list wraps around the filter windows; optional search-bar sync — see [Settings](#settings))
+
+Both storage mods are optional: the jar loads cleanly with **either, both, or neither** installed, adding its tabs to whichever is present. It does nothing on its own.
+
+Each storage system is kept **fully separate**: AE2 terminals and RS grids have their own independent tabs, windows, and settings, and never share a filter. (You can copy a filter set from one to the other with Export / Import.) Throughout this guide, "terminal" means an AE2 terminal *or* an RS grid.
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.
 
 ## What it does
 
-AE2 already filters and sorts the terminal list on the client; TerminalOrganizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
+AE2 and RS both filter and sort their item list on the client; TerminalOrganizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
 
-One or more **filter windows** attach to every ME / Crafting / Pattern / Wireless terminal. Out of the box there's a single window docked to the terminal's right edge; you can add more, move them anywhere, and lay each out as a vertical list or a horizontal icon row (see [Windows](#windows)).
+One or more **filter windows** attach to every terminal — AE2's ME / Crafting / Pattern / Wireless terminals and RS's Grid / Crafting Grid. Out of the box there's a single window docked to the terminal's right edge; you can add more, move them anywhere, and lay each out as a vertical list or a horizontal icon row (see [Windows](#windows)).
 
 Each window shows:
 
@@ -21,7 +27,7 @@ Each window shows:
 - **Your tabs** — click one to filter the terminal to that tab's items; click the active tab again to clear back to All. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
 - ⚙ **Gear** — opens the editor.
 
-Windows are drawn with AE2's own GUI style, so AE2 "dark mode" resource packs reskin them too. A tab's filter combines with AE2's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** across all windows.
+Windows are drawn in each backend's **native look**: on an AE2 terminal they use AE2's own GUI style (so AE2 "dark mode" resource packs reskin them too) and AE2's wrench icon; on an RS grid they use RS's grid style and RS's own wrench item. A tab's filter combines with the storage's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** per storage system.
 
 ## Editing tabs
 
@@ -68,17 +74,17 @@ Select a window in the editor tree to set its presentation (each property is per
 - **Size** — a per-window scale slider.
 - **Gear** — show or hide the editor gear on this window. At least one window always keeps a reachable gear.
 - **All entry** — show or hide the 🧭 *All* button on this window.
-- **Terminals…** — show or hide this window per **terminal type** (ME Terminal, Crafting Terminal, Pattern Encoding Terminal, …). Each type stands for every terminal of that type.
+- **Terminals…** — show or hide this window per **terminal type** (ME Terminal, Crafting Terminal, Pattern Encoding Terminal, the RS Grid, …). Each type stands for every terminal of that type.
 - **Position** — see below.
 - **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set or reusing it in another window.
 
 **Moving windows.** Hold **Alt** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. (Alt, not Shift — so it never clashes with shift-click actions like JEI's cheat-mode grab.) Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
 
-**Stuck?** The client command `/ae2organizer resetwindows` restores every window to a reachable state — first window docked, the rest centered, all gears shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
+**Stuck?** The client command `/ae2organizer resetwindows` restores every window (in **both** backends) to a reachable state — first window docked, the rest centered, all gears shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
 
 ## Settings
 
-In the editor, click **Settings…** for cross-cutting behaviour (per-window layout lives on each [window](#windows)):
+In the editor, click **Settings…** for cross-cutting behaviour (per-window layout lives on each [window](#windows)). Settings are **per storage system** — AE2 and RS each have their own:
 
 - **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered. Either way, coming *back* to a terminal from a craft request, a crafting-status view or a settings page keeps the tab you were on — only actually opening a terminal counts.
 - **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.

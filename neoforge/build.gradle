@@ -67,6 +67,7 @@ legacyForge {
 mixin {
     add sourceSets.main, 'ae2organizer.refmap.json'
     config 'ae2organizer.ae2.mixins.json'
+    config 'ae2organizer.rslegacy.mixins.json'
 }
 
 dependencies {
@@ -81,6 +82,12 @@ dependencies {
     modCompileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
     modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
     modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+
+    // Refined Storage 1.12 — the OPTIONAL second backend on this line (see
+    // gradle.properties: 1.20.1 only ever had the pre-rewrite RS, so this backend
+    // is separate from the RS2 one the newer lines use).
+    modCompileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    modRuntimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
 
     // JEI — OPTIONAL integration. modCompileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
@@ -97,6 +104,7 @@ tasks.named('processResources', ProcessResources).configure {
         minecraft_version_range : minecraft_version_range,
         loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
+        rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
         mod_license             : mod_license,

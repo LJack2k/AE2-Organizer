@@ -13,9 +13,10 @@ import java.util.List;
  * keeps a missing mod's backend class (and its transitive AE2 references) from
  * ever being classloaded — so the jar runs cleanly without the storage mod.
  * <p>
- * The Forge/1.20.1 line ships the AE2 backend only: Refined Storage for 1.20.1 is
- * RS 1.12, whose grid API predates the rewrite the RS2 backend hooks. The SPI is
- * unchanged, so a legacy-RS backend would just register itself here.
+ * On the Forge/1.20.1 line the RS backend is {@code backend.rslegacy}, written against
+ * RS <strong>1.12</strong> (1.20.1 never got RS2, whose grid API the 1.21.1/26.1 lines
+ * hook). It keeps the backend id {@code "rs"}, so the store file and cross-line filter
+ * exports match the other lines.
  */
 public final class BackendRegistry {
     private BackendRegistry() {}
@@ -26,6 +27,9 @@ public final class BackendRegistry {
         BACKENDS.clear();
         if (ModList.get().isLoaded("ae2")) {
             register(new nl.ljack2k.ae2organizer.backend.ae2.Ae2Backend());
+        }
+        if (ModList.get().isLoaded("refinedstorage")) {
+            register(new nl.ljack2k.ae2organizer.backend.rslegacy.RsLegacyBackend());
         }
     }
 

@@ -6,10 +6,12 @@ This file is the *how to work here* layer on top of those.
 
 ## What this is
 
-A **client-side** Forge mod that adds user-defined **filter tabs** to Applied Energistics 2
-terminals. It hooks AE2's *client-side* item view (a mixin into AE2's `Repo`) and draws a tab
-panel on the terminal; there is **no server component**. It must keep working when joining a
-vanilla-AE2 server that doesn't have this mod.
+A **client-side** Forge mod that adds user-defined **filter tabs** to **both** Applied Energistics 2
+terminals **and** Refined Storage grids. It hooks each mod's *client-side* item view (a mixin per
+backend) and draws a tab panel; there is **no server component**. The two systems are
+**hard-separated** — independent stores/windows/settings, no shared filter. It must keep working
+when joining a server that doesn't have this mod, and load cleanly with **either, both, or neither**
+storage mod present. The separation seam is the backend SPI in `backend/`.
 
 ## Stack (don't guess — these are pinned)
 
@@ -17,8 +19,10 @@ This is the **1.20.1 (Forge)** line. (Sibling branches: `1.21.1` and `26.1`, bot
 
 - Minecraft **1.20.1**, **MinecraftForge 47.4.20** (NOT NeoForge — AE2 15.4.10 ships only Forge/Fabric on
   1.20.1, and NeoForge 1.20.1 uses the same `net.minecraftforge` packages anyway). Java **17**.
-- AE2 **[15.4,15.5)** — *required*, `side = "CLIENT"`. guideme **20.1.x** is a required runtime dep of AE2
-  (standalone mod, not jar-in-jar — the dev client needs it explicitly). JEI **15.x** optional (dev-only).
+- AE2 **[15.4,15.5)** and Refined Storage **[1.12,2.0)** — **both optional**, `side = "CLIENT"`. RS here is
+  the **pre-rewrite 1.12** codebase (1.20.1 never got RS2), hooked by `backend/rslegacy`. guideme **20.1.x**
+  is a required runtime dep of AE2 (standalone mod, not jar-in-jar — the dev client needs it explicitly).
+  JEI **15.x** optional (dev-only).
 - Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin; reobf to SRG +
   mixin refmap). Multi-project: minimal root + `neoforge/` subproject — the dir name is *historical*, it
   builds a Forge jar; kept so the shared default-branch CI's `:neoforge:build` keeps matching.
@@ -59,18 +63,35 @@ mechanism ports 1:1. What differs (all verified via `javap` + a dev-client boot)
   `-Dorg.gradle.java.home="C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"`
   (the Java **17** toolchain for compilation is resolved separately and is unaffected).
 
-## Unified architecture, AE2 backend only
+## Two backends, and why the RS one is different here
 
 This line carries the same **backend SPI** as the newer ones (`backend/StorageBackend` + `ScreenAdapter` +
-`Theme`, per-backend stores in `TabManager`), but registers **only the AE2 backend**. Refined Storage for
-1.20.1 is **RS 1.12** — pre-rewrite, with a grid API unrelated to the RS2 one the 1.21.1/26.1 backends hook —
-so that backend is not present here at all (no `backend/rs/`, no RS mixin config, no RS dependency). A legacy-RS
-backend would slot into `BackendRegistry.init()` without touching the core.
+`Theme`, per-backend stores in `TabManager`), with two backends registered: `backend/ae2` and
+**`backend/rslegacy`**.
 
-Consequences to remember: the mixin config is **`ae2organizer.ae2.mixins.json`** (package
-`…backend.ae2.mixin`, gated by `Ae2MixinPlugin`), and its name appears in **three** places that must agree —
-the file, `mods.toml`, and `mixin { config … }` in `neoforge/build.gradle`. A stale name there fails at launch
-with `MixinInitialisationError: … was invalid or could not be read`, because the dev run passes it as
+Refined Storage on 1.20.1 is **RS 1.12** — pre-rewrite, and its client grid API has nothing in common with
+the RS2 one the 1.21.1/26.1 backends hook. So `rslegacy` is a separate implementation, not a port:
+
+- **Filter hook:** `GridViewImpl#getActiveFilters()` (private, returns `Predicate<IGridStack>`). `forceSort()`
+  does `map.values().stream().filter(getActiveFilters()).sorted(getActiveSort())`, so AND-ing into that return
+  value filters the whole view alongside RS's own search/craftable/view-type filters — the analogue of RS2's
+  `createBaseFilter` and AE2's `Repo#addEntriesToView`. Verified by `javap -c`.
+- **Plain `@Inject` + `setReturnValue`**, not MixinExtras' `@ModifyReturnValue`: MixinExtras is not on the
+  1.20.1 userdev compile classpath.
+- **Re-filter** with `screen.getView().forceSort()` — *not* `sort()`, which defers to `GridScreen#canSort()`
+  and silently no-ops.
+- **Item extraction:** `IGridStack` → `ItemGridStack#getStack()`; fluids test as `ItemStack.EMPTY`.
+- **Search box:** `GridScreen#searchField` is private; read reflectively (it subclasses vanilla `EditBox`).
+- **Companion screens** (suppress the reset-on-open after a round trip): `CraftingSettingsScreen`,
+  `CraftingPreviewScreen`, `AlternativesScreen`.
+- The backend id stays **`"rs"`**, so the store is `config/ae2organizer/rs.json` and filter exports move
+  between lines unchanged.
+
+Consequences to remember: there are **two** mixin configs, `ae2organizer.ae2.mixins.json` and
+`ae2organizer.rslegacy.mixins.json` (each gated by its own `IMixinConfigPlugin` on `LoadingModList`), and each
+name appears in **three** places that must agree — the file, `mods.toml`, and `mixin { config … }` in
+`neoforge/build.gradle`. A stale name there fails at launch with
+`MixinInitialisationError: … was invalid or could not be read`, because the dev run passes them as
 `--mixin.config`.
 - **Codec dispatch:** DFU 6.0.8's `Codec.dispatch("type", …, fn)` wants the fn to return a **Codec** (1.21.1's
   wants a MapCodec) — `Condition.CODEC` adapts with `t -> t.codec().codec()`.

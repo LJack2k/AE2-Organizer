@@ -7,14 +7,19 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Entry point for TerminalOrganizer — a client-side mod that adds user-defined
- * filter tabs to Applied Energistics 2 terminals.
+ * filter tabs to Applied Energistics 2 terminals <em>and</em> Refined Storage
+ * grids, with a hard separation between the two (each storage system has its own
+ * independent tabs/windows/settings).
  * <p>
  * This is the <strong>Forge / 1.20.1</strong> line. It carries the same unified
- * backend architecture as the newer lines but ships only the AE2 backend:
- * Refined Storage for 1.20.1 is RS <em>1.12</em>, a pre-rewrite codebase whose
- * grid API has nothing in common with the RS2 one the other lines hook, so that
- * backend can't be reused here. The SPI in {@code backend/} is untouched, so a
- * legacy-RS backend can be added later without disturbing the core.
+ * backend architecture as the newer lines, but its RS backend is a different
+ * implementation: 1.20.1 never got RS2, so {@code backend.rslegacy} hooks RS
+ * <em>1.12</em>'s {@code GridScreen} / {@code IGridView} instead. It keeps the
+ * backend id {@code "rs"}, so stores and filter exports line up across versions.
+ * <p>
+ * Both storage mods are optional: {@code BackendRegistry.init()} only instantiates
+ * the backend whose mod is present and the mixin configs self-gate, so the jar
+ * loads cleanly with either, both, or neither.
  * <p>
  * All behaviour is client-side, so wiring is gated on {@link FMLEnvironment#dist}:
  * nothing is registered on a dedicated server, and AE2's client classes are never
@@ -28,7 +33,7 @@ public final class TerminalOrganizer {
     public TerminalOrganizer() {
         if (FMLEnvironment.dist.isClient()) {
             nl.ljack2k.ae2organizer.client.ClientBootstrap.init();
-            LOGGER.info("[TerminalOrganizer] Client loaded — filter tabs enabled on AE2 terminals.");
+            LOGGER.info("[TerminalOrganizer] Client loaded — filter tabs enabled on AE2 terminals and RS grids.");
         }
     }
 }

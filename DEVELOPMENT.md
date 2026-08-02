@@ -5,7 +5,8 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Requirements / toolchain
 
 - Minecraft **1.20.1**, **MinecraftForge 47.4.20**, Java **17**. (NeoForge 1.20.1 uses the same `net.minecraftforge` packages and would also work, but AE2 15.4.10 ships only Forge/Fabric — so this line targets Forge.)
-- Applied Energistics 2 **[15.4,15.5)** — required at runtime, client side. guideme **20.1.x** is a required runtime dep of AE2 (a standalone mod, not jar-in-jar).
+- Applied Energistics 2 **[15.4,15.5)** and Refined Storage **[1.12,2.0)** — both **optional** backends, client side. RS here is the pre-rewrite **1.12** codebase; 1.20.1 never got RS2.
+- guideme **20.1.x** — a required runtime dep of AE2 (a standalone mod, not jar-in-jar; the dev client needs it explicitly).
 - JEI **15.x** — optional; compiled against for the drag integration, never bundled.
 - Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin: reobfuscates to SRG and generates a Mixin refmap). Multi-project: minimal root + the `neoforge/` subproject (dir name carried over from the NeoForge lines; it builds a Forge jar).
 - Build Gradle on a **JDK 17 or 21 launcher** (Gradle 8.10.2 predates JDK 25): `JAVA_HOME=…/jdk-21… ./gradlew …`. The Java-17 toolchain that compiles the mod is auto-provisioned (foojay).
@@ -14,14 +15,14 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 
 ```bash
 ./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
-./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI) for testing
+./gradlew :neoforge:runClient   # dev client with AE2 + RS (+ JEI) for testing
 ```
 
-The output jar contains only this mod's classes/resources — AE2, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.
+The output jar contains only this mod's classes/resources — AE2, RS, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.
 
 ### Versions
 
-Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; JEI is `jei_curse_file_id`. Both resolve via the CurseMaven repo.
+Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; RS is `rs_curse_file_id` (project 243076) with `rs_version` / `rs_version_range`; JEI is `jei_curse_file_id`. All resolve via the CurseMaven repo.
 
 ## Publishing (CurseForge + Modrinth)
 
@@ -89,19 +90,23 @@ Per client, at `config/ae2organizer/tabs.json`:
 
 ## Architecture
 
-Everything is client-side; nothing registers on a dedicated server (the AE2 dependency is declared `side = "CLIENT"`).
+Everything is client-side; nothing registers on a dedicated server (both storage deps are declared `side = "CLIENT"`, `mandatory = false`).
 
 ### Backends
 
-This line uses the same **backend SPI** as the 1.21.1/26.1 lines — `backend/StorageBackend` (id, screen matching, per-open `ScreenAdapter`, `Theme`, filter push) with one `TabManager.Store` per backend id — but registers **only the AE2 backend**. Refined Storage for 1.20.1 is RS 1.12, whose grid API predates the rewrite the RS2 backend hooks, so it is absent here entirely; a legacy-RS backend would register itself in `BackendRegistry.init()` and need nothing from the core. Mixin sources live under `backend/ae2/mixin`, gated on AE2 being present by `Ae2MixinPlugin`.
+This line uses the same **backend SPI** as the 1.21.1/26.1 lines — `backend/StorageBackend` (id, screen matching, per-open `ScreenAdapter`, `Theme`, filter push) with one `TabManager.Store` per backend id — and registers two backends: **`backend/ae2`** and **`backend/rslegacy`**. Each has its own mixin config, gated on its mod being installed by an `IMixinConfigPlugin`, so the jar loads with either, both, or neither storage mod.
 
-### Filtering — mixins into AE2
+The RS backend here is **not** the one the newer lines use. 1.20.1 only ever had **RS 1.12**, whose client grid API predates the RS2 rewrite, so `rslegacy` is a separate implementation against `GridScreen` / `IGridView`. It keeps the backend id `"rs"`, so its store is the same `config/ae2organizer/rs.json` and filter exports move between lines unchanged.
+
+### Filtering — mixins into AE2 and RS
 
 - **`backend/ae2/mixin/RepoMixin`** — `@ModifyVariable` at `HEAD` of `appeng.client.gui.me.common.Repo#addEntriesToView(Collection)`. Both the full-rebuild and paused-incremental code paths funnel through this one method before sorting, so shrinking its input filters the entire view, AND-combined with AE2's own search box. The active predicate is attached to the live `Repo` instance via the `TabFilterHolder` duck-type interface (a `@Unique` field).
 - **`backend/ae2/mixin/MEStorageScreenAccessor`** — `@Accessor`s for AE2's `protected final Repo repo` and its `AETextField searchField`. The `searchField` accessor backs the *Clear search bar when selecting a tab* setting: it empties the visible search box, while `repo.setSearchString("")` clears the underlying filter string (both are needed — clearing only one leaves the box and the filter out of sync).
 - **`backend/ae2/mixin/AbstractContainerScreenAccessor`** — `@Accessor` for `imageWidth`/`imageHeight`, used to position the tab bar.
 
-Mixins are configured in `ae2organizer.ae2.mixins.json` — named in three places that must agree: the file itself, `mods.toml`, and `mixin { config … }` in `neoforge/build.gradle` (the dev run passes it as `--mixin.config`), `required: true`, all under `client`. A **refmap is generated** (production reobfuscates to SRG) for the vanilla `AbstractContainerScreenAccessor` (`imageWidth`/`imageHeight` → SRG); the AE2-targeting mixins carry `@Mixin(…, remap = false)` because AE2 ships un-obfuscated. The Mixin annotation processor is declared explicitly in `build.gradle` (the legacyforge `mixin { }` block only wires the refmap config).
+- **`backend/rslegacy/mixin/GridViewImplMixin`** — `@Inject` at `RETURN` of `GridViewImpl#getActiveFilters()` (private), replacing the returned `Predicate<IGridStack>` with one that AND-combines the active tab. `forceSort()` runs `map.values().stream().filter(getActiveFilters()).sorted(getActiveSort())`, so this filters the entire grid view alongside RS's own search box, craftable and view-type filters. Plain Mixin rather than MixinExtras' `@ModifyReturnValue` (used by the RS2 backend on newer lines) because MixinExtras isn't on the 1.20.1 userdev compile classpath. Stacks reach the tab predicate through `rslegacy/GridFilterBridge`: `ItemGridStack#getStack()`, or `ItemStack.EMPTY` for fluids. Re-filter is `screen.getView().forceSort()` — `sort()` defers to `GridScreen#canSort()` and can silently do nothing.
+
+Mixins are configured in `ae2organizer.ae2.mixins.json` and `ae2organizer.rslegacy.mixins.json` — each name appears in three places that must agree: the file itself, `mods.toml`, and `mixin { config … }` in `neoforge/build.gradle` (the dev run passes them as `--mixin.config`). Both are `required: true`, all under `client`, and each carries a `plugin` that gates its mixins on its mod being installed (`LoadingModList`). A **refmap is generated** (production reobfuscates to SRG) for the vanilla `AbstractContainerScreenAccessor` (`imageWidth`/`imageHeight` → SRG); the AE2- and RS-targeting mixins carry `@Mixin(…, remap = false)` because both mods ship un-obfuscated. The Mixin annotation processor is declared explicitly in `build.gradle` (the legacyforge `mixin { }` block only wires the refmap config).
 
 ### Filter model — `filter/`
 

@@ -171,7 +171,8 @@ public final class TabStorage {
                 List.of(new ComponentCondition(ComponentMatch.ENCHANTED, "", false)), FilterWindow.MAIN_ID));
         tabs.add(new Tab("ingots", "Ingots",
                 ResourceLocation.withDefaultNamespace("iron_ingot"), MatchMode.ANY,
-                List.of(new TagCondition(ResourceLocation.parse("c:ingots"), false)), FilterWindow.MAIN_ID));
+                // 1.20.1 Forge uses the `forge:` common-tag namespace, not 1.21's `c:`.
+                List.of(new TagCondition(ResourceLocation.parse("forge:ingots"), false)), FilterWindow.MAIN_ID));
         tabs.add(new Tab("named", "Named",
                 ResourceLocation.withDefaultNamespace("name_tag"), MatchMode.ANY,
                 List.of(new ComponentCondition(ComponentMatch.HAS_CUSTOM_NAME, "", false)), FilterWindow.MAIN_ID));

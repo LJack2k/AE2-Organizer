@@ -118,6 +118,13 @@ public final class WindowVisibilityScreen extends Screen {
         return name;
     }
 
+    // 1.20.1's Screen.render does NOT call renderBackground for us.
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
     @Override
     public void onClose() {
         this.minecraft.setScreen(parent);

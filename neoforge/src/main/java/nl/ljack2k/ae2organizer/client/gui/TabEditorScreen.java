@@ -638,6 +638,8 @@ public final class TabEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // 1.20.1's Screen.render does NOT call renderBackground for us.
+        this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         drawTree(graphics, mouseX, mouseY);
 

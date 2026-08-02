@@ -14,8 +14,10 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Building
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
-./gradlew :neoforge:runClient   # dev client with AE2 + RS (+ JEI) for testing
+./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI) for testing
+./gradlew :neoforge:runClientJoin  # dev client that quick-joins 127.0.0.1:25565 (pairs with runServer)
+./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness (see dev/)
 ```
 
 The output jar contains only this mod's classes/resources — AE2, RS, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.

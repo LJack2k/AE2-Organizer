@@ -35,5 +35,10 @@ public final class TerminalOrganizer {
             nl.ljack2k.ae2organizer.client.ClientBootstrap.init();
             LOGGER.info("[TerminalOrganizer] Client loaded — filter tabs enabled on AE2 terminals and RS grids.");
         }
+        // Dev-only RCON/screenshot test harness; never active in a normal install.
+        if (System.getProperty("ae2organizer.devHarness") != null) {
+            nl.ljack2k.ae2organizer.dev.DevHarness.init();
+            LOGGER.info("[TerminalOrganizer] Dev harness enabled (ae2organizer.devHarness).");
+        }
     }
 }

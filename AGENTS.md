@@ -112,16 +112,37 @@ name appears in **three** places that must agree — the file, `mods.toml`, and 
 
 ## Build / run / test
 
+All Gradle calls on this branch need `-Dorg.gradle.java.home=<JDK 21>` (see the toolchain note above).
+
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
-./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI), opens a real window
+./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
+./gradlew :neoforge:runClientJoin  # dev client that quick-joins 127.0.0.1:25565 (devHarness on)
+./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
 ```
 
-- **Always `compileJava` after edits** — it's fast and catches AE2/Mojang API mismatches.
+- **Always `compileJava` after edits** — it's fast and catches AE2/RS/Mojang API mismatches.
 - After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
-  `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`. You can't drive the
-  GUI from here — the maintainer does interactive testing.
-- **The dev client only has AE2 + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are
+  `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
+- **RCON/screenshot harness** (`dev/`), gated on `-Dae2organizer.devHarness` (set by `runServer` /
+  `runClientJoin`). RCON on `:25575`, password `rsorg`. `/rsorgtest build|open` places and opens an RS
+  grid, `/rsorgtest tab <id>` selects a tab, `/rsorgtest editor` opens the editor, `/rsorgshot` writes
+  `run-client/screenshots/rsorgshot.png` (fixed name — Read it directly). Hard-won details:
+  - **Server→client signalling is a chat marker** (`DevSignal`, prefix `[TO-DEV]`), *not* a
+    `SimpleChannel`. A custom channel is fine on the server but wedges the dev client's login.
+  - **Never register a `RegisterCommandsEvent` listener on the client dist** — commands are
+    server-side, and registering it client-side was one of the login-stall suspects.
+  - **Join over `127.0.0.1`, not `localhost`** — `localhost` resolves to `::1` first and the dev login
+    stalls intermittently (client logs "Starting new vanilla impl connection", then sits until the
+    server's 30s login timeout). If a join stalls anyway, just relaunch the client; it is flaky.
+  - **`run-server/world` and `run-client/saves` are shared across branch checkouts.** A world written
+    by the 1.21.1/26.1 lines crashes this server on load (`No key dimensions in MapLike[{}]`) — delete
+    them when switching lines.
+  - **`setblock` cannot build a *working* RS network.** The blocks appear and the grid opens, but RS
+    1.12 registers network nodes on real placement, so an external storage placed this way never feeds
+    the grid. Headless verification therefore covers the panel, tab selection and JEI sync — but not
+    filtering of real grid contents. That one needs the maintainer.
+- **The dev client has AE2 + RS + JEI.** Addon terminals (e.g. the Wireless Crafting Grid) are
   **not** here, so bugs specific to them can't be reproduced in dev — the maintainer tests those in
   their real modpack. To reproduce one here, add the addon as a dev-only `runtimeOnly` in
   `neoforge/build.gradle` (ask which mod first).

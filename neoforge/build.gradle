@@ -49,6 +49,25 @@ legacyForge {
             systemProperty 'forge.logging.console.level', 'debug'
             programArguments.addAll '--width', '1920', '--height', '1000'
         }
+        // Auto-joining dev client + dedicated server for the RCON/screenshot harness
+        // (dev-only; enabled by the ae2organizer.devHarness system property). Separate
+        // game dirs so client/server don't contend on world/log locks.
+        clientJoin {
+            client()
+            gameDirectory = file('run-client')
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'ae2organizer.devHarness', 'true'
+            jvmArguments.addAll '-Xmx4G'
+            programArguments.addAll '--width', '1920', '--height', '1000',
+                    '--quickPlayMultiplayer', '127.0.0.1:25565'
+        }
+        server {
+            server()
+            gameDirectory = file('run-server')
+            systemProperty 'ae2organizer.devHarness', 'true'
+            programArgument '--nogui'
+            jvmArguments.addAll '-Xmx4G'
+        }
     }
 
     mods {

@@ -2,12 +2,15 @@ package nl.ljack2k.ae2organizer.jei;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.gui.handlers.IGlobalGuiHandler;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
-import nl.ljack2k.ae2organizer.AE2Organizer;
-import nl.ljack2k.ae2organizer.client.JeiSync;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
+import nl.ljack2k.ae2organizer.client.ClientEvents;
+import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
 import nl.ljack2k.ae2organizer.filter.Condition;
 import nl.ljack2k.ae2organizer.filter.MatchMode;
@@ -18,32 +21,47 @@ import nl.ljack2k.ae2organizer.filter.TextCondition;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
  * Optional JEI integration. Loaded only when JEI is present (JEI scans for
  * {@code @JeiPlugin}). Registers a ghost-ingredient handler so items can be
  * dragged from JEI directly onto the tab editor's icon slot and condition
- * fields. Also wires {@link JeiSync} so tab selection can update JEI's search.
+ * fields, and a screen handler so JEI draws its list beside the (non-container)
+ * editor, and a global GUI handler that reports our filter panels as extra areas
+ * so JEI's item list wraps around them. Also wires {@link ViewerSync} so tab
+ * selection updates JEI's search.
  */
 @JeiPlugin
-public class AE2OrganizerJeiPlugin implements IModPlugin {
+public class StorageOrganizerJeiPlugin implements IModPlugin {
 
     @Override
     public ResourceLocation getPluginUid() {
-        return ResourceLocation.fromNamespaceAndPath(AE2Organizer.MODID, "jei_plugin");
+        return ResourceLocation.fromNamespaceAndPath(StorageOrganizer.MODID, "jei_plugin");
     }
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGhostIngredientHandler(TabEditorScreen.class, new EditorGhostHandler());
         registration.addGuiScreenHandler(TabEditorScreen.class, EditorGuiProperties::new);
+        // Global (not per-screen): our panels can appear over any AE2 terminal or RS
+        // grid, including addon terminals we never name. JEI adds these to whatever
+        // the host mod already excludes and skips the item slots they cover, so the
+        // list wraps around a panel instead of being drawn under it.
+        // (IGlobalGuiHandler has no abstract method, so it can't be a lambda target.)
+        registration.addGlobalGuiHandler(new IGlobalGuiHandler() {
+            @Override
+            public Collection<Rect2i> getGuiExtraAreas() {
+                return ClientEvents.activeBarBounds();
+            }
+        });
     }
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime runtime) {
         IIngredientFilter filter = runtime.getIngredientFilter();
-        JeiSync.setHandler(tab -> {
+        ViewerSync.setHandler(tab -> {
             String search = buildJeiFilter(tab);
             if (search != null) {
                 filter.setFilterText(search);
@@ -53,12 +71,12 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeUnavailable() {
-        JeiSync.setHandler(null);
+        ViewerSync.setHandler(null);
     }
 
     /**
      * Translates a tab's conditions to a JEI filter string, mirroring the tab's
-     * match logic so JEI shows the same items as the terminal.
+     * match logic so JEI shows the same items as the grid.
      * <p>
      * Semantics match {@link Tab#toPredicate()}: positives combine by mode
      * (ANY → OR, ALL → AND), and negated conditions are exclusions AND-combined
@@ -73,7 +91,7 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
      * Returns {@code ""} for the "All" pseudo-tab (clears JEI's search) and
      * {@code null} when no condition is translatable. Note {@code COMPONENT}
      * conditions can't be expressed in JEI's grammar; a negated component is
-     * therefore dropped, so JEI may show slightly more than the terminal.
+     * therefore dropped, so JEI may show slightly more than the grid.
      */
     @Nullable
     private static String buildJeiFilter(@Nullable Tab tab) {
@@ -96,7 +114,6 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
 
         String exclusionSuffix = String.join(" ", exclusions);
         if (positives.isEmpty()) {
-            // Only exclusions: show everything except these (single chunk).
             return exclusionSuffix;
         }
         if (tab.mode() == MatchMode.ALL) {
@@ -104,7 +121,6 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
             all.addAll(exclusions);
             return String.join(" ", all);
         }
-        // ANY: OR of positives, each branch carrying the exclusions.
         List<String> branches = new ArrayList<>(positives.size());
         for (String positive : positives) {
             branches.add(exclusions.isEmpty() ? positive : positive + " " + exclusionSuffix);
@@ -116,12 +132,10 @@ public class AE2OrganizerJeiPlugin implements IModPlugin {
     private static String conditionToJei(Condition condition) {
         return switch (condition.type()) {
             case MOD -> "@" + ((ModCondition) condition).modId();
-            // JEI 15.x (1.20.1) uses the `$` prefix for tag search (it's `#` on JEI 19.x / the
-            // 1.21.1 line). JEI indexes tags by path, so the namespace is dropped.
+            // JEI 15.x (the 1.20.1 line) prefixes tags with '$'; JEI 19.x uses '#'.
             case TAG -> "$" + ((TagCondition) condition).tagId().getPath();
-            // Quote so a multi-word name stays one phrase token (mirrors the
-            // terminal's substring match); unquoted it would split into ANDed
-            // words, and a negated "-oak drawer" would leak "drawer" as positive.
+            // Quote so a multi-word name stays one phrase token (mirrors the grid's
+            // substring match); unquoted it would split into ANDed words.
             case TEXT -> {
                 String text = ((TextCondition) condition).text().trim();
                 yield text.isEmpty() ? null : (text.contains(" ") ? "\"" + text + "\"" : text);

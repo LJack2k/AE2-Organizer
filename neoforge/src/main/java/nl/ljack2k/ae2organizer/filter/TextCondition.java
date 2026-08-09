@@ -1,14 +1,14 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Locale;
 import java.util.function.Predicate;
 
-/** Matches keys whose display name contains the given text (case-insensitive). */
+/** Matches item stacks whose display name contains the given text (case-insensitive). */
 public record TextCondition(String text, boolean negate) implements Condition {
 
     public static final MapCodec<TextCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -22,11 +22,16 @@ public record TextCondition(String text, boolean negate) implements Condition {
     }
 
     @Override
-    public Predicate<AEKey> toPredicate() {
+    public Predicate<ItemStack> toPredicate() {
         String needle = text.trim().toLowerCase(Locale.ROOT);
-        if (needle.isEmpty()) {
-            return key -> true;
-        }
-        return key -> key.getDisplayName().getString().toLowerCase(Locale.ROOT).contains(needle);
+        return stack -> {
+            if (stack.isEmpty()) {
+                return false;
+            }
+            if (needle.isEmpty()) {
+                return true;
+            }
+            return stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(needle);
+        };
     }
 }

@@ -65,8 +65,8 @@ public final class TabShare {
     }
 
     /**
-     * Parse tabs from clipboard text. Returns empty if the text isn't an
-     * AE2Organizer tab export (so import can fail gracefully). Imported tabs keep
+     * Parse tabs from clipboard text. Returns empty if the text isn't a
+     * Storage Organizer tab export (so import can fail gracefully). Imported tabs keep
      * no id/window — the caller assigns fresh ids and the target window.
      */
     public static Optional<List<Tab>> parse(String text) {
@@ -102,7 +102,7 @@ public final class TabShare {
         return GSON.toJson(root);
     }
 
-    /** Parse a full export. Empty if the text isn't an AE2Organizer windows export. */
+    /** Parse a full export. Empty if the text isn't a Storage Organizer windows export. */
     public static Optional<AllData> parseAll(String text) {
         if (text == null || text.isBlank()) {
             return Optional.empty();

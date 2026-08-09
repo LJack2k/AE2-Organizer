@@ -49,6 +49,25 @@ legacyForge {
             systemProperty 'forge.logging.console.level', 'debug'
             programArguments.addAll '--width', '1920', '--height', '1000'
         }
+        // Auto-joining dev client + dedicated server for the RCON/screenshot harness
+        // (dev-only; enabled by the ae2organizer.devHarness system property). Separate
+        // game dirs so client/server don't contend on world/log locks.
+        clientJoin {
+            client()
+            gameDirectory = file('run-client')
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'ae2organizer.devHarness', 'true'
+            jvmArguments.addAll '-Xmx4G'
+            programArguments.addAll '--width', '1920', '--height', '1000',
+                    '--quickPlayMultiplayer', '127.0.0.1:25565'
+        }
+        server {
+            server()
+            gameDirectory = file('run-server')
+            systemProperty 'ae2organizer.devHarness', 'true'
+            programArgument '--nogui'
+            jvmArguments.addAll '-Xmx4G'
+        }
     }
 
     mods {
@@ -66,7 +85,8 @@ legacyForge {
 // refmap + the reobf mappings the reobfJar task consumes.
 mixin {
     add sourceSets.main, 'ae2organizer.refmap.json'
-    config 'ae2organizer.mixins.json'
+    config 'ae2organizer.ae2.mixins.json'
+    config 'ae2organizer.rslegacy.mixins.json'
 }
 
 dependencies {
@@ -79,8 +99,22 @@ dependencies {
     // jars ship SRG-mapped, so the mod* configurations remap them to official
     // (Mojang) mappings for the dev compile/runtime.
     modCompileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    // -PnoAe2 drops AE2 (and its guideme runtime dep) from the DEV RUNTIME only, so the
+    // load-safety guarantee — the jar loads with either, both or neither storage mod — can
+    // actually be exercised. compileOnly is untouched, so the build is unaffected.
+    if (!project.hasProperty('noAe2')) {
+        modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+        modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    }
+
+    // Refined Storage 1.12 — the OPTIONAL second backend on this line (see
+    // gradle.properties: 1.20.1 only ever had the pre-rewrite RS, so this backend
+    // is separate from the RS2 one the newer lines use).
+    modCompileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    // -PnoRs — the RS half of the same load-safety switch (see -PnoAe2 above).
+    if (!project.hasProperty('noRs')) {
+        modRuntimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    }
 
     // JEI — OPTIONAL integration. modCompileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
@@ -88,7 +122,14 @@ dependencies {
     // as a dependency in mods.toml. modRuntimeOnly also puts JEI on the dev client
     // for item search / cheat-spawn / drag testing.
     modCompileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
-    modRuntimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    // -PnoJei — same idea as -PnoAe2/-PnoRs. Matters when testing the client-only
+    // guarantee against a server without the loader: that only holds for a client where
+    // EVERY loaded mod is vanilla-compatible. (Forge 1.20.1 turns out to allow the join
+    // even with AE2/RS/JEI present; NeoForge 1.21.1+ refuses it, so the newer lines need
+    // all three dropped. The flag exists here for parity.)
+    if (!project.hasProperty('noJei')) {
+        modRuntimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -97,8 +138,10 @@ tasks.named('processResources', ProcessResources).configure {
         minecraft_version_range : minecraft_version_range,
         loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
+        rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
+        mod_display_name        : mod_display_name,
         mod_license             : mod_license,
         mod_version             : mod_version,
         mod_authors             : mod_authors,
@@ -113,4 +156,18 @@ tasks.named('processResources', ProcessResources).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// The RCON/screenshot test harness stays in the repo (it is how a release gets
+// verified headlessly) but must never reach players: strip it from the published
+// jar. Dev runs are unaffected - they run from the compiled classes directory,
+// not from this jar.
+//
+// Safe despite StorageOrganizer referencing DevHarness: that call sits behind a
+// System.getProperty("ae2organizer.devHarness") check that is never true in a
+// normal install, and the JVM only resolves the class if the branch is taken.
+tasks.named('jar') {
+    exclude 'nl/ljack2k/ae2organizer/dev/**'
+    exclude 'nl/ljack2k/ae2organizer/client/ClientScreenshot*'
+    exclude 'nl/ljack2k/ae2organizer/client/DevClientActions*'
 }

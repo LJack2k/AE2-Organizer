@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 /**
  * A resolved on-screen placement: a {@link PositionMode} plus absolute coords
  * (only meaningful when {@code mode == FREE}). Used both as a window's global
- * default and as a per-terminal override in {@link FilterWindow#placements()}.
+ * default and as a per-grid override in {@link FilterWindow#placements()}.
  */
 public record Placement(PositionMode mode, int x, int y) {
 

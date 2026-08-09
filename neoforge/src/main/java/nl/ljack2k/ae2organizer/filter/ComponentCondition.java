@@ -1,7 +1,5 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -12,11 +10,16 @@ import net.minecraft.world.item.ItemStack;
 import java.util.function.Predicate;
 
 /**
- * Matches item keys by per-stack NBT. (1.20.1 has no data components, so this is
- * NBT-based — unlike the 1.21.1/26.1 lines, which use the data-component API.)
+ * Matches item stacks by per-stack NBT. 1.20.1 predates data components, so this
+ * is the NBT analogue of the newer lines' component checks — {@code custom_data_key}
+ * looks for a top-level NBT key rather than a key inside {@code minecraft:custom_data}.
+ * <p>
+ * {@link ComponentMatch#HAS_COMPONENT_TYPE} has no meaning without the component
+ * registry and never matches here; it is kept only so a config or clipboard export
+ * from a 1.21+ line still parses (see {@link ComponentMatch#supported()}).
+ * <p>
  * {@link #arg()} is unused for presence checks and carries the NBT key for the
- * argument-taking match. Always guards on {@link AEItemKey} so fluid/other keys
- * never match.
+ * argument-taking match. Empty stacks (non-item resources) never match.
  */
 public record ComponentCondition(ComponentMatch match, String arg, boolean negate) implements Condition {
 
@@ -32,33 +35,34 @@ public record ComponentCondition(ComponentMatch match, String arg, boolean negat
     }
 
     @Override
-    public Predicate<AEKey> toPredicate() {
+    public Predicate<ItemStack> toPredicate() {
         return switch (match) {
-            case ENCHANTED -> key -> key instanceof AEItemKey ik && isEnchanted(ik);
-            case HAS_CUSTOM_NAME -> key -> key instanceof AEItemKey ik && ik.getReadOnlyStack().hasCustomHoverName();
-            case DAMAGED -> key -> key instanceof AEItemKey ik && ik.isDamaged();
+            case ENCHANTED -> stack -> !stack.isEmpty() && isEnchanted(stack);
+            case HAS_CUSTOM_NAME -> stack -> !stack.isEmpty() && stack.hasCustomHoverName();
+            case DAMAGED -> stack -> !stack.isEmpty() && stack.isDamaged();
             case HAS_CUSTOM_DATA_KEY -> {
                 String dataKey = arg.trim();
                 yield dataKey.isEmpty()
-                        ? key -> false
-                        : key -> key instanceof AEItemKey ik && hasNbtKey(ik, dataKey);
+                        ? stack -> false
+                        : stack -> !stack.isEmpty() && hasNbtKey(stack, dataKey);
             }
+            // No data-component registry on 1.20.1 — parses, never matches.
+            case HAS_COMPONENT_TYPE -> stack -> false;
         };
     }
 
     /** Active enchantments (tools/armour) or stored ones (enchanted books). */
-    private static boolean isEnchanted(AEItemKey ik) {
-        ItemStack stack = ik.getReadOnlyStack();
+    private static boolean isEnchanted(ItemStack stack) {
         if (stack.isEnchanted()) {
             return true;
         }
-        CompoundTag tag = ik.getTag();
+        CompoundTag tag = stack.getTag();
         return tag != null && !tag.getList("StoredEnchantments", Tag.TAG_COMPOUND).isEmpty();
     }
 
-    /** True if the stack's NBT carries a top-level key (the 1.20.1 analogue of a custom-data key). */
-    private static boolean hasNbtKey(AEItemKey ik, String dataKey) {
-        CompoundTag tag = ik.getTag();
+    /** True if the stack's NBT carries a top-level key. */
+    private static boolean hasNbtKey(ItemStack stack, String dataKey) {
+        CompoundTag tag = stack.getTag();
         return tag != null && tag.contains(dataKey);
     }
 }

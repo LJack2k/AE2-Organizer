@@ -58,17 +58,17 @@ public record FilterWindow(String id, String name, Orientation orientation, bool
                 PositionMode.DOCK, 0, 0, true, true, Map.of(), "", List.of(), false);
     }
 
-    /** Whether this window is shown on the given terminal type. */
+    /** Whether this window is shown on the given grid type. */
     public boolean visibleOn(String terminalKey) {
         return !hiddenOn.contains(terminalKey);
     }
 
     /**
-     * The placement to use for a given terminal, in priority order:
+     * The placement to use for a given grid, in priority order:
      * <ol>
-     *   <li>this terminal's own override, if any;</li>
-     *   <li>the <b>base</b> terminal's placement — the first terminal the user
-     *       positioned — so a freshly-opened terminal inherits a sensible spot
+     *   <li>this grid's own override, if any;</li>
+     *   <li>the <b>base</b> grid's placement — the first grid the user
+     *       positioned — so a freshly-opened grid inherits a sensible spot
      *       instead of the bare default;</li>
      *   <li>the window's global default position.</li>
      * </ol>
@@ -91,8 +91,8 @@ public record FilterWindow(String id, String name, Orientation orientation, bool
     }
 
     /**
-     * A copy with the given terminal's placement set/overwritten. The first
-     * terminal positioned becomes the {@code baseTerminal} that others inherit.
+     * A copy with the given grid's placement set/overwritten. The first grid
+     * positioned becomes the {@code baseTerminal} that others inherit.
      */
     public FilterWindow withPlacement(String terminalKey, Placement placement) {
         Map<String, Placement> next = new HashMap<>(placements);

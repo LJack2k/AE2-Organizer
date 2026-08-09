@@ -1,11 +1,12 @@
-# AE2Organizer — Development
+# Storage Organizer — Development
 
 Technical reference: building, the config-file format, and how the mod works. For player-facing usage see **[README.md](README.md)**.
 
 ## Requirements / toolchain
 
 - Minecraft **1.20.1**, **MinecraftForge 47.4.20**, Java **17**. (NeoForge 1.20.1 uses the same `net.minecraftforge` packages and would also work, but AE2 15.4.10 ships only Forge/Fabric — so this line targets Forge.)
-- Applied Energistics 2 **[15.4,15.5)** — required at runtime, client side. guideme **20.1.x** is a required runtime dep of AE2 (a standalone mod, not jar-in-jar).
+- Applied Energistics 2 **[15.4,15.5)** and Refined Storage **[1.12,2.0)** — both **optional** backends, client side. RS here is the pre-rewrite **1.12** codebase; 1.20.1 never got RS2.
+- guideme **20.1.x** — a required runtime dep of AE2 (a standalone mod, not jar-in-jar; the dev client needs it explicitly).
 - JEI **15.x** — optional; compiled against for the drag integration, never bundled.
 - Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin: reobfuscates to SRG and generates a Mixin refmap). Multi-project: minimal root + the `neoforge/` subproject (dir name carried over from the NeoForge lines; it builds a Forge jar).
 - Build Gradle on a **JDK 17 or 21 launcher** (Gradle 8.10.2 predates JDK 25): `JAVA_HOME=…/jdk-21… ./gradlew …`. The Java-17 toolchain that compiles the mod is auto-provisioned (foojay).
@@ -13,15 +14,22 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Building
 
 ```bash
-./gradlew :neoforge:build       # -> neoforge/build/libs/AE2Organizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
-./gradlew :neoforge:runClient   # dev client with AE2 (+ JEI) for testing
+./gradlew :neoforge:build          # -> neoforge/build/libs/StorageOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI) for testing
+./gradlew :neoforge:runClientJoin  # dev client that quick-joins 127.0.0.1:25565 (pairs with runServer)
+./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness (see dev/)
 ```
 
-The output jar contains only this mod's classes/resources — AE2, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.
+The `dev/` harness (plus `client/ClientScreenshot` and `client/DevClientActions`) is
+**excluded from the published jar** by the `jar` task - it exists to verify a release
+headlessly, not to ship. Dev runs are unaffected: they run from the compiled classes,
+not the jar.
+
+The output jar contains only this mod's classes/resources — AE2, RS, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.
 
 ### Versions
 
-Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; JEI is `jei_curse_file_id`. Both resolve via the CurseMaven repo.
+Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). Note the two name properties: `mod_name` (`StorageOrganizer`) is the technical name that builds the jar filename, and `mod_display_name` (`Storage Organizer`) is the player-facing name used for the mods.toml `displayName` — never build a filename from it. To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; RS is `rs_curse_file_id` (project 243076) with `rs_version` / `rs_version_range`; JEI is `jei_curse_file_id`. All resolve via the CurseMaven repo.
 
 ## Publishing (CurseForge + Modrinth)
 
@@ -64,7 +72,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 ```json
 {
   "version": 2,
-  "settings": { "resetFilterOnOpen": false, "clearSearchOnTabSelect": false, "syncJeiOnTabSelect": false },
+  "settings": { "resetFilterOnOpen": false, "clearSearchOnTabSelect": false, "syncViewerOnTabSelect": false },
   "windows": [
     { "id": "main", "name": "Filters", "orientation": "vertical", "showLabels": true, "scale": 1.15,
       "position": "dock", "x": 0, "y": 0, "showGear": true, "showAll": true,
@@ -89,15 +97,23 @@ Per client, at `config/ae2organizer/tabs.json`:
 
 ## Architecture
 
-Everything is client-side; nothing registers on a dedicated server (the AE2 dependency is declared `side = "CLIENT"`).
+Everything is client-side; nothing registers on a dedicated server (both storage deps are declared `side = "CLIENT"`, `mandatory = false`).
 
-### Filtering — mixins into AE2
+### Backends
 
-- **`mixin/RepoMixin`** — `@ModifyVariable` at `HEAD` of `appeng.client.gui.me.common.Repo#addEntriesToView(Collection)`. Both the full-rebuild and paused-incremental code paths funnel through this one method before sorting, so shrinking its input filters the entire view, AND-combined with AE2's own search box. The active predicate is attached to the live `Repo` instance via the `TabFilterHolder` duck-type interface (a `@Unique` field).
-- **`mixin/MEStorageScreenAccessor`** — `@Accessor`s for AE2's `protected final Repo repo` and its `AETextField searchField`. The `searchField` accessor backs the *Clear search bar when selecting a tab* setting: it empties the visible search box, while `repo.setSearchString("")` clears the underlying filter string (both are needed — clearing only one leaves the box and the filter out of sync).
-- **`mixin/AbstractContainerScreenAccessor`** — `@Accessor` for `imageWidth`/`imageHeight`, used to position the tab bar.
+This line uses the same **backend SPI** as the 1.21.1/26.1 lines — `backend/StorageBackend` (id, screen matching, per-open `ScreenAdapter`, `Theme`, filter push) with one `TabManager.Store` per backend id — and registers two backends: **`backend/ae2`** and **`backend/rslegacy`**. Each has its own mixin config, gated on its mod being installed by an `IMixinConfigPlugin`, so the jar loads with either, both, or neither storage mod.
 
-Mixins are configured in `ae2organizer.mixins.json` (referenced from `mods.toml`), `required: true`, all under `client`. A **refmap is generated** (production reobfuscates to SRG) for the vanilla `AbstractContainerScreenAccessor` (`imageWidth`/`imageHeight` → SRG); the AE2-targeting mixins carry `@Mixin(…, remap = false)` because AE2 ships un-obfuscated. The Mixin annotation processor is declared explicitly in `build.gradle` (the legacyforge `mixin { }` block only wires the refmap config).
+The RS backend here is **not** the one the newer lines use. 1.20.1 only ever had **RS 1.12**, whose client grid API predates the RS2 rewrite, so `rslegacy` is a separate implementation against `GridScreen` / `IGridView`. It keeps the backend id `"rs"`, so its store is the same `config/ae2organizer/rs.json` and filter exports move between lines unchanged.
+
+### Filtering — mixins into AE2 and RS
+
+- **`backend/ae2/mixin/RepoMixin`** — `@ModifyVariable` at `HEAD` of `appeng.client.gui.me.common.Repo#addEntriesToView(Collection)`. Both the full-rebuild and paused-incremental code paths funnel through this one method before sorting, so shrinking its input filters the entire view, AND-combined with AE2's own search box. The active predicate is attached to the live `Repo` instance via the `TabFilterHolder` duck-type interface (a `@Unique` field).
+- **`backend/ae2/mixin/MEStorageScreenAccessor`** — `@Accessor`s for AE2's `protected final Repo repo` and its `AETextField searchField`. The `searchField` accessor backs the *Clear search bar when selecting a tab* setting: it empties the visible search box, while `repo.setSearchString("")` clears the underlying filter string (both are needed — clearing only one leaves the box and the filter out of sync).
+- **`backend/ae2/mixin/AbstractContainerScreenAccessor`** — `@Accessor` for `imageWidth`/`imageHeight`, used to position the tab bar.
+
+- **`backend/rslegacy/mixin/GridViewImplMixin`** — `@Inject` at `RETURN` of `GridViewImpl#getActiveFilters()` (private), replacing the returned `Predicate<IGridStack>` with one that AND-combines the active tab. `forceSort()` runs `map.values().stream().filter(getActiveFilters()).sorted(getActiveSort())`, so this filters the entire grid view alongside RS's own search box, craftable and view-type filters. Plain Mixin rather than MixinExtras' `@ModifyReturnValue` (used by the RS2 backend on newer lines) because MixinExtras isn't on the 1.20.1 userdev compile classpath. Stacks reach the tab predicate through `rslegacy/GridFilterBridge`: `ItemGridStack#getStack()`, or `ItemStack.EMPTY` for fluids. Re-filter is `screen.getView().forceSort()` — `sort()` defers to `GridScreen#canSort()` and can silently do nothing.
+
+Mixins are configured in `ae2organizer.ae2.mixins.json` and `ae2organizer.rslegacy.mixins.json` — each name appears in three places that must agree: the file itself, `mods.toml`, and `mixin { config … }` in `neoforge/build.gradle` (the dev run passes them as `--mixin.config`). Both are `required: true`, all under `client`, and each carries a `plugin` that gates its mixins on its mod being installed (`LoadingModList`). A **refmap is generated** (production reobfuscates to SRG) for the vanilla `AbstractContainerScreenAccessor` (`imageWidth`/`imageHeight` → SRG); the AE2- and RS-targeting mixins carry `@Mixin(…, remap = false)` because both mods ship un-obfuscated. The Mixin annotation processor is declared explicitly in `build.gradle` (the legacyforge `mixin { }` block only wires the refmap config).
 
 ### Filter model — `filter/`
 
@@ -107,23 +123,24 @@ Mixins are configured in `ae2organizer.mixins.json` (referenced from `mods.toml`
 
 ### UI — `client/`, `client/gui/`
 
-- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, builds one `TabBarWidget` **per window visible on that terminal type** and re-applies the active tab; the bar list is rebuilt when the terminal instance or the visible-window signature changes. Mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events (AE2's terminal consumes `mouseScrolled`/`mouseDragged` before added widgets see them) and fanned out to every bar. Also renders the move-mode banner and registers `/ae2organizer resetwindows` (`RegisterClientCommandsEvent`), and remembers each opened terminal's key via `TabManager.rememberTerminal`. Registered (client-only) from the `@Mod` constructor.
+- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, builds one `TabBarWidget` **per window visible on that terminal type** and re-applies the active tab; **"Reset filter on open" fires only on a genuine open:** `Init.Post` also runs on a window resize (same screen instance) and on the terminal that comes back from AE2's craft amount/confirm/status or settings pages (all served from their own sub-menu), so the reset is suppressed for a re-init of the same instance and for ~10 ticks after a `StorageBackend#isCompanionScreen` screen (any AE2 `ISubMenu`) was on top. Without that, every autocraft request threw the player back to *All*. the bar list is rebuilt when the terminal instance or the visible-window signature changes. Mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events (AE2's terminal consumes `mouseScrolled`/`mouseDragged` before added widgets see them) and fanned out to every bar. Also renders the move-mode banner and registers `/storageorganizer resetwindows` (`RegisterClientCommandsEvent`), and remembers each opened terminal's key via `TabManager.rememberTerminal`. Registered (client-only) from the `@Mod` constructor.
 - **`TabManager`** — client singleton holding windows, tabs, the (global) active selection, settings, transient move-mode, and remembered terminal names; **`TabStorage`** does the JSON persistence and v1→v2 migration (see above). `visibleWindows(terminalKey)` applies `hiddenOn` with a lockout safeguard (always ≥1 window so a gear stays reachable).
 - **`TabBarWidget`** — one window's panel: a `BackgroundGenerator` panel, an optional "All" entry + the window's tabs as bevelled rows/cells (active = sunken), a gear (right for vertical, left for horizontal), vertical **or** horizontal layout, per-window scale, and a scrollbar when it overflows. Its dock X anchors past the panel image **and** any real menu slot that sticks out (18px frame) so it clears terminals with extra card slots (e.g. the Wireless Crafting Grid). Position resolves per terminal (`FilterWindow#resolve`); in move-mode (explicit toggle or **Alt** held — Alt, not Shift, to avoid clashing with shift-click) the whole panel drags to a `free` position saved per terminal, and a window dragged fully off-screen snaps back to center.
-- The screens (`TabEditorScreen` — a windows-and-tabs tree, `WindowVisibilityScreen`, `WindowPickerScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee. (On 1.20.1 they override `renderBackground(GuiGraphics)` and call it explicitly from `render`, unlike the mouse-aware signature on newer lines.)
-- **`Ae2Style`** themes those screens through AE2's own pipeline (so AE2 dark-mode packs apply automatically) and replaces vanilla's blurred menu background with a plain dim via a `renderBackground` override:
+- The screens (`TabEditorScreen` — a windows-and-tabs tree, `WindowVisibilityScreen`, `WindowPickerScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee. (On 1.20.1 they override `renderBackground(GuiGraphics)` and call it explicitly from `render`, unlike the mouse-aware signature on newer lines — so anything needing hover state, like `SettingsScreen`'s checkboxes, draws in `render` instead.)
+- **Theming** is split the same way as on the newer lines: each backend supplies a `Theme` (here only `backend/ae2/Ae2Theme`, which draws through AE2's own pipeline so AE2 dark-mode packs apply automatically), while `client/gui/RsStyle` holds the theme-neutral widgets (bevel buttons, checkboxes, scaled item/text, `DIM`). The screens replace vanilla's blurred menu background with a plain dim via a `renderBackground` override:
   - `BackgroundGenerator` draws the nine-sliced `background.png` panel; `StyleManager` + `PaletteColor` supply text colours from `palette.json` (with fallbacks).
-  - AE2 widgets used directly: `AECheckbox` and `Icon.WRENCH` (tinted to the palette colour). Text buttons are a local `Ae2Button` (extends vanilla `Button`, drawn via `Ae2Style.bevelButton`) — AE2 15.4 has no generic text button. Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
+  - `Ae2Theme#settingsIcon` draws `Icon.WRENCH` tinted to the palette colour — AE2 15.4's icon sheet has no `COG` (the newer lines use it). Text buttons are `RsButton` (extends vanilla `Button`, drawn via `RsStyle.bevelButton`) — AE2 15.4 has no generic text button. Text fields are plain `EditBox`es — AE2's `AETextField` rendered border artifacts outside a container screen.
   - Helpers render item icons and text at an arbitrary scale, driving each window's per-window size.
 - **Inventory drag** is custom: the editor renders the player inventory read-only (never mutating it) and drops resolve against the same `GhostTarget` rects the JEI handler uses.
 
 ### JEI integration — `jei/` (optional)
 
-A `@JeiPlugin` registers two GUI handlers and stays dormant if JEI is absent:
+A `@JeiPlugin` registers three GUI handlers and stays dormant if JEI is absent:
 - a **ghost-ingredient handler** (`EditorGhostHandler`) — accepts items dragged from JEI onto the editor's `GhostTarget`s;
-- a **screen handler** (`EditorGuiProperties`) — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen, which is what makes dragging from JEI possible at all.
+- a **screen handler** (`EditorGuiProperties`) — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen, which is what makes dragging from JEI possible at all. (JEI 15.x names these getters `getGuiLeft()` etc.; JEI 19.x dropped the `get` prefix.)
+- an **`IGlobalGuiHandler`** — reports the filter panels' rects (`ClientEvents#activeBarBounds`, recomputed per query) as *extra areas*, so JEI drops the item slots they cover and its list wraps around a panel instead of being hidden under it. Bounds are only reported while a bar is really drawn on the open screen, since the bar list outlives a closed terminal and a stale rect would blank out JEI slots elsewhere.
 
-It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/JeiSync` bridge; when a tab is selected, `TabBarWidget` calls `JeiSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `$tag` (JEI 15.x's tag prefix is `$`, not `#`; tag *path* only, no namespace) / the item name (quoted if it has spaces) — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `Not` conditions become JEI `-` exclusions; since JEI splits on `|` at the top level with no parentheses, exclusions are **distributed into every OR branch** (`p1 -n | p2 -n`) so the result still mirrors `Tab#toPredicate()`. `component` conditions have no JEI equivalent and are dropped (a negated component therefore can't be mirrored). Routing through `JeiSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
+It also backs the optional **"Sync JEI search bar"** setting. `onRuntimeAvailable` captures JEI's `IIngredientFilter` and registers a callback on the JEI-free `client/ViewerSync` bridge; when a tab is selected, `TabBarWidget` calls `ViewerSync.apply(tab)`, which translates the tab's conditions to a JEI query — `@mod` / `$tag` (JEI 15.x's tag prefix is `$`, not `#`; tag *path* only, no namespace) / the item name (quoted if it has spaces) — joined by `|` for **Match ANY** or spaces for **Match ALL**, then calls `setFilterText`. `Not` conditions become JEI `-` exclusions; since JEI splits on `|` at the top level with no parentheses, exclusions are **distributed into every OR branch** (`p1 -n | p2 -n`) so the result still mirrors `Tab#toPredicate()`. `component` conditions have no JEI equivalent and are dropped (a negated component therefore can't be mirrored). Routing through `ViewerSync` keeps this plugin the only class that imports JEI, so the core stays JEI-optional.
 
 ## Notes / limitations
 

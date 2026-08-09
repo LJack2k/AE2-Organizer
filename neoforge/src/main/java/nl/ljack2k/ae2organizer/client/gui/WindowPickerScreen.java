@@ -3,6 +3,7 @@ package nl.ljack2k.ae2organizer.client.gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import nl.ljack2k.ae2organizer.backend.Theme;
 
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -18,15 +19,17 @@ public final class WindowPickerScreen extends Screen {
     private final Screen parent;
     private final List<String> windowNames;
     private final int currentIndex;
+    private final Theme theme;
     private final IntConsumer onPick;
 
     private int left, top, panelW, panelH;
 
-    public WindowPickerScreen(Screen parent, List<String> windowNames, int currentIndex, IntConsumer onPick) {
+    public WindowPickerScreen(Screen parent, List<String> windowNames, int currentIndex, Theme theme, IntConsumer onPick) {
         super(Component.literal("Move tab to window"));
         this.parent = parent;
         this.windowNames = windowNames;
         this.currentIndex = currentIndex;
+        this.theme = theme;
         this.onPick = onPick;
     }
 
@@ -50,7 +53,7 @@ public final class WindowPickerScreen extends Screen {
             final int index = i;
             boolean current = i == currentIndex;
             String label = windowNames.get(i) + (current ? "  (current)" : "");
-            Ae2Button btn = new Ae2Button(x, y, w, BTN_H, Component.literal(label), b -> {
+            RsButton btn = new RsButton(x, y, w, BTN_H, Component.literal(label), b -> {
                 onPick.accept(index);
                 onClose();
             });
@@ -59,18 +62,19 @@ public final class WindowPickerScreen extends Screen {
             y += 22;
         }
 
-        addRenderableWidget(new Ae2Button(left + panelW - 68, top + panelH - 26, 58, 20,
+        addRenderableWidget(new RsButton(left + panelW - 68, top + panelH - 26, 58, 20,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
     @Override
     public void renderBackground(GuiGraphics graphics) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.drawString(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        theme.panel(graphics, left, top, panelW, panelH);
+        graphics.drawString(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
     }
 
-    
+    // 1.20.1's Screen.render does NOT call renderBackground for us.
+    @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);

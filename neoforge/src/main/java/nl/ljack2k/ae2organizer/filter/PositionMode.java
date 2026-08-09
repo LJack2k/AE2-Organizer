@@ -6,8 +6,7 @@ import net.minecraft.util.StringRepresentable;
 /**
  * How a {@link FilterWindow}'s on-screen position is resolved.
  * <ul>
- *   <li>{@link #DOCK} — anchored to the terminal's right edge, following the GUI
- *       (the classic pre-multi-window behaviour; the migrated first window).</li>
+ *   <li>{@link #DOCK} — anchored to the grid's right edge, following the GUI.</li>
  *   <li>{@link #CENTER} — centered on the screen using the window's own size.</li>
  *   <li>{@link #FREE} — absolute screen coordinates ({@code x}/{@code y}), set by
  *       dragging in move-mode.</li>

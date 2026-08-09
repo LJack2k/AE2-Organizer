@@ -5,7 +5,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.Slot;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.SearchClearable;
 
@@ -72,7 +72,7 @@ public final class RsScreenAdapter implements ScreenAdapter, SearchClearable {
         try {
             screen.getMenu().getRepository().sort();
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.debug("[TerminalOrganizer] grid re-filter skipped", t);
+            StorageOrganizer.LOGGER.debug("[StorageOrganizer] grid re-filter skipped", t);
         }
     }
 
@@ -93,7 +93,7 @@ public final class RsScreenAdapter implements ScreenAdapter, SearchClearable {
                 box.setValue("");
             }
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.debug("[TerminalOrganizer] could not clear grid search box", t);
+            StorageOrganizer.LOGGER.debug("[StorageOrganizer] could not clear grid search box", t);
         }
     }
 }

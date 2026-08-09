@@ -1,4 +1,4 @@
-# TerminalOrganizer — Development
+# Storage Organizer — Development
 
 Technical reference: building, the config-file format, and how the mod works. For player-facing usage see **[README.md](README.md)**.
 
@@ -14,7 +14,7 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Building
 
 ```bash
-./gradlew :neoforge:build         # -> neoforge/build/libs/TerminalOrganizer-neoforge-26.1.2-<ver>.jar
+./gradlew :neoforge:build         # -> neoforge/build/libs/StorageOrganizer-neoforge-26.1.2-<ver>.jar
 ./gradlew :neoforge:runClient     # dev client with AE2 + RS (+ JEI) for testing
 ./gradlew :neoforge:runClientJoin # dev client that quick-joins localhost:25565 (pairs with runServer)
 ./gradlew :neoforge:runServer     # dev server for the RCON/screenshot harness (see dev/)
@@ -26,7 +26,7 @@ The output jar contains only this mod's classes/resources — AE2, RS, guideme a
 
 Set in `gradle.properties` (`mod_version`, `minecraft_version`, `neo_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; RS is `rs_curse_file_id` (project 243076) with `rs_version` / `rs_version_range`; JEI is `jei_curse_file_id`. All resolve via the CurseMaven repo.
 
-Identity note: the display name is **`mod_name = TerminalOrganizer`**, but the **mod id stays `ae2organizer`** and the Java package stays `nl.ljack2k.ae2organizer` — so existing configs (`config/ae2organizer/…`), modpack references, and the published CurseForge/Modrinth project are unaffected.
+Identity note: the name is split in two - **`mod_name = StorageOrganizer`** is the technical name that builds the jar filename (`archivesName`), and **`mod_display_name = Storage Organizer`** is the player-facing name used for the mods.toml `displayName` and `pack.mcmeta`; never build a filename from it. The **mod id stays `ae2organizer`** and the Java package stays `nl.ljack2k.ae2organizer` — so existing configs (`config/ae2organizer/…`), modpack references, and the published CurseForge/Modrinth project are unaffected.
 
 ## Publishing (CurseForge + Modrinth)
 
@@ -130,7 +130,7 @@ Mixins **must** live in the `…mixin` subpackage, away from the plain backend c
 
 ### UI — `client/`, `client/gui/`
 
-- **`ClientEvents`** — on `ScreenEvent.Init.Post`, asks `BackendRegistry.forScreen(...)` for the backend; if one handles the screen it takes that backend's `Store` + `ScreenAdapter` + `Theme` and builds one `TabBarWidget` **per visible window**, re-applying the active tab. The bar list rebuilds when the screen instance or the visible-window signature changes. **"Reset filter on open" fires only on a genuine open:** `Init.Post` also runs on a window resize (same screen instance) and on the terminal that comes back from a craft preview / amount / status / settings page, which both storage mods serve from their own menu — so the reset is suppressed for a re-init of the same instance, and for ~10 ticks after a `StorageBackend#isCompanionScreen` screen was on top (AE2: any `ISubMenu`; RS: `AbstractAmountScreen`). Without that, every autocraft request threw you back to *All*. Mouse input (click/drag/scroll) routes through the cancelable `ScreenEvent.Mouse*` pre-events (the storage screen consumes scroll/drag before added widgets see them) and fans out to every bar. Renders the move-mode banner and registers `/ae2organizer resetwindows`, which resets **every** backend's store so recovery works whatever screen is open.
+- **`ClientEvents`** — on `ScreenEvent.Init.Post`, asks `BackendRegistry.forScreen(...)` for the backend; if one handles the screen it takes that backend's `Store` + `ScreenAdapter` + `Theme` and builds one `TabBarWidget` **per visible window**, re-applying the active tab. The bar list rebuilds when the screen instance or the visible-window signature changes. **"Reset filter on open" fires only on a genuine open:** `Init.Post` also runs on a window resize (same screen instance) and on the terminal that comes back from a craft preview / amount / status / settings page, which both storage mods serve from their own menu — so the reset is suppressed for a re-init of the same instance, and for ~10 ticks after a `StorageBackend#isCompanionScreen` screen was on top (AE2: any `ISubMenu`; RS: `AbstractAmountScreen`). Without that, every autocraft request threw you back to *All*. Mouse input (click/drag/scroll) routes through the cancelable `ScreenEvent.Mouse*` pre-events (the storage screen consumes scroll/drag before added widgets see them) and fans out to every bar. Renders the move-mode banner and registers `/storageorganizer resetwindows`, which resets **every** backend's store so recovery works whatever screen is open.
 - **`TabManager`** — holds a `Map<backendId, Store>`; each **`Store`** is one backend's independent windows + tabs + active selection + settings + terminal names, persisted via **`TabStorage`** to `config/ae2organizer/<file>.json` (`ae2` → `tabs.json`, others → `<id>.json`). `setActive`/`replaceAll`/`load` call `pushFilter()`, which routes the predicate to `BackendRegistry.byId(backendId).setActiveFilter(...)` — so a tab change only ever touches its own backend. `visibleWindows(terminalKey)` applies `hiddenOn` with a lockout safeguard (always ≥1 window so a settings icon stays reachable).
 - **`TabBarWidget`** — one window's panel, drawn through the backend's `Theme`: `theme.panel(...)`, an optional "All" entry + tabs as bevelled rows/cells (active = sunken), the settings icon (`theme.settingsIcon` — AE2's `Icon.COG` / RS's wrench item), vertical **or** horizontal layout, per-window scale, scrollbar on overflow. Its dock X clears the panel image **and** any protruding menu slot (18px). In move-mode (toggle or **Alt** held — not Shift, to avoid shift-click clashes) the panel drags to a `free` position saved per terminal; a window dragged off-screen snaps back to center.
 - The screens (`TabEditorScreen` tree, `WindowVisibilityScreen`, `WindowPickerScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** container-bound screens, which would need a server menu and break the client-only/any-server guarantee. They draw via the active backend's `Theme` plus **`RsStyle`** — the theme-neutral shared helpers (bevelled buttons, checkboxes, insets, dividers, slots, scaled item/text, vanilla text fields). Backend-specific look (panel, text/selection colour, settings icon) is the `Theme`'s job; `RsStyle` is the part that's the same either way.
@@ -140,7 +140,7 @@ Per-backend theming detail: **`Ae2Theme`** renders through AE2's own pipeline (`
 
 ### Viewer sync + JEI — `client/ViewerSync`, `jei/` (optional)
 
-**`ViewerSync`** is the JEI-free bridge the UI talks to (so the core never imports JEI). The **`@JeiPlugin`** (`TerminalOrganizerJeiPlugin`) registers three GUI handlers and stays dormant if JEI is absent:
+**`ViewerSync`** is the JEI-free bridge the UI talks to (so the core never imports JEI). The **`@JeiPlugin`** (`StorageOrganizerJeiPlugin`) registers three GUI handlers and stays dormant if JEI is absent:
 - **`EditorGhostHandler`** — accepts items dragged from JEI onto the editor's `GhostTarget`s;
 - **`EditorGuiProperties`** — reports the editor's panel bounds so JEI draws its item-list overlay beside this (non-container) screen;
 - **an `IGlobalGuiHandler`** — reports the filter panels' rects (`ClientEvents#activeBarBounds`, recomputed per query) as *extra areas*, so JEI drops the item slots they cover and its list wraps around a panel instead of being hidden under it. Global rather than per-screen so it also covers addon terminals we never name; the rects are only reported while a bar is really drawn on the open screen, since a stale rect would blank out JEI slots elsewhere.

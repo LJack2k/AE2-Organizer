@@ -20,7 +20,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -98,14 +98,14 @@ public final class DevHarness {
     private static int build(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] build needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] build needs a player context."));
             return 0;
         }
         ServerLevel level = player.level();
         Block controller = BuiltInRegistries.BLOCK.getOptional(CREATIVE_CONTROLLER).orElse(null);
         Block grid = BuiltInRegistries.BLOCK.getOptional(GRID).orElse(null);
         if (controller == null || grid == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] RS blocks not found — is Refined Storage loaded?"));
+            src.sendFailure(Component.literal("[StorageOrganizer] RS blocks not found — is Refined Storage loaded?"));
             return 0;
         }
         BlockPos ctrlPos = player.blockPosition().above(2);
@@ -114,29 +114,29 @@ public final class DevHarness {
         level.setBlockAndUpdate(gridPos, grid.defaultBlockState());
         lastGridPos = gridPos;
         src.sendSuccess(() -> Component.literal(
-                "[TerminalOrganizer] Placed creative_controller + grid at " + gridPos + ". Run /rsorgtest open."), false);
+                "[StorageOrganizer] Placed creative_controller + grid at " + gridPos + ". Run /rsorgtest open."), false);
         return 1;
     }
 
     private static int open(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] open needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] open needs a player context."));
             return 0;
         }
         ServerLevel level = player.level();
         BlockPos pos = lastGridPos != null ? lastGridPos : findGrid(level, player.blockPosition());
         if (pos == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] No grid found — run /rsorgtest build first."));
+            src.sendFailure(Component.literal("[StorageOrganizer] No grid found — run /rsorgtest build first."));
             return 0;
         }
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof MenuProvider provider) {
             Platform.INSTANCE.getMenuOpener().openMenu(player, provider);
-            src.sendSuccess(() -> Component.literal("[TerminalOrganizer] Opened grid at " + pos + "."), false);
+            src.sendSuccess(() -> Component.literal("[StorageOrganizer] Opened grid at " + pos + "."), false);
             return 1;
         }
-        src.sendFailure(Component.literal("[TerminalOrganizer] Block at " + pos + " is not a grid menu provider."));
+        src.sendFailure(Component.literal("[StorageOrganizer] Block at " + pos + " is not a grid menu provider."));
         return 0;
     }
 
@@ -162,11 +162,11 @@ public final class DevHarness {
     private static int send(CommandSourceStack src, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] needs a player context (use: execute as <player> run ...)."));
+            src.sendFailure(Component.literal("[StorageOrganizer] needs a player context (use: execute as <player> run ...)."));
             return 0;
         }
         PacketDistributor.sendToPlayer(player, payload);
-        src.sendSuccess(() -> Component.literal("[TerminalOrganizer] sent " + payload.type().id()), false);
+        src.sendSuccess(() -> Component.literal("[StorageOrganizer] sent " + payload.type().id()), false);
         return 1;
     }
 }

@@ -5,7 +5,7 @@ import appeng.client.gui.me.common.Repo;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.SearchClearable;
 import nl.ljack2k.ae2organizer.backend.ae2.mixin.AbstractContainerScreenAccessor;
@@ -77,7 +77,7 @@ public final class Ae2ScreenAdapter implements ScreenAdapter, SearchClearable {
             Repo repo = ((MEStorageScreenAccessor) screen).ae2organizer$getRepo();
             repo.updateView();
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.debug("[TerminalOrganizer] terminal re-filter skipped", t);
+            StorageOrganizer.LOGGER.debug("[StorageOrganizer] terminal re-filter skipped", t);
         }
     }
 
@@ -86,7 +86,7 @@ public final class Ae2ScreenAdapter implements ScreenAdapter, SearchClearable {
         try {
             ((MEStorageScreenAccessor) screen).ae2organizer$getSearchField().setValue("");
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.debug("[TerminalOrganizer] could not clear terminal search box", t);
+            StorageOrganizer.LOGGER.debug("[StorageOrganizer] could not clear terminal search box", t);
         }
     }
 }

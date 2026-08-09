@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 
 /**
  * Dev-only server → client trigger: "open the tab editor". Lets the RCON harness
@@ -12,7 +12,7 @@ import nl.ljack2k.ae2organizer.TerminalOrganizer;
  */
 public record EditorRequestPayload() implements CustomPacketPayload {
     public static final Type<EditorRequestPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath(TerminalOrganizer.MODID, "open_editor"));
+            new Type<>(Identifier.fromNamespaceAndPath(StorageOrganizer.MODID, "open_editor"));
 
     public static final StreamCodec<ByteBuf, EditorRequestPayload> STREAM_CODEC =
             StreamCodec.unit(new EditorRequestPayload());

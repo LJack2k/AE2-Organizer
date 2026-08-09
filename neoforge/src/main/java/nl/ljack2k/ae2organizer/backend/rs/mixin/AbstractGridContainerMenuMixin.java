@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
  * </ul>
  * We wrap the returned {@link ResourceRepositoryFilter} so it AND-combines the active
  * tab's predicate (via {@link GridFilterBridge}) with RS's own search box. This mirrors
- * TerminalOrganizer's {@code @ModifyVariable} on {@code Repo#addEntriesToView}.
+ * StorageOrganizer's {@code @ModifyVariable} on {@code Repo#addEntriesToView}.
  * <p>
  * {@code remap = false}: RS ships official (unobfuscated) names in its NeoForge jar, so
  * no refmap is needed for RS-owned targets. The bridge lookup is per-resource and cheap;

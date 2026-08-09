@@ -1,21 +1,25 @@
-# TerminalOrganizer
+# Storage Organizer
 
-A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to **Applied Energistics 2 terminals** *and* **Refined Storage 2 grids**. Create tabs that narrow the view to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
+A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to **Applied Energistics 2 terminals** *and* **Refined Storage grids**. Create tabs that narrow the view to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
 
-![TerminalOrganizer's filter tabs on an AE2 terminal](media/terminal_view.png)
+![Storage Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
 - **Minecraft** 26.1.2 · **NeoForge** 26.1.x · **Java** 25
 - **Applied Energistics 2** 26.1.x — *optional* backend
 - **Refined Storage** 3.x — *optional* backend
-- **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
+- **JEI** optional (drag-and-drop in the editor; its item list wraps around the filter windows; optional search-bar sync — see [Settings](#settings))
 
 Both storage mods are optional: the jar loads cleanly with **either, both, or neither** installed, adding its tabs to whichever is present. It does nothing on its own.
+
+> **Formerly “AE2 Organizer”.** Same mod, same project, same settings — renamed in **2.0.0** because it is no longer AE2-only. Your existing tabs carry over automatically; there is nothing to migrate.
+>
+> If you install mods **by hand**, delete the old `AE2Organizer-*.jar` before adding `StorageOrganizer-*.jar`. The file name changed but the mod id didn't, so having both is the same mod twice and the game won't start. Launcher and modpack users are unaffected — it updates in place.
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.
 
 ## What it does
 
-AE2 and RS both filter and sort their item list on the client; TerminalOrganizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
+AE2 and RS both filter and sort their item list on the client; Storage Organizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
 
 Each storage system is kept **fully separate**: AE2 terminals and RS grids have their own independent tabs, windows, and settings, and never share a filter. (You can copy a filter set from one to the other with [Export / Import](#windows).) The rest of this guide applies the same way to both — "terminal" below means an AE2 terminal *or* an RS grid.
 
@@ -81,7 +85,7 @@ Select a window in the editor tree to set its presentation (each property is per
 
 **Moving windows.** Hold **Alt** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. (Alt, not Shift — so it never clashes with shift-click actions like JEI's cheat-mode grab.) Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
 
-**Stuck?** The client command `/ae2organizer resetwindows` restores every window (in **both** backends) to a reachable state — first window docked, the rest centered, all settings icons shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side. The command keyword stays `ae2organizer` — the mod id is unchanged.)
+**Stuck?** The client command `/storageorganizer resetwindows` restores every window (in **both** backends) to a reachable state — first window docked, the rest centered, all settings icons shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
 
 ## Settings
 

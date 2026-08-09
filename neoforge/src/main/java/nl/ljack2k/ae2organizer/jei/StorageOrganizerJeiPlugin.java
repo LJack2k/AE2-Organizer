@@ -8,7 +8,7 @@ import mezz.jei.api.runtime.IIngredientFilter;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.Identifier;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 import nl.ljack2k.ae2organizer.client.ClientEvents;
 import nl.ljack2k.ae2organizer.client.ViewerSync;
 import nl.ljack2k.ae2organizer.client.gui.TabEditorScreen;
@@ -34,11 +34,11 @@ import java.util.List;
  * selection updates JEI's search.
  */
 @JeiPlugin
-public class TerminalOrganizerJeiPlugin implements IModPlugin {
+public class StorageOrganizerJeiPlugin implements IModPlugin {
 
     @Override
     public Identifier getPluginUid() {
-        return Identifier.fromNamespaceAndPath(TerminalOrganizer.MODID, "jei_plugin");
+        return Identifier.fromNamespaceAndPath(StorageOrganizer.MODID, "jei_plugin");
     }
 
     @Override

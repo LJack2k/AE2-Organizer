@@ -373,7 +373,7 @@ public final class TabEditorScreen extends Screen {
         String clip = Minecraft.getInstance().keyboardHandler.getClipboard();
         List<Tab> parsed = TabShare.parse(clip).orElse(null);
         if (parsed == null) {
-            status = "No TerminalOrganizer tabs on the clipboard";
+            status = "No Storage Organizer tabs on the clipboard";
         } else {
             pendingImport = parsed;   // ask before replacing
         }

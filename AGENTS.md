@@ -1,4 +1,4 @@
-# AGENTS.md — guide for AI agents working on TerminalOrganizer
+# AGENTS.md — guide for AI agents working on Storage Organizer
 
 Orientation + hard-won knowledge so future sessions are fast and don't repeat mistakes.
 Player docs: **[README.md](README.md)**. Architecture detail: **[DEVELOPMENT.md](DEVELOPMENT.md)**.
@@ -19,21 +19,29 @@ Architecture section before touching cross-backend code.
 - Minecraft **26.1.2**, NeoForge **26.1.2.76+**, Java **25**.
 - AE2 **[26.1,26.2)** and RS **[3.0,4.0)** — **both optional**, declared `side = "CLIENT"`. JEI optional.
 - Gradle **9.2.1** + ModDevGradle **2.0.141**. Multi-project: minimal root + `neoforge/` subproject.
-- **Display name `TerminalOrganizer`; mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.**
-  Never change the id/package — configs, modpack refs, and the published project depend on them.
-  Versions live in `gradle.properties`.
+- `pack.mcmeta` **`pack_format` 84** — MC 26.1.2's resource format (`version.json` →
+  `pack_version.resource_major` in `neoforge/build/moddev/artifacts/minecraft-patched-*.jar`). It
+  arrived as `34` from the 1.21.1 port; don't copy that back. NeoForge loads a *mod's* built-in pack
+  regardless of this value (AE2 ships `8`, RS `34`, JEI `46` here), so a wrong number is cosmetic —
+  but check `version.json`, not another mod, when a new line is added.
+- **Two name properties:** `mod_name=StorageOrganizer` is technical (it builds `archivesName`, so it
+  must stay space-free); `mod_display_name=Storage Organizer` is what players see (mods.toml
+  `displayName`, `pack.mcmeta`, GUI strings, docs). Log prefixes use `[StorageOrganizer]`.
+- **Mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.** Never change the id/package —
+  configs (`config/ae2organizer/`), the clipboard-export magic key, modpack refs, and the published
+  project depend on them. Only the *name* changed in the rebrand. Versions live in `gradle.properties`.
 
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-neoforge-26.1.2-<ver>.jar
+./gradlew :neoforge:build          # -> neoforge/build/libs/StorageOrganizer-neoforge-26.1.2-<ver>.jar
 ./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
 ./gradlew :neoforge:runClientJoin  # dev client that quick-joins localhost:25565 (devHarness on)
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
 ```
 
 - **Always `compileJava` after edits** — it's fast and catches AE2/RS/Mojang API mismatches.
-- After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
+- After `runClient`, confirm a clean boot by grepping the log for `StorageOrganizer ... Client loaded`,
   `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
 - **RCON/screenshot harness** (`dev/`): gated on `-Dae2organizer.devHarness` (set on `runServer`/
   `runClientJoin`). RCON on `:25575` (password `rsorg`); `/rsorgtest build|open` places+opens an RS grid,

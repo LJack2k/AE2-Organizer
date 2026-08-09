@@ -134,3 +134,17 @@ tasks.named('processResources', ProcessResources).configure {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// The RCON/screenshot test harness stays in the repo (it is how a release gets
+// verified headlessly) but must never reach players: strip it from the published
+// jar. Dev runs are unaffected - they run from the compiled classes directory,
+// not from this jar.
+//
+// Safe despite StorageOrganizer referencing DevHarness: that call sits behind a
+// System.getProperty("ae2organizer.devHarness") check that is never true in a
+// normal install, and the JVM only resolves the class if the branch is taken.
+tasks.named('jar') {
+    exclude 'nl/ljack2k/ae2organizer/dev/**'
+    exclude 'nl/ljack2k/ae2organizer/client/ClientScreenshot*'
+    exclude 'nl/ljack2k/ae2organizer/client/DevClientActions*'
+}

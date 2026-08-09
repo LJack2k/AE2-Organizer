@@ -78,13 +78,21 @@ dependencies {
     // transitive runtime dep AE2 needs but our code never touches, so it's
     // runtimeOnly with no compileOnly counterpart.
     compileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    // -PnoAe2 drops AE2 (and its guideme runtime dep) from the DEV RUNTIME only, so the
+    // load-safety guarantee — the jar loads with either, both or neither storage mod — can
+    // actually be exercised. compileOnly is untouched, so the build is unaffected.
+    if (!project.hasProperty('noAe2')) {
+        runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+        runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    }
 
     // Refined Storage 2 — the other optional backend. compileOnly to build the RS
     // hooks; runtimeOnly so the dev client can exercise RS grids alongside AE2.
     compileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
-    runtimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    // -PnoRs — the RS half of the same load-safety switch (see -PnoAe2 above).
+    if (!project.hasProperty('noRs')) {
+        runtimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    }
 
     // JEI — OPTIONAL integration. compileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
@@ -92,7 +100,12 @@ dependencies {
     // as a dependency in neoforge.mods.toml. runtimeOnly also puts JEI on the dev
     // client for item search / cheat-spawn / drag testing.
     compileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
-    runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    // -PnoJei — same idea as -PnoAe2/-PnoRs. Needed to test the client-only guarantee
+    // (joining a server without NeoForge): that only holds for a client where EVERY
+    // loaded mod is vanilla-compatible, so AE2/RS/JEI all have to be dropped first.
+    if (!project.hasProperty('noJei')) {
+        runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -106,6 +119,7 @@ tasks.named('processResources', ProcessResources).configure {
         rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
+        mod_display_name        : mod_display_name,
         mod_license             : mod_license,
         mod_version             : mod_version,
         mod_authors             : mod_authors,

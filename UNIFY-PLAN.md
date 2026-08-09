@@ -8,7 +8,9 @@ mod's look** — AE2 terminals use AE2's `BackgroundGenerator`/palette (inherits
 packs) + AE2's `Icon.COG`; RS grids use the nine-slice panel + RS's own wrench item icon.
 The RS side is screenshot-verified; the AE2 terminal side was **signed off by the maintainer in a
 dev server+client on 2026-07-29** ("styling is good on all places") — the last verification gap on
-this branch is closed. Stage 9 (display-name rebrand to TerminalOrganizer) is done.
+this branch is closed. Stage 9 (the display-name rebrand) is done — the unified mod is named
+**Storage Organizer** (technical `StorageOrganizer`; the interim `TerminalOrganizer` name was
+dropped before any release, so nothing published ever carried it).
 
 **This branch (`unify-26.1`) is the 26.1 port of that work** — same code on MC 26.1.2 / NeoForge
 26.1.2.76 / Java 25 against AE2 26.1.10-beta and RS 3.2.1. It was branched from

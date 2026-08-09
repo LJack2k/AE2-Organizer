@@ -18,7 +18,7 @@ import java.util.function.Predicate;
  * {@code BackendRegistry#init()}), so referencing AE2 classes here is safe.
  * <p>
  * Its store keeps the id {@code "ae2"} and reads/writes the legacy
- * {@code tabs.json} filename, so existing TerminalOrganizer users keep their tabs.
+ * {@code tabs.json} filename, so tabs made in the AE2-only releases carry over.
  */
 public final class Ae2Backend implements StorageBackend {
 

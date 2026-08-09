@@ -117,7 +117,7 @@ public final class SettingsScreen extends Screen {
         String clip = this.minecraft.keyboardHandler.getClipboard();
         TabShare.AllData data = TabShare.parseAll(clip).orElse(null);
         if (data == null) {
-            status = "No TerminalOrganizer windows on the clipboard";
+            status = "No Storage Organizer windows on the clipboard";
         } else {
             pendingImportAll = data;   // ask before replacing everything
         }

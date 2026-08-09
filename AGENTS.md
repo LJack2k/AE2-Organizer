@@ -1,4 +1,4 @@
-# AGENTS.md — guide for AI agents working on TerminalOrganizer
+# AGENTS.md — guide for AI agents working on Storage Organizer
 
 Orientation + hard-won knowledge so future sessions are fast and don't repeat mistakes.
 Player docs: **[README.md](README.md)**. Architecture detail: **[DEVELOPMENT.md](DEVELOPMENT.md)**.
@@ -19,21 +19,24 @@ Architecture section before touching cross-backend code.
 - Minecraft **1.21.1**, NeoForge **21.1.242+** (RS 2.0.9 needs `.242`; AE2 is fine on it), Java **21**.
 - AE2 **[19.2,19.3)** and RS **[2.0,3.0)** — **both optional**, declared `side = "CLIENT"`. JEI optional.
 - Gradle **8.10.2** + ModDevGradle **1.0.20**. Multi-project: minimal root + `neoforge/` subproject.
-- **Display name `TerminalOrganizer`; mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.**
-  Never change the id/package — configs, modpack refs, and the published project depend on them.
-  Versions live in `gradle.properties`.
+- **Two name properties:** `mod_name=StorageOrganizer` is technical (it builds `archivesName`, so it
+  must stay space-free); `mod_display_name=Storage Organizer` is what players see (mods.toml
+  `displayName`, `pack.mcmeta`, GUI strings, docs). Log prefixes use `[StorageOrganizer]`.
+- **Mod id stays `ae2organizer`, package `nl.ljack2k.ae2organizer`.** Never change the id/package —
+  configs (`config/ae2organizer/`), the clipboard-export magic key, modpack refs, and the published
+  project depend on them. Only the *name* changed in the rebrand. Versions live in `gradle.properties`.
 
 ## Build / run / test
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-neoforge-1.21.1-<ver>.jar
+./gradlew :neoforge:build          # -> neoforge/build/libs/StorageOrganizer-neoforge-1.21.1-<ver>.jar
 ./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
 ./gradlew :neoforge:runClientJoin  # dev client that quick-joins localhost:25565 (devHarness on)
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
 ```
 
 - **Always `compileJava` after edits** — it's fast and catches AE2/RS/Mojang API mismatches.
-- After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
+- After `runClient`, confirm a clean boot by grepping the log for `StorageOrganizer ... Client loaded`,
   `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
 - **RCON/screenshot harness** (`dev/`): gated on `-Dae2organizer.devHarness` (set on `runServer`/
   `runClientJoin`). RCON on `:25575` (password `rsorg`); `/rsorgtest build|open` places+opens an RS grid,

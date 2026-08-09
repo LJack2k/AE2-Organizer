@@ -1,4 +1,4 @@
-# AGENTS.md — guide for AI agents working on TerminalOrganizer
+# AGENTS.md — guide for AI agents working on Storage Organizer
 
 Orientation + hard-won knowledge so future sessions are fast and don't repeat mistakes.
 Player docs: **[README.md](README.md)**. Architecture detail: **[DEVELOPMENT.md](DEVELOPMENT.md)**.
@@ -26,7 +26,13 @@ This is the **1.20.1 (Forge)** line. (Sibling branches: `1.21.1` and `26.1`, bot
 - Gradle **8.10.2** + ModDevGradle **legacyforge** 2.0.141 (the `legacyForge { }` plugin; reobf to SRG +
   mixin refmap). Multi-project: minimal root + `neoforge/` subproject — the dir name is *historical*, it
   builds a Forge jar; kept so the shared default-branch CI's `:neoforge:build` keeps matching.
-- Mod id `ae2organizer`, base package `nl.ljack2k.ae2organizer`. Versions live in `gradle.properties`.
+- Mod id `ae2organizer`, base package `nl.ljack2k.ae2organizer` — both deliberately **kept** through the
+  rebrand so config paths (`config/ae2organizer/`), the clipboard export magic key and the published
+  CurseForge/Modrinth projects stay intact. Only the *name* changed.
+- **Two name properties** in `gradle.properties`: `mod_name=StorageOrganizer` is technical (it builds
+  `archivesName`, so it must stay space-free) and `mod_display_name=Storage Organizer` is what players
+  see (mods.toml `displayName`, `pack.mcmeta`, GUI strings, docs). Log prefixes use the technical form
+  `[StorageOrganizer]`. Versions live in `gradle.properties` too.
 - **Gradle launcher JDK:** Gradle 8.10.2 can't run on JDK 25 (this machine's default for the 26.1 line) —
   launch it on JDK 17/21, e.g. `JAVA_HOME="…/Eclipse Adoptium/jdk-21…" ./gradlew …`. The Java-17 toolchain
   (for the mod itself) is auto-provisioned via foojay regardless of the launcher JDK.
@@ -115,14 +121,14 @@ name appears in **three** places that must agree — the file, `mods.toml`, and 
 All Gradle calls on this branch need `-Dorg.gradle.java.home=<JDK 21>` (see the toolchain note above).
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:build          # -> neoforge/build/libs/StorageOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
 ./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI), opens a real window
 ./gradlew :neoforge:runClientJoin  # dev client that quick-joins 127.0.0.1:25565 (devHarness on)
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness
 ```
 
 - **Always `compileJava` after edits** — it's fast and catches AE2/RS/Mojang API mismatches.
-- After `runClient`, confirm a clean boot by grepping the log for `TerminalOrganizer ... Client loaded`,
+- After `runClient`, confirm a clean boot by grepping the log for `StorageOrganizer ... Client loaded`,
   `Sound engine started`, and the *absence* of `exception` / `mixin ... fail`.
 - **RCON/screenshot harness** (`dev/`), gated on `-Dae2organizer.devHarness` (set by `runServer` /
   `runClientJoin`). RCON on `:25575`, password `rsorg`. `/rsorgtest build|open` places and opens an RS

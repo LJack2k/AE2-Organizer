@@ -20,7 +20,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -96,18 +96,18 @@ public final class DevHarness {
     private static int build(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] build needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] build needs a player context."));
             return 0;
         }
         if (!ModList.get().isLoaded("refinedstorage")) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] Refined Storage is not loaded."));
+            src.sendFailure(Component.literal("[StorageOrganizer] Refined Storage is not loaded."));
             return 0;
         }
         ServerLevel level = player.serverLevel();
         Block controller = BuiltInRegistries.BLOCK.getOptional(CREATIVE_CONTROLLER).orElse(null);
         Block grid = BuiltInRegistries.BLOCK.getOptional(GRID).orElse(null);
         if (controller == null || grid == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] RS blocks not found — is Refined Storage loaded?"));
+            src.sendFailure(Component.literal("[StorageOrganizer] RS blocks not found — is Refined Storage loaded?"));
             return 0;
         }
         BlockPos ctrlPos = player.blockPosition().above(2);
@@ -116,7 +116,7 @@ public final class DevHarness {
         level.setBlockAndUpdate(gridPos, grid.defaultBlockState());
         lastGridPos = gridPos;
         src.sendSuccess(() -> Component.literal(
-                "[TerminalOrganizer] Placed creative_controller + grid at " + gridPos + ". Run /rsorgtest open."), false);
+                "[StorageOrganizer] Placed creative_controller + grid at " + gridPos + ". Run /rsorgtest open."), false);
         return 1;
     }
 
@@ -127,24 +127,24 @@ public final class DevHarness {
     private static int open(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] open needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] open needs a player context."));
             return 0;
         }
         ServerLevel level = player.serverLevel();
         BlockPos pos = lastGridPos != null ? lastGridPos : findGrid(level, player.blockPosition());
         if (pos == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] No grid found — run /rsorgtest build first."));
+            src.sendFailure(Component.literal("[StorageOrganizer] No grid found — run /rsorgtest build first."));
             return 0;
         }
         try {
             API.instance().getGridManager().openGrid(GridBlockGridFactory.ID, player, pos);
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.debug("[TerminalOrganizer] openGrid failed", t);
-            src.sendFailure(Component.literal("[TerminalOrganizer] Could not open the grid at " + pos + "."));
+            StorageOrganizer.LOGGER.debug("[StorageOrganizer] openGrid failed", t);
+            src.sendFailure(Component.literal("[StorageOrganizer] Could not open the grid at " + pos + "."));
             return 0;
         }
         final BlockPos opened = pos;
-        src.sendSuccess(() -> Component.literal("[TerminalOrganizer] Opened grid at " + opened + "."), false);
+        src.sendSuccess(() -> Component.literal("[StorageOrganizer] Opened grid at " + opened + "."), false);
         return 1;
     }
 
@@ -157,18 +157,18 @@ public final class DevHarness {
     private static int ae2Build(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] ae2build needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] ae2build needs a player context."));
             return 0;
         }
         if (!ModList.get().isLoaded("ae2")) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] AE2 is not loaded."));
+            src.sendFailure(Component.literal("[StorageOrganizer] AE2 is not loaded."));
             return 0;
         }
         ServerLevel level = player.serverLevel();
         Block cell = BuiltInRegistries.BLOCK.getOptional(AE2_CREATIVE_ENERGY_CELL).orElse(null);
         Block chest = BuiltInRegistries.BLOCK.getOptional(AE2_CHEST).orElse(null);
         if (cell == null || chest == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] AE2 blocks not found."));
+            src.sendFailure(Component.literal("[StorageOrganizer] AE2 blocks not found."));
             return 0;
         }
         BlockPos cellPos = player.blockPosition().above(2).east(3);
@@ -186,7 +186,7 @@ public final class DevHarness {
         }
         lastChestPos = chestPos;
         src.sendSuccess(() -> Component.literal(
-                "[TerminalOrganizer] Placed creative_energy_cell + ME chest at " + chestPos
+                "[StorageOrganizer] Placed creative_energy_cell + ME chest at " + chestPos
                         + ". Run /rsorgtest ae2open."), false);
         return 1;
     }
@@ -195,16 +195,16 @@ public final class DevHarness {
     private static int ae2Open(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] ae2open needs a player context."));
+            src.sendFailure(Component.literal("[StorageOrganizer] ae2open needs a player context."));
             return 0;
         }
         BlockPos pos = lastChestPos;
         if (pos == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] No ME chest — run /rsorgtest ae2build first."));
+            src.sendFailure(Component.literal("[StorageOrganizer] No ME chest — run /rsorgtest ae2build first."));
             return 0;
         }
         if (!(player.serverLevel().getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] Block at " + pos + " is not an ME chest."));
+            src.sendFailure(Component.literal("[StorageOrganizer] Block at " + pos + " is not an ME chest."));
             return 0;
         }
         // openGui() opens the terminal-style storage view when the chest is powered.
@@ -212,10 +212,10 @@ public final class DevHarness {
         final BlockPos at = pos;
         if (!opened) {
             src.sendFailure(Component.literal(
-                    "[TerminalOrganizer] ME chest at " + at + " refused to open (no power / no cell?)."));
+                    "[StorageOrganizer] ME chest at " + at + " refused to open (no power / no cell?)."));
             return 0;
         }
-        src.sendSuccess(() -> Component.literal("[TerminalOrganizer] Opened ME chest at " + at + "."), false);
+        src.sendSuccess(() -> Component.literal("[StorageOrganizer] Opened ME chest at " + at + "."), false);
         return 1;
     }
 
@@ -237,11 +237,11 @@ public final class DevHarness {
     private static int send(CommandSourceStack src, String action, String arg) {
         ServerPlayer player = src.getPlayer();
         if (player == null) {
-            src.sendFailure(Component.literal("[TerminalOrganizer] needs a player context (use: execute as <player> run ...)."));
+            src.sendFailure(Component.literal("[StorageOrganizer] needs a player context (use: execute as <player> run ...)."));
             return 0;
         }
         DevSignal.send(player, action, arg);
-        src.sendSuccess(() -> Component.literal("[TerminalOrganizer] sent " + action), false);
+        src.sendSuccess(() -> Component.literal("[StorageOrganizer] sent " + action), false);
         return 1;
     }
 }

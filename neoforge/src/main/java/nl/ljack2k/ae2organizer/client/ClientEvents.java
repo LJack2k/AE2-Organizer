@@ -1,7 +1,9 @@
 package nl.ljack2k.ae2organizer.client;
 
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -179,25 +181,28 @@ public final class ClientEvents {
     }
 
     /**
-     * Client-side command {@code /ae2organizer resetwindows} — a last-resort
+     * Client-side command {@code /storageorganizer resetwindows} — a last-resort
      * recovery if a window ends up unreachable (off-screen, no gear, etc.). Resets
      * every backend's store so recovery works regardless of which screen is open.
      */
     @SubscribeEvent
     public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
         event.getDispatcher().register(
-                Commands.literal("ae2organizer").then(Commands.literal("resetwindows").executes(ctx -> {
-                    for (StorageBackend backend : BackendRegistry.all()) {
-                        TabManager.Store store = TabManager.forBackend(backend.id());
-                        if (!store.isLoaded()) {
-                            store.load();
-                        }
-                        store.resetWindowLayout();
-                    }
-                    ctx.getSource().sendSuccess(() -> Component.literal(
-                            "[TerminalOrganizer] Filter windows reset: first docked, rest centered, gears shown."), false);
-                    return 1;
-                })));
+                Commands.literal("storageorganizer")
+                        .then(Commands.literal("resetwindows").executes(ClientEvents::resetWindows)));
+    }
+
+    private static int resetWindows(CommandContext<CommandSourceStack> ctx) {
+        for (StorageBackend backend : BackendRegistry.all()) {
+            TabManager.Store store = TabManager.forBackend(backend.id());
+            if (!store.isLoaded()) {
+                store.load();
+            }
+            store.resetWindowLayout();
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "[StorageOrganizer] Filter windows reset: first docked, rest centered, gears shown."), false);
+        return 1;
     }
 
     /**

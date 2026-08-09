@@ -29,8 +29,8 @@ public final class DevClientSignalListener {
         String[] parts = text.substring(DevSignal.PREFIX.length()).trim().split(" ", 2);
         String action = parts[0];
         String arg = parts.length > 1 ? parts[1].trim() : "";
-        nl.ljack2k.ae2organizer.TerminalOrganizer.LOGGER.info(
-                "[TerminalOrganizer] dev signal: action='{}' arg='{}'", action, arg);
+        nl.ljack2k.ae2organizer.StorageOrganizer.LOGGER.info(
+                "[StorageOrganizer] dev signal: action='{}' arg='{}'", action, arg);
         switch (action) {
             case DevSignal.ACTION_SCREENSHOT -> ClientScreenshot.take();
             case DevSignal.ACTION_EDITOR -> DevClientActions.openEditor();

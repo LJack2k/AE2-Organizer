@@ -3,7 +3,7 @@ package nl.ljack2k.ae2organizer.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraftforge.fml.loading.FMLPaths;
-import nl.ljack2k.ae2organizer.TerminalOrganizer;
+import nl.ljack2k.ae2organizer.StorageOrganizer;
 
 /**
  * Client-only: grab the current frame to {@code <rundir>/screenshots/rsorgshot.png}
@@ -23,10 +23,10 @@ public final class ClientScreenshot {
                     mc.getMainRenderTarget(),
                     // Vanilla reports success/failure through this callback only; log it,
                     // otherwise a failed grab looks exactly like a lost signal.
-                    component -> TerminalOrganizer.LOGGER.info("[TerminalOrganizer] screenshot: {}",
+                    component -> StorageOrganizer.LOGGER.info("[StorageOrganizer] screenshot: {}",
                             component.getString()));
         } catch (Throwable t) {
-            TerminalOrganizer.LOGGER.warn("[TerminalOrganizer] screenshot failed", t);
+            StorageOrganizer.LOGGER.warn("[StorageOrganizer] screenshot failed", t);
         }
     }
 }

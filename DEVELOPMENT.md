@@ -1,4 +1,4 @@
-# TerminalOrganizer — Development
+# Storage Organizer — Development
 
 Technical reference: building, the config-file format, and how the mod works. For player-facing usage see **[README.md](README.md)**.
 
@@ -14,7 +14,7 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ## Building
 
 ```bash
-./gradlew :neoforge:build          # -> neoforge/build/libs/TerminalOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
+./gradlew :neoforge:build          # -> neoforge/build/libs/StorageOrganizer-forge-1.20.1-<ver>.jar (reobf'd to SRG)
 ./gradlew :neoforge:runClient      # dev client with AE2 + RS (+ JEI) for testing
 ./gradlew :neoforge:runClientJoin  # dev client that quick-joins 127.0.0.1:25565 (pairs with runServer)
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness (see dev/)
@@ -24,7 +24,7 @@ The output jar contains only this mod's classes/resources — AE2, RS, guideme a
 
 ### Versions
 
-Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; RS is `rs_curse_file_id` (project 243076) with `rs_version` / `rs_version_range`; JEI is `jei_curse_file_id`. All resolve via the CurseMaven repo.
+Set in `gradle.properties` (`mod_version`, `minecraft_version`, `forge_version`, …). Note the two name properties: `mod_name` (`StorageOrganizer`) is the technical name that builds the jar filename, and `mod_display_name` (`Storage Organizer`) is the player-facing name used for the mods.toml `displayName` — never build a filename from it. To target a new AE2 build, update `ae2_curse_file_id` (and `ae2_version` / `ae2_version_range`) from the CurseForge file page's "Curse Maven Snippet"; RS is `rs_curse_file_id` (project 243076) with `rs_version` / `rs_version_range`; JEI is `jei_curse_file_id`. All resolve via the CurseMaven repo.
 
 ## Publishing (CurseForge + Modrinth)
 
@@ -118,7 +118,7 @@ Mixins are configured in `ae2organizer.ae2.mixins.json` and `ae2organizer.rslega
 
 ### UI — `client/`, `client/gui/`
 
-- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, builds one `TabBarWidget` **per window visible on that terminal type** and re-applies the active tab; **"Reset filter on open" fires only on a genuine open:** `Init.Post` also runs on a window resize (same screen instance) and on the terminal that comes back from AE2's craft amount/confirm/status or settings pages (all served from their own sub-menu), so the reset is suppressed for a re-init of the same instance and for ~10 ticks after a `StorageBackend#isCompanionScreen` screen (any AE2 `ISubMenu`) was on top. Without that, every autocraft request threw the player back to *All*. the bar list is rebuilt when the terminal instance or the visible-window signature changes. Mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events (AE2's terminal consumes `mouseScrolled`/`mouseDragged` before added widgets see them) and fanned out to every bar. Also renders the move-mode banner and registers `/ae2organizer resetwindows` (`RegisterClientCommandsEvent`), and remembers each opened terminal's key via `TabManager.rememberTerminal`. Registered (client-only) from the `@Mod` constructor.
+- **`ClientEvents`** — on `ScreenEvent.Init.Post` for an `MEStorageScreen`, builds one `TabBarWidget` **per window visible on that terminal type** and re-applies the active tab; **"Reset filter on open" fires only on a genuine open:** `Init.Post` also runs on a window resize (same screen instance) and on the terminal that comes back from AE2's craft amount/confirm/status or settings pages (all served from their own sub-menu), so the reset is suppressed for a re-init of the same instance and for ~10 ticks after a `StorageBackend#isCompanionScreen` screen (any AE2 `ISubMenu`) was on top. Without that, every autocraft request threw the player back to *All*. the bar list is rebuilt when the terminal instance or the visible-window signature changes. Mouse input (click/drag/scroll) is routed through the cancelable `ScreenEvent.Mouse*` pre-events (AE2's terminal consumes `mouseScrolled`/`mouseDragged` before added widgets see them) and fanned out to every bar. Also renders the move-mode banner and registers `/storageorganizer resetwindows` (`RegisterClientCommandsEvent`), and remembers each opened terminal's key via `TabManager.rememberTerminal`. Registered (client-only) from the `@Mod` constructor.
 - **`TabManager`** — client singleton holding windows, tabs, the (global) active selection, settings, transient move-mode, and remembered terminal names; **`TabStorage`** does the JSON persistence and v1→v2 migration (see above). `visibleWindows(terminalKey)` applies `hiddenOn` with a lockout safeguard (always ≥1 window so a gear stays reachable).
 - **`TabBarWidget`** — one window's panel: a `BackgroundGenerator` panel, an optional "All" entry + the window's tabs as bevelled rows/cells (active = sunken), a gear (right for vertical, left for horizontal), vertical **or** horizontal layout, per-window scale, and a scrollbar when it overflows. Its dock X anchors past the panel image **and** any real menu slot that sticks out (18px frame) so it clears terminals with extra card slots (e.g. the Wireless Crafting Grid). Position resolves per terminal (`FilterWindow#resolve`); in move-mode (explicit toggle or **Alt** held — Alt, not Shift, to avoid clashing with shift-click) the whole panel drags to a `free` position saved per terminal, and a window dragged fully off-screen snaps back to center.
 - The screens (`TabEditorScreen` — a windows-and-tabs tree, `WindowVisibilityScreen`, `WindowPickerScreen`, `ItemPickerScreen`, `TagChooserScreen`, `SettingsScreen`) are plain client `Screen`s — deliberately **not** AE2 `AEBaseScreen`s, which would need a server-side container menu and break the client-only/any-server guarantee. (On 1.20.1 they override `renderBackground(GuiGraphics)` and call it explicitly from `render`, unlike the mouse-aware signature on newer lines — so anything needing hover state, like `SettingsScreen`'s checkboxes, draws in `render` instead.)

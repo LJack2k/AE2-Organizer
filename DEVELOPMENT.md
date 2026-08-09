@@ -20,6 +20,11 @@ Technical reference: building, the config-file format, and how the mod works. Fo
 ./gradlew :neoforge:runServer      # dev server for the RCON/screenshot harness (see dev/)
 ```
 
+The `dev/` harness (plus `client/ClientScreenshot` and `client/DevClientActions`) is
+**excluded from the published jar** by the `jar` task - it exists to verify a release
+headlessly, not to ship. Dev runs are unaffected: they run from the compiled classes,
+not the jar.
+
 The output jar contains only this mod's classes/resources — AE2, RS, guideme and JEI are `compileOnly`/`runtimeOnly` and are not shaded in.
 
 ### Versions
@@ -67,7 +72,7 @@ Per client, at `config/ae2organizer/tabs.json`:
 ```json
 {
   "version": 2,
-  "settings": { "resetFilterOnOpen": false, "clearSearchOnTabSelect": false, "syncJeiOnTabSelect": false },
+  "settings": { "resetFilterOnOpen": false, "clearSearchOnTabSelect": false, "syncViewerOnTabSelect": false },
   "windows": [
     { "id": "main", "name": "Filters", "orientation": "vertical", "showLabels": true, "scale": 1.15,
       "position": "dock", "x": 0, "y": 0, "showGear": true, "showAll": true,

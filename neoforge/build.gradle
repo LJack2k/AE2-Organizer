@@ -99,14 +99,22 @@ dependencies {
     // jars ship SRG-mapped, so the mod* configurations remap them to official
     // (Mojang) mappings for the dev compile/runtime.
     modCompileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    // -PnoAe2 drops AE2 (and its guideme runtime dep) from the DEV RUNTIME only, so the
+    // load-safety guarantee — the jar loads with either, both or neither storage mod — can
+    // actually be exercised. compileOnly is untouched, so the build is unaffected.
+    if (!project.hasProperty('noAe2')) {
+        modRuntimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+        modRuntimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    }
 
     // Refined Storage 1.12 — the OPTIONAL second backend on this line (see
     // gradle.properties: 1.20.1 only ever had the pre-rewrite RS, so this backend
     // is separate from the RS2 one the newer lines use).
     modCompileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
-    modRuntimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    // -PnoRs — the RS half of the same load-safety switch (see -PnoAe2 above).
+    if (!project.hasProperty('noRs')) {
+        modRuntimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    }
 
     // JEI — OPTIONAL integration. modCompileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
@@ -114,7 +122,14 @@ dependencies {
     // as a dependency in mods.toml. modRuntimeOnly also puts JEI on the dev client
     // for item search / cheat-spawn / drag testing.
     modCompileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
-    modRuntimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    // -PnoJei — same idea as -PnoAe2/-PnoRs. Matters when testing the client-only
+    // guarantee against a server without the loader: that only holds for a client where
+    // EVERY loaded mod is vanilla-compatible. (Forge 1.20.1 turns out to allow the join
+    // even with AE2/RS/JEI present; NeoForge 1.21.1+ refuses it, so the newer lines need
+    // all three dropped. The flag exists here for parity.)
+    if (!project.hasProperty('noJei')) {
+        modRuntimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -126,6 +141,7 @@ tasks.named('processResources', ProcessResources).configure {
         rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
+        mod_display_name        : mod_display_name,
         mod_license             : mod_license,
         mod_version             : mod_version,
         mod_authors             : mod_authors,

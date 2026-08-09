@@ -29,3 +29,4 @@ Thumbs.db
 # Dev harness run dirs
 **/run-server/
 **/run-client/
+*.err

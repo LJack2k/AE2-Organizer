@@ -250,6 +250,82 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - `.gitignore` already excludes `build/`, `.gradle/`, `**/run/`, `*.log`, `libs/*.jar`. The maintainer
   sometimes commits assets (e.g. `branding/`) themselves between turns — `git fetch`/check before pushing.
 
+## Release gotchas (learned the hard way shipping 2.0.0)
+
+- **Merge/push the DEFAULT branch first.** `publish-curseforge.yml` and `publish-modrinth.yml` are
+  `workflow_run`-triggered, so GitHub always runs the copy sitting on the repo's **default branch**
+  (`1.21.1`) — regardless of which line you tagged. Tag any other line before that merge lands and
+  it publishes with the default branch's *stale* metadata. This nearly shipped "AE2 required, no
+  Refined Storage" on all three lines. (`release.yml` is a plain `push` trigger and does come from
+  the tag, so the jar itself is fine — only the platform metadata is affected.)
+- **`pack_format` is per MC line; never copy it forward.** 15 on 1.20.1, 34 on 1.21.1, **84 on
+  26.1**. From 26.1 the pack scheme gained minor versions: `PackFormat.lastPreMinorVersion` is
+  **64** (client resources) / **81** (data), and a bare `pack_format` above that is *rejected* —
+  `"missing mandatory fields min_format and max_format"` — after which NeoForge silently falls back
+  to a description-only pack. Declare `min_format`/`max_format` alongside it. This is exactly why
+  AE2 (8), RS (34) and JEI (46) all ship "stale" low values on 26.1: staying under the threshold is
+  what keeps a bare `pack_format` legal.
+- **Bump `mod_version` before tagging.** Every line shares the version number and tags are
+  `v<ver>-mc<line>`, so a forgotten bump collides with an existing tag.
+- **CurseForge's "Client" environment tag is manual** per uploaded file — mc-publish cannot set it.
+- The dev harness (`dev/`, `client/ClientScreenshot`, `client/DevClientActions`) is **excluded from
+  the published jar** by `tasks.named('jar')`. Dev runs are unaffected — they run from the compiled
+  classes, not the jar. If you add a dev-only class, put it where that exclusion catches it.
+
+## Exercising the load-safety guarantee
+
+`-PnoAe2` / `-PnoRs` / `-PnoJei` drop a mod from the **dev runtime only** (`compileOnly` untouched,
+so the build is unaffected). This is the only way to actually test "loads with either, both, or
+neither" — every test before 2.0.0 had silently run with both present.
+
+```bash
+./gradlew :neoforge:runClient -PnoRs             # AE2 only
+./gradlew :neoforge:runClient -PnoAe2            # RS only
+./gradlew :neoforge:runClient -PnoAe2 -PnoRs     # neither
+```
+
+- **Use `guideme` as the tell for "is AE2 loaded"** when grepping a log. Grepping `AE2` matches our
+  own strings (`ae2organizer.ae2.mixins.json`, the "AE2 terminals" log line) and yields false
+  positives; `guideme` is gated together with AE2 and appears only when it is really there.
+- **A loader-less-server join only proves anything with every other mod dropped.** NeoForge refuses
+  the connection when *any* loaded mod requires it ("you are trying to connect to a server that is
+  not running NeoForge, but you have mods that require it") — that is AE2/RS/JEI, not this mod. Test
+  with `-PnoAe2 -PnoRs -PnoJei`. Forge 1.20.1 is more permissive and joins even with all of them on.
+
+## Harness traps that cost real time
+
+- **On 26.1, `/rsorgshot` writes a TIMESTAMPED file**, not the fixed `rsorgshot.png` documented
+  above — 26.1's `Screenshot.grab` lost its filename argument. Read the newest `*.png` instead.
+  Assuming the fixed name produced a completely false "the dev payloads aren't reaching the client"
+  conclusion; they were arriving the whole time.
+- **`/rsorgtest tab <id>` targets the backend of whichever screen is open.** Passing an id from the
+  AE2 store while an RS grid is open is a silent no-op (and vice versa). Read the ids from the right
+  `config/ae2organizer/<backend>.json` — `tabs.json` is AE2, `rs.json` is RS.
+- **`DevClientActions.selectTab` syncs the ingredient viewer unconditionally**, unlike the real
+  click path which honours `syncViewerOnTabSelect`. Harness JEI-sync observations therefore
+  overstate what a player would actually see.
+- **RS content filtering is not reachable headlessly on any line.** `setblock` cannot wire a working
+  RS network (RS 1.12 registers nodes on real placement; RS 2/3 need storage the harness can't
+  insert into), so a harness grid is always empty. The AE2 side *is* reachable on 1.20.1 via
+  `/rsorgtest ae2build|ae2open`, which fills an ME Chest with a creative cell.
+- **Kill the dev client before building.** A running client holds
+  `build/moddev/artifacts/intermediateToNamed.zip` and Gradle dies with "Unable to delete file".
+  Match the process by **window title** (`Minecraft`), never by command line — the *server*'s
+  classpath contains `client-extra-*.jar`, so a command-line match on "client" kills the wrong JVM.
+
+## Other things worth knowing
+
+- **The UI is effectively English-only.** Only 4 translation keys are actually used; roughly 100
+  user-facing strings are hardcoded `Component.literal(...)`, ~69 of them in `TabEditorScreen`.
+  Adding a language means extracting those first. (`ae2organizer.panel.title` is defined but dead.)
+- **The recovery command is `/storageorganizer resetwindows`** with **no alias** — the old
+  `/ae2organizer` keyword was deliberately removed at 2.0.0.
+- **Rewriting history must be scoped.** `git filter-branch` over whole branches also rewrites the
+  SHAs of commits shared with published branches, which silently destroys a fast-forward. Scope it
+  (`-- <branches> --not origin/1.21.1`) so published SHAs are preserved.
+- Repo files check out **CRLF**. Patterns anchored with `$`, or multi-line `\n` matches in
+  sed/perl one-liners, will silently fail to match — normalize line endings first.
+
 ## Working with the maintainer
 
 - Wants it to look like a **proper AE2 addon** and respect AE2 dark-mode packs — prefer real AE2

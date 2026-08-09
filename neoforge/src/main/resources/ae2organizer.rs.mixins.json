@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "nl.ljack2k.ae2organizer.backend.rs.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "nl.ljack2k.ae2organizer.backend.rs.RsMixinPlugin",
+  "client": [
+    "AbstractGridContainerMenuMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

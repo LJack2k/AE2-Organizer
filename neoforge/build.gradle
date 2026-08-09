@@ -45,6 +45,25 @@ neoForge {
             systemProperty 'forge.logging.console.level', 'debug'
             programArguments.addAll '--width', '1920', '--height', '1000'
         }
+        // Auto-joining dev client + dedicated server for the RCON/screenshot harness
+        // (dev-only; enabled by the ae2organizer.devHarness system property). Separate
+        // game dirs so client/server don't contend on world/log locks.
+        clientJoin {
+            client()
+            gameDirectory = file('run-client')
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'ae2organizer.devHarness', 'true'
+            jvmArguments.addAll '-Xmx4G'
+            programArguments.addAll '--width', '1920', '--height', '1000',
+                    '--quickPlayMultiplayer', 'localhost:25565'
+        }
+        server {
+            server()
+            gameDirectory = file('run-server')
+            systemProperty 'ae2organizer.devHarness', 'true'
+            programArgument '--nogui'
+            jvmArguments.addAll '-Xmx4G'
+        }
     }
 
     mods {
@@ -59,8 +78,21 @@ dependencies {
     // transitive runtime dep AE2 needs but our code never touches, so it's
     // runtimeOnly with no compileOnly counterpart.
     compileOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
-    runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    // -PnoAe2 drops AE2 (and its guideme runtime dep) from the DEV RUNTIME only, so the
+    // load-safety guarantee — the jar loads with either, both or neither storage mod — can
+    // actually be exercised. compileOnly is untouched, so the build is unaffected.
+    if (!project.hasProperty('noAe2')) {
+        runtimeOnly "curse.maven:applied-energistics-2-223794:${ae2_curse_file_id}"
+        runtimeOnly "curse.maven:guideme-1173950:${guideme_curse_file_id}"
+    }
+
+    // Refined Storage 2 — the other optional backend. compileOnly to build the RS
+    // hooks; runtimeOnly so the dev client can exercise RS grids alongside AE2.
+    compileOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    // -PnoRs — the RS half of the same load-safety switch (see -PnoAe2 above).
+    if (!project.hasProperty('noRs')) {
+        runtimeOnly "curse.maven:refined-storage-243076:${rs_curse_file_id}"
+    }
 
     // JEI — OPTIONAL integration. compileOnly builds the @JeiPlugin ghost-drag
     // handler (drag items from JEI onto the tab editor); the plugin class stays
@@ -68,7 +100,12 @@ dependencies {
     // as a dependency in neoforge.mods.toml. runtimeOnly also puts JEI on the dev
     // client for item search / cheat-spawn / drag testing.
     compileOnly "curse.maven:jei-238222:${jei_curse_file_id}"
-    runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    // -PnoJei — same idea as -PnoAe2/-PnoRs. Needed to test the client-only guarantee
+    // (joining a server without NeoForge): that only holds for a client where EVERY
+    // loaded mod is vanilla-compatible, so AE2/RS/JEI all have to be dropped first.
+    if (!project.hasProperty('noJei')) {
+        runtimeOnly "curse.maven:jei-238222:${jei_curse_file_id}"
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -76,9 +113,13 @@ tasks.named('processResources', ProcessResources).configure {
         minecraft_version       : minecraft_version,
         minecraft_version_range : minecraft_version_range,
         neo_version             : neo_version,
+        neo_version_range       : neo_version_range,
+        loader_version_range    : loader_version_range,
         ae2_version_range       : ae2_version_range,
+        rs_version_range        : rs_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
+        mod_display_name        : mod_display_name,
         mod_license             : mod_license,
         mod_version             : mod_version,
         mod_authors             : mod_authors,
@@ -93,4 +134,18 @@ tasks.named('processResources', ProcessResources).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// The RCON/screenshot test harness stays in the repo (it is how a release gets
+// verified headlessly) but must never reach players: strip it from the published
+// jar. Dev runs are unaffected - they run from the compiled classes directory,
+// not from this jar.
+//
+// Safe despite StorageOrganizer referencing DevHarness: that call sits behind a
+// System.getProperty("ae2organizer.devHarness") check that is never true in a
+// normal install, and the JVM only resolves the class if the branch is taken.
+tasks.named('jar') {
+    exclude 'nl/ljack2k/ae2organizer/dev/**'
+    exclude 'nl/ljack2k/ae2organizer/client/ClientScreenshot*'
+    exclude 'nl/ljack2k/ae2organizer/client/DevClientActions*'
 }

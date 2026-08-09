@@ -1,12 +1,13 @@
 package nl.ljack2k.ae2organizer.client.gui;
 
-import appeng.client.gui.widgets.AE2Button;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import nl.ljack2k.ae2organizer.backend.Theme;
 
 import java.util.Comparator;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.function.Consumer;
  */
 public final class TagChooserScreen extends Screen {
     private final Screen parent;
+    private final Theme theme;
     private final Consumer<String> onPick;
     private final List<TagKey<Item>> tags;
     private int offset = 0;
@@ -31,9 +33,10 @@ public final class TagChooserScreen extends Screen {
     private int listTop;
     private int visible;
 
-    public TagChooserScreen(Screen parent, Item item, Consumer<String> onPick) {
+    public TagChooserScreen(Screen parent, Item item, Theme theme, Consumer<String> onPick) {
         super(Component.literal("Choose a tag"));
         this.parent = parent;
+        this.theme = theme;
         this.onPick = onPick;
         this.tags = new ItemStack(item).typeHolder().tags()
                 .sorted(Comparator.comparing(tag -> tag.location().toString()))
@@ -54,16 +57,19 @@ public final class TagChooserScreen extends Screen {
         listTop = top + 26;
         visible = Math.max(1, (panelH - 26 - 28) / 20);
 
-        if (!tags.isEmpty()) {
+        if (tags.isEmpty()) {
+            addRenderableWidget(new StringWidget(left + 10, top + 44, panelW - 20, 12,
+                    Component.literal("This item has no tags."), this.font));
+        } else {
             int count = Math.min(visible, tags.size() - offset);
             for (int i = 0; i < count; i++) {
                 final TagKey<Item> tag = tags.get(offset + i);
-                addRenderableWidget(new AE2Button(left + 10, listTop + i * 20, panelW - 20, 18,
+                addRenderableWidget(new RsButton(left + 10, listTop + i * 20, panelW - 20, 18,
                         Component.literal(tag.location().toString()),
                         b -> onPick.accept(tag.location().toString())));
             }
         }
-        addRenderableWidget(new AE2Button(left + panelW - 66, top + panelH - 24, 56, 18,
+        addRenderableWidget(new RsButton(left + panelW - 66, top + panelH - 24, 56, 18,
                 Component.literal("Cancel"), b -> onClose()));
     }
 
@@ -80,12 +86,9 @@ public final class TagChooserScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.text(this.font, getTitle(), left + 10, top + 9, Ae2Style.textColor(), false);
-        if (tags.isEmpty()) {
-            graphics.text(this.font, "This item has no tags.", left + 10, top + 44, Ae2Style.textColor(), false);
-        }
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        theme.panel(graphics, left, top, panelW, panelH);
+        graphics.text(this.font, getTitle(), left + 10, top + 9, theme.textColor(), false);
     }
 
     @Override

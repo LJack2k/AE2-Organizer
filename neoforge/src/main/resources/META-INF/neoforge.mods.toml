@@ -3,7 +3,7 @@ license = "${mod_license}"
 [[mods]]
 modId = "${mod_id}"
 version = "${mod_version}"
-displayName = "${mod_name}"
+displayName = "${mod_display_name}"
 authors = "${mod_authors}"
 description = '''${mod_description}'''
 logoFile = "icon.png"
@@ -12,18 +12,21 @@ logoBlur = true
 # handshake when joining a server that doesn't have it installed.
 displayTest = "IGNORE_ALL_VERSION"
 
-# Mixin config — applies our client-side filter hooks into AE2. FML reads this
-# entry at load time (dev and production); no extra Gradle wiring is required.
+# Mixin configs — one per backend. Each config's MixinConfigPlugin gates its
+# mixins on the target mod being present (ModList check), so a missing storage
+# mod's mixins are skipped instead of crashing. FML reads these at load time
+# (dev and production); no extra Gradle wiring is required.
 [[mixins]]
-config = "ae2organizer.mixins.json"
+config = "ae2organizer.ae2.mixins.json"
+
+[[mixins]]
+config = "ae2organizer.rs.mixins.json"
 
 # --- Required ---
-# NeoForge 26.1 dropped the modLoader/loaderVersion lines; the loader is implied
-# and its version is covered by the neoforge dependency range below.
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
-versionRange = "[${neo_version},)"
+versionRange = "${neo_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
@@ -34,14 +37,23 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
-# AE2 — required and CLIENT-side. The whole mod hooks AE2's client terminal
-# internals, so without AE2 on the client it has nothing to do (and its mixins
-# would have no target). The tight version range is deliberate: AE2 internals
-# are not public API, so we refuse to load against an untested AE2 line and
-# fail loudly rather than silently mis-filtering.
+# AE2 — OPTIONAL and CLIENT-side. One of two storage backends; when present we
+# hook AE2's client terminal internals via the ae2 mixin config. The jar loads
+# cleanly without it (backend + mixins self-gate). Tight version range: AE2
+# internals are not public API, so we only enable the backend on a tested line.
 [[dependencies.${mod_id}]]
 modId = "ae2"
-type = "required"
+type = "optional"
 versionRange = "${ae2_version_range}"
+ordering = "AFTER"
+side = "CLIENT"
+
+# Refined Storage 2 — OPTIONAL and CLIENT-side. The other storage backend; when
+# present we hook RS's client grid internals via the rs mixin config. Tight
+# version range: RS internals are not public API.
+[[dependencies.${mod_id}]]
+modId = "refinedstorage"
+type = "optional"
+versionRange = "${rs_version_range}"
 ordering = "AFTER"
 side = "CLIENT"

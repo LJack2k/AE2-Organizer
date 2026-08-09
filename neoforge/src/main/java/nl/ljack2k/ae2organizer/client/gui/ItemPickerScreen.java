@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.ljack2k.ae2organizer.backend.Theme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ public final class ItemPickerScreen extends Screen {
     private static final int CELL = 18;
 
     private final Screen parent;
+    private final Theme theme;
     private final Consumer<Item> onPick;
     private final List<Item> all;
     private List<Item> filtered;
@@ -38,9 +40,10 @@ public final class ItemPickerScreen extends Screen {
     private int gridTop;
     private int visibleRows;
 
-    public ItemPickerScreen(Screen parent, Component title, Consumer<Item> onPick) {
+    public ItemPickerScreen(Screen parent, Component title, Theme theme, Consumer<Item> onPick) {
         super(title);
         this.parent = parent;
+        this.theme = theme;
         this.onPick = onPick;
         this.all = BuiltInRegistries.ITEM.stream().filter(item -> item != Items.AIR).toList();
         this.filtered = this.all;
@@ -61,7 +64,7 @@ public final class ItemPickerScreen extends Screen {
         gridTop = top + 44;
         visibleRows = Math.max(1, (top + panelH - 8 - gridTop) / CELL);
 
-        EditBox search = Ae2Style.textField(this.font, left + 8, top + 20, panelW - 16, 16, Component.literal("Search"));
+        EditBox search = RsStyle.textField(this.font, left + 8, top + 20, panelW - 16, 16, Component.literal("Search"));
         search.setHint(Component.literal("search items…"));
         search.setResponder(this::applyFilter);
         addRenderableWidget(search);
@@ -93,9 +96,9 @@ public final class ItemPickerScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, this.width, this.height, Ae2Style.DIM);
-        Ae2Style.panel(graphics, left, top, panelW, panelH);
-        graphics.text(this.font, getTitle(), left + 8, top + 7, Ae2Style.textColor(), false);
+        graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
+        theme.panel(graphics, left, top, panelW, panelH);
+        graphics.text(this.font, getTitle(), left + 8, top + 7, theme.textColor(), false);
     }
 
     @Override
@@ -130,7 +133,7 @@ public final class ItemPickerScreen extends Screen {
         int button = event.button();
         if (button == 0) {
             // A click off the search field drops its focus and selection (vanilla keeps it).
-            Ae2Style.blurFieldOnOutsideClick(this, mouseX, mouseY);
+            RsStyle.blurFieldOnOutsideClick(this, mouseX, mouseY);
         }
         if (button == 0 && mouseX >= gridLeft && mouseY >= gridTop) {
             int col = (int) ((mouseX - gridLeft) / CELL);

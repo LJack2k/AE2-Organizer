@@ -1,7 +1,5 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -16,10 +14,9 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import java.util.function.Predicate;
 
 /**
- * Matches item keys by a per-stack data component. {@link #arg()} is unused for
- * presence checks and carries the data key / component-type id for the
- * argument-taking matches. Always guards on {@link AEItemKey} so fluid/other
- * keys never match.
+ * Matches item stacks by a per-stack data component. {@link #arg()} is unused
+ * for presence checks and carries the data key / component-type id for the
+ * argument-taking matches. Empty stacks (non-item resources) never match.
  */
 public record ComponentCondition(ComponentMatch match, String arg, boolean negate) implements Condition {
 
@@ -35,24 +32,23 @@ public record ComponentCondition(ComponentMatch match, String arg, boolean negat
     }
 
     @Override
-    public Predicate<AEKey> toPredicate() {
+    public Predicate<ItemStack> toPredicate() {
         return switch (match) {
-            case ENCHANTED -> key -> key instanceof AEItemKey ik && isEnchanted(ik.getReadOnlyStack());
-            case HAS_CUSTOM_NAME -> key -> key instanceof AEItemKey ik
-                    && ik.getReadOnlyStack().has(DataComponents.CUSTOM_NAME);
-            case DAMAGED -> key -> key instanceof AEItemKey ik && ik.isDamaged();
+            case ENCHANTED -> stack -> !stack.isEmpty() && isEnchanted(stack);
+            case HAS_CUSTOM_NAME -> stack -> !stack.isEmpty() && stack.has(DataComponents.CUSTOM_NAME);
+            case DAMAGED -> stack -> !stack.isEmpty() && stack.isDamaged();
             case HAS_CUSTOM_DATA_KEY -> {
                 String dataKey = arg.trim();
                 yield dataKey.isEmpty()
-                        ? key -> false
-                        : key -> key instanceof AEItemKey ik && hasCustomDataKey(ik.getReadOnlyStack(), dataKey);
+                        ? stack -> false
+                        : stack -> !stack.isEmpty() && hasCustomDataKey(stack, dataKey);
             }
             case HAS_COMPONENT_TYPE -> {
                 Identifier rl = Identifier.tryParse(arg.trim());
                 DataComponentType<?> componentType = rl == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(rl);
                 yield componentType == null
-                        ? key -> false
-                        : key -> key instanceof AEItemKey ik && ik.getReadOnlyStack().has(componentType);
+                        ? stack -> false
+                        : stack -> !stack.isEmpty() && stack.has(componentType);
             }
         };
     }

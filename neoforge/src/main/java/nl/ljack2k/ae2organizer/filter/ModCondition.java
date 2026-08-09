@@ -1,13 +1,15 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Locale;
 import java.util.function.Predicate;
 
-/** Matches keys whose mod id (namespace) equals the configured value. */
+/** Matches item stacks whose mod id (item namespace) equals the configured value. */
 public record ModCondition(String modId, boolean negate) implements Condition {
 
     public static final MapCodec<ModCondition> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -21,11 +23,17 @@ public record ModCondition(String modId, boolean negate) implements Condition {
     }
 
     @Override
-    public Predicate<AEKey> toPredicate() {
+    public Predicate<ItemStack> toPredicate() {
         String id = modId.trim().toLowerCase(Locale.ROOT);
         if (id.isEmpty()) {
-            return key -> false;
+            return stack -> false;
         }
-        return key -> id.equals(key.getModId());
+        return stack -> {
+            if (stack.isEmpty()) {
+                return false;
+            }
+            Identifier key = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            return id.equals(key.getNamespace());
+        };
     }
 }

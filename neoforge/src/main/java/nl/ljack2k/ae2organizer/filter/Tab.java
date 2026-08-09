@@ -1,9 +1,9 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -41,14 +41,18 @@ public record Tab(String id, String name, Identifier icon, MatchMode mode, List<
      * are exclusions: they are always AND-combined and applied on top, so the tab
      * reads as {@code (positives combined by mode) AND (none of the exclusions)}.
      * A tab with only exclusions shows everything except those.
+     * <p>
+     * The predicate is over an {@link ItemStack}; {@link ItemStack#EMPTY} stands
+     * for a non-item grid resource. An empty condition list returns {@code true}
+     * for everything (including non-items), matching AE2's "All" behaviour.
      */
-    public Predicate<AEKey> toPredicate() {
-        Predicate<AEKey> positives = null;
-        Predicate<AEKey> exclusions = null;
+    public Predicate<ItemStack> toPredicate() {
+        Predicate<ItemStack> positives = null;
+        Predicate<ItemStack> exclusions = null;
         for (Condition condition : conditions) {
-            Predicate<AEKey> part = condition.toPredicate();
+            Predicate<ItemStack> part = condition.toPredicate();
             if (condition.negate()) {
-                Predicate<AEKey> without = part.negate();
+                Predicate<ItemStack> without = part.negate();
                 exclusions = (exclusions == null) ? without : exclusions.and(without);
             } else {
                 positives = (positives == null) ? part
@@ -56,7 +60,7 @@ public record Tab(String id, String name, Identifier icon, MatchMode mode, List<
             }
         }
         if (positives == null && exclusions == null) {
-            return key -> true;
+            return stack -> true;
         }
         if (positives == null) {
             return exclusions;

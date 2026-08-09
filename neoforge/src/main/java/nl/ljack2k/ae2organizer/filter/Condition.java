@@ -1,7 +1,7 @@
 package nl.ljack2k.ae2organizer.filter;
 
-import appeng.api.stacks.AEKey;
 import com.mojang.serialization.Codec;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Predicate;
 
@@ -13,8 +13,15 @@ import java.util.function.Predicate;
  * <p>
  * {@link #toPredicate()} is called once when a tab becomes active; it should
  * precompute anything expensive (resolved tags, lowercased text, registry
- * lookups) and return a cheap per-key test, since the predicate runs over every
- * entry in the network on each terminal view refresh.
+ * lookups) and return a cheap per-stack test, since the predicate runs over
+ * every entry in the grid view on each refresh.
+ * <p>
+ * Predicates operate on an {@link ItemStack}. Non-item grid resources (fluids,
+ * chemicals) are passed as {@link ItemStack#EMPTY}; this port filters items
+ * only, so a positive condition never matches an empty stack (mirroring AE2's
+ * {@code instanceof AEItemKey} guard). The abstraction is deliberately kept at
+ * {@code ItemStack} so fluid/chemical conditions can be added later without
+ * touching the model shape.
  */
 public interface Condition {
 
@@ -23,7 +30,7 @@ public interface Condition {
     ConditionType type();
 
     /**
-     * When {@code true}, this condition is an <em>exclusion</em>: an entry
+     * When {@code true}, this condition is an <em>exclusion</em>: a stack
      * matching {@link #toPredicate()} is hidden. Exclusions are always
      * AND-combined regardless of the tab's {@link MatchMode}, so a tab reads as
      * {@code (positives combined by mode) AND (none of the exclusions)}.
@@ -31,8 +38,9 @@ public interface Condition {
     boolean negate();
 
     /**
-     * The raw (non-negated) test against a stored key. Must tolerate non-item
-     * keys (fluids, etc.). {@link Tab} applies {@link #negate()} itself.
+     * The raw (non-negated) test against a stored stack. Must tolerate
+     * {@link ItemStack#EMPTY} (a non-item resource). {@link Tab} applies
+     * {@link #negate()} itself.
      */
-    Predicate<AEKey> toPredicate();
+    Predicate<ItemStack> toPredicate();
 }

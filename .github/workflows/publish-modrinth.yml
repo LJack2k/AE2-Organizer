@@ -67,7 +67,7 @@ jobs:
 
           files: dist/*.jar
 
-          name: AE2Organizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
+          name: StorageOrganizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
           # +<mc> build-metadata keeps the version unique per MC line on the platforms.
           version: "${{ steps.props.outputs.modver }}+${{ steps.props.outputs.mc }}"
           version-type: release
@@ -76,9 +76,14 @@ jobs:
           game-versions: ${{ steps.props.outputs.mc }}
           java: ${{ steps.props.outputs.java }}
 
-          # AE2 is required; JEI is optional. Slugs from modrinth.com/mod/<slug>.
+          # All three are OPTIONAL. The mod adds filter tabs to whichever storage
+          # mod is present (and does nothing on its own), so neither backend may be
+          # declared required - that would block installs that only run the other
+          # one. Refined Storage is given as its base62 id rather than the slug
+          # refined-storage, for the same hyphen reason as modrinth-id above.
           dependencies: |
-            ae2(required){modrinth:ae2}
+            ae2(optional){modrinth:ae2}
+            refined-storage(optional){modrinth:KDvYkUg3}
             jei(optional){modrinth:jei}
 
           changelog: |

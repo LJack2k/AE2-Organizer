@@ -1,5 +1,7 @@
 {
-    "ae2organizer.tab.all": "All",
-    "ae2organizer.panel.title": "Filters",
-    "ae2organizer.editor.title": "AE2 Organizer - Manage"
+  "ae2organizer.tab.all": "All",
+  "ae2organizer.panel.title": "Filters",
+  "ae2organizer.editor.title": "Storage Organizer — Manage",
+  "ae2organizer.gui.editor.title": "Storage Organizer — Manage",
+  "ae2organizer.gui.settings.title": "Storage Organizer — Settings"
 }

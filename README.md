@@ -1,31 +1,41 @@
-# AE2Organizer
+# Storage Organizer
 
-A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to Applied Energistics 2 terminals. Create tabs that narrow the ME/Crafting terminal to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
+A client-side [NeoForge](https://neoforged.net/) mod that adds user-defined **filter tabs** to **Applied Energistics 2 terminals** *and* **Refined Storage grids**. Create tabs that narrow the view to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.
 
-![AE2Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
+![Storage Organizer's filter tabs on an AE2 terminal](media/terminal_view.png)
 
-- **Minecraft** 26.1.2 · **NeoForge** 26.1.x · **AE2** 26.1.x (required)
-- **JEI** optional (drag-and-drop in the editor; optional search-bar sync — see [Settings](#settings))
+- **Minecraft** 26.1.2 · **NeoForge** 26.1.x · **Java** 25
+- **Applied Energistics 2** 26.1.x — *optional* backend
+- **Refined Storage** 3.x — *optional* backend
+- **JEI** optional (drag-and-drop in the editor; its item list wraps around the filter windows; optional search-bar sync — see [Settings](#settings))
+
+Both storage mods are optional: the jar loads cleanly with **either, both, or neither** installed, adding its tabs to whichever is present. It does nothing on its own.
+
+> **Formerly “AE2 Organizer”.** Same mod, same project, same settings — renamed in **2.0.0** because it is no longer AE2-only. Your existing tabs carry over automatically; there is nothing to migrate.
+>
+> If you install mods **by hand**, delete the old `AE2Organizer-*.jar` before adding `StorageOrganizer-*.jar`. The file name changed but the mod id didn't, so having both is the same mod twice and the game won't start. Launcher and modpack users are unaffected — it updates in place.
 
 > Building from source, the config-file format, and how the mod works internally live in **[DEVELOPMENT.md](DEVELOPMENT.md)**.
 
 ## What it does
 
-AE2 already filters and sorts the terminal list on the client; AE2Organizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
+AE2 and RS both filter and sort their item list on the client; Storage Organizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.
 
-One or more **filter windows** attach to every ME / Crafting / Pattern / Wireless terminal. Out of the box there's a single window docked to the terminal's right edge; you can add more, move them anywhere, and lay each out as a vertical list or a horizontal icon row (see [Windows](#windows)).
+Each storage system is kept **fully separate**: AE2 terminals and RS grids have their own independent tabs, windows, and settings, and never share a filter. (You can copy a filter set from one to the other with [Export / Import](#windows).) The rest of this guide applies the same way to both — "terminal" below means an AE2 terminal *or* an RS grid.
+
+One or more **filter windows** attach to every terminal. Out of the box there's a single window docked to the terminal's right edge; you can add more, move them anywhere, and lay each out as a vertical list or a horizontal icon row (see [Windows](#windows)).
 
 Each window shows:
 
 - 🧭 **All** (optional per window) — clears the filter.
-- **Your tabs** — click one to filter the terminal to that tab's items; click the active tab again to clear back to All. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
-- ⚙ **Gear** — opens the editor.
+- **Your tabs** — click one to filter to that tab's items; click the active tab again to clear back to All. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
+- **Settings icon** — opens the editor.
 
-Windows are drawn with AE2's own GUI style, so AE2 "dark mode" resource packs reskin them too. A tab's filter combines with AE2's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** across all windows.
+Windows are drawn in each backend's **native look**: on an AE2 terminal they use AE2's own GUI style (so AE2 "dark mode" resource packs reskin them too) and AE2's gear icon; on an RS grid they use RS's grid style and RS's own wrench icon. A tab's filter combines with the storage's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** per storage system.
 
 ## Editing tabs
 
-Click the ⚙ gear to open the editor. The left panel is a **tree**: each *window* node expands to the tabs inside it. Select a window row to edit that [window](#windows); select a tab row to edit the tab (name, icon, match mode, conditions) on the right.
+Click the settings icon to open the editor. The left panel is a **tree**: each *window* node expands to the tabs inside it. Select a window row to edit that [window](#windows); select a tab row to edit the tab (name, icon, match mode, conditions) on the right.
 
 Toolbar: **+Win** (new window) · **+Tab** (new tab in the selected window) · **Copy** (duplicate the selected tab — or the whole window, with its tabs) · **Del** · **▲ ▼** (reorder within the window/among windows). A tab's **"Window…"** button opens a picker to move it to another window. Deleting a window that still has tabs asks first.
 
@@ -67,23 +77,23 @@ Select a window in the editor tree to set its presentation (each property is per
 - **Layout** — Vertical list or Horizontal icon row (horizontal is always icon-only).
 - **Display** — Labels or Icons only (vertical windows).
 - **Size** — a per-window scale slider.
-- **Gear** — show or hide the editor gear on this window. At least one window always keeps a reachable gear.
+- **Gear** — show or hide the settings icon on this window. At least one window always keeps a reachable one.
 - **All entry** — show or hide the 🧭 *All* button on this window.
-- **Terminals…** — show or hide this window per **terminal type** (ME Terminal, Crafting Terminal, Pattern Encoding Terminal, …). Each type stands for every terminal of that type.
+- **Terminals…** — show or hide this window per **terminal type** (AE2 ME/Crafting/Pattern/Wireless terminals, the RS Grid, …). Each type stands for every terminal of that type.
 - **Position** — see below.
-- **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set or reusing it in another window.
+- **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set, reusing it in another window, or **moving a set between AE2 and RS** (which otherwise stay separate).
 
 **Moving windows.** Hold **Alt** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. (Alt, not Shift — so it never clashes with shift-click actions like JEI's cheat-mode grab.) Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.
 
-**Stuck?** The client command `/ae2organizer resetwindows` restores every window to a reachable state — first window docked, the rest centered, all gears shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
+**Stuck?** The client command `/storageorganizer resetwindows` restores every window (in **both** backends) to a reachable state — first window docked, the rest centered, all settings icons shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)
 
 ## Settings
 
-In the editor, click **Settings…** for cross-cutting behaviour (per-window layout lives on each [window](#windows)):
+In the editor, click **Settings…** for cross-cutting behaviour (per-window layout lives on each [window](#windows)). Settings are **per storage system** — AE2 and RS each have their own:
 
-- **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered.
-- **Clear search bar when selecting a tab** — on: clicking a tab also empties the terminal's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
+- **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered. Either way, coming *back* to a terminal from a craft request, a crafting-status view or a settings page keeps the tab you were on — only actually opening a terminal counts.
+- **Clear search bar when selecting a tab** — on: clicking a tab also empties the storage's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.
 - **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your "Create" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. `Not` conditions become JEI exclusions (`-`), applied to every OR branch. *Component* conditions have no JEI equivalent and are skipped — so a `Not component` exclusion can't be mirrored and JEI may show a little more than the terminal. Off (default).
-- **Export all / Import all** — copy your **entire** setup (every window *with* its layout, plus all tabs) to the clipboard as JSON, or **replace** everything from a copied export (asks first) — a quick backup or full transfer between instances. Plain JSON; the per-window and all-windows formats are tagged distinctly, so pasting the wrong one just fails safely.
+- **Export all / Import all** — copy this storage system's **entire** setup (every window *with* its layout, plus all tabs) to the clipboard as JSON, or **replace** everything from a copied export (asks first) — a quick backup or full transfer between instances. Plain JSON; the per-window and all-windows formats are tagged distinctly, so pasting the wrong one just fails safely.
 
-Your windows, tabs, and settings save automatically, per client. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)
+Your windows, tabs, and settings save automatically, per client, and separately per storage system. (Where they're stored and the file format: see [DEVELOPMENT.md](DEVELOPMENT.md).)

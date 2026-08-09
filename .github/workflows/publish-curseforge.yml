@@ -65,7 +65,7 @@ jobs:
 
           files: dist/*.jar
 
-          name: TerminalOrganizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
+          name: StorageOrganizer-${{ steps.props.outputs.loaders }}-${{ steps.props.outputs.mc }}-${{ steps.props.outputs.modver }}.jar
           # +<mc> build-metadata keeps the version unique per MC line on the platforms.
           version: "${{ steps.props.outputs.modver }}+${{ steps.props.outputs.mc }}"
           version-type: release
@@ -74,9 +74,13 @@ jobs:
           game-versions: ${{ steps.props.outputs.mc }}
           java: ${{ steps.props.outputs.java }}
 
-          # AE2 is required; JEI is optional. Numbers are CurseForge project ids.
+          # All three are OPTIONAL. The mod adds filter tabs to whichever storage
+          # mod is present (and does nothing on its own), so neither backend may be
+          # declared required - that would block installs that only run the other
+          # one. Numbers are CurseForge project ids.
           dependencies: |
-            applied-energistics-2(required){curseforge:223794}
+            applied-energistics-2(optional){curseforge:223794}
+            refined-storage(optional){curseforge:243076}
             jei(optional){curseforge:238222}
 
           changelog: |

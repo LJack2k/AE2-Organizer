@@ -77,6 +77,11 @@ public final class Ae2ScreenAdapter implements ScreenAdapter, SearchClearable {
     }
 
     @Override
+    public void returnCarriedToInventory() {
+        ScreenAdapter.returnCarried(screen);
+    }
+
+    @Override
     public void refilter() {
         try {
             Repo repo = ((MEStorageScreenAccessor) screen).ae2organizer$getRepo();

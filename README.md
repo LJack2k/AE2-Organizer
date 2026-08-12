@@ -28,10 +28,19 @@ One or more **filter windows** attach to every terminal — AE2's ME / Crafting 
 Each window shows:
 
 - 🧭 **All** (optional per window) — clears the filter.
-- **Your tabs** — click one to filter the terminal to that tab's items; click the active tab again to clear back to All. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
+- **Your tabs** — click one to filter the terminal to that tab's items; click the active tab again to clear back to All. Right-click a tab to open it directly in the editor. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.
 - **Settings icon** — opens the editor.
 
 Windows are drawn in each backend's **native look**: on an AE2 terminal they use AE2's own GUI style (so AE2 "dark mode" resource packs reskin them too) and AE2's wrench icon; on an RS grid they use RS's grid style and RS's own wrench item. A tab's filter combines with the storage's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** per storage system.
+
+### Drag an item onto a window
+
+Pick up any item on your cursor (from the terminal or your inventory) — or, with JEI installed, drag an ingredient straight out of JEI's item list — and the filter windows become drop targets:
+
+- **Drop it on an existing tab** — a small dialog asks how to add it: **By name** (adds a `text` condition with the item's name), **By mod** (adds a `mod` condition with its mod id), or **Cancel**.
+- **Drop it on the `+` cell** that appears at the end of the bar — opens the editor with a **new tab** ready to save: named and iconed after the item, with `mod` + `text` conditions (Match ALL) so it starts out matching just that item. Adjust or delete conditions as needed, then **Save**.
+
+The item stays on your cursor throughout — nothing is consumed.
 
 ## Editing tabs
 

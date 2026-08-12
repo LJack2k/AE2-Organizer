@@ -123,6 +123,48 @@ public final class TabBarWidget extends AbstractWidget {
     }
 
     /**
+     * Item drag-and-drop is active while the player carries a stack on the cursor
+     * (picked up from the terminal or inventory) or drags an ingredient out of
+     * JEI (see {@code BarGhostHandler}). The bar then grows a trailing "+" cell
+     * (new tab from the item) and tabs become drop targets.
+     */
+    private boolean dragActive() {
+        return !moveActive() && (!adapter.carried().isEmpty() || ClientEvents.hasExternalDrag());
+    }
+
+    /** One droppable spot on this bar, exposed to JEI's ghost-ingredient drags. */
+    public record DropTarget(Rect2i area, Runnable action) {}
+
+    /**
+     * The current drop targets for an externally dragged stack (JEI): every tab
+     * plus the trailing "+" cell. Call with {@code ClientEvents}' external-drag
+     * stack already set, so {@link #layout()} includes the "+" cell.
+     */
+    public List<DropTarget> dropTargets(ItemStack stack) {
+        Layout l = layout();
+        if (l == null) {
+            return List.of();
+        }
+        List<DropTarget> out = new java.util.ArrayList<>();
+        List<Tab> tabs = windowTabs();
+        for (int i = 0; i < l.entryRects.length; i++) {
+            Tab tab = tabForEntry(l.entryIndices[i], tabs, l.hasAll);
+            if (tab != null) {
+                int[] r = l.entryRects[i];
+                out.add(new DropTarget(new Rect2i(r[0], r[1], r[2], r[3]),
+                        () -> ClientEvents.openAddToTabDialog(adapter, store, theme, tab, stack.copy())));
+            }
+        }
+        if (l.plusRect != null) {
+            int[] r = l.plusRect;
+            out.add(new DropTarget(new Rect2i(r[0], r[1], r[2], r[3]),
+                    () -> Minecraft.getInstance().setScreen(
+                            new TabEditorScreen(screen, terminalKey, store, theme, windowId, stack.copy()))));
+        }
+        return out;
+    }
+
+    /**
      * Whether this window draws a gear. Forced on for the first window <em>visible
      * on this screen</em> if none of the visible windows show one, so the editor is
      * always reachable.
@@ -190,21 +232,26 @@ public final class TabBarWidget extends AbstractWidget {
         int labelW = (int) Math.round(BASE_LABEL_W * scale);
         int cellMain = labels ? iconCell + 2 + labelW : iconCell;
         int entryCount = (hasAll ? 1 : 0) + windowTabs().size();
+        boolean plus = dragActive();
 
         return (w.orientation() == Orientation.HORIZONTAL)
-                ? layoutHorizontal(w, rowH, iconCell, iconDraw, textScale, cellMain, labels, gear, hasAll, entryCount)
-                : layoutVertical(w, rowH, iconCell, iconDraw, textScale, cellMain, labels, gear, hasAll, entryCount);
+                ? layoutHorizontal(w, rowH, iconCell, iconDraw, textScale, cellMain, labels, gear, hasAll, entryCount, plus)
+                : layoutVertical(w, rowH, iconCell, iconDraw, textScale, cellMain, labels, gear, hasAll, entryCount, plus);
     }
 
     private Layout layoutVertical(FilterWindow w, int rowH, int iconCell, int iconDraw, float textScale,
-                                  int listW, boolean labels, boolean gear, boolean hasAll, int entryCount) {
+                                  int listW, boolean labels, boolean gear, boolean hasAll, int entryCount,
+                                  boolean plus) {
         int titleH = (gear || labels) ? TITLE_H + 1 : 0;
-        int desiredPanelH = PAD * 2 + titleH + entryCount * rowH;
-        int minPanelH = PAD * 2 + titleH + rowH;
+        // While an item is carried, one extra fixed row at the bottom holds the
+        // "+" drop cell; it never scrolls with the entries.
+        int plusH = plus ? rowH : 0;
+        int desiredPanelH = PAD * 2 + titleH + entryCount * rowH + plusH;
+        int minPanelH = PAD * 2 + titleH + rowH + plusH;
         int cap = (w.position() == PositionMode.DOCK) ? imageHeight() : screenH() - 4;
         int panelH = Math.min(desiredPanelH, Math.max(minPanelH, cap));
 
-        int listH = Math.max(rowH, panelH - PAD * 2 - titleH);
+        int listH = Math.max(rowH, panelH - PAD * 2 - titleH - plusH);
         int visibleRows = Math.max(1, listH / rowH);
         boolean needScroll = entryCount > visibleRows;
         int maxScroll = Math.max(0, entryCount - visibleRows);
@@ -229,23 +276,28 @@ public final class TabBarWidget extends AbstractWidget {
             indices[i] = scroll + i;
             rects[i] = new int[]{contentX, listTop + i * rowH, listW, rowH};
         }
+        int[] plusRect = plus ? new int[]{contentX, listTop + Math.max(0, rows) * rowH, listW, rowH} : null;
         return new Layout(false, panelX, panelY, panelW, panelH, contentX, contentY, gearX, contentY,
                 rowH, iconCell, iconDraw, textScale, labels, gear, hasAll, listW, titleH > 0,
-                needScroll, maxScroll, sbX, listTop, visibleRows, rects, indices);
+                needScroll, maxScroll, sbX, listTop, visibleRows, rects, indices, plusRect);
     }
 
     private Layout layoutHorizontal(FilterWindow w, int rowH, int iconCell, int iconDraw, float textScale,
-                                    int cellW, boolean labels, boolean gear, boolean hasAll, int entryCount) {
+                                    int cellW, boolean labels, boolean gear, boolean hasAll, int entryCount,
+                                    boolean plus) {
         int panelH = PAD * 2 + rowH;
         int gearReserve = gear ? GEAR_SZ + GAP : 0;
-        int maxCellsWidth = screenW() - 8 - PAD * 2 - gearReserve;
+        // While an item is carried, one extra fixed cell after the entries holds
+        // the "+" drop cell; it never scrolls with the entries.
+        int plusW = plus ? cellW : 0;
+        int maxCellsWidth = screenW() - 8 - PAD * 2 - gearReserve - plusW;
         int maxVisible = Math.max(1, maxCellsWidth / cellW);
         int visibleCells = Math.min(Math.max(1, entryCount), maxVisible);
         boolean needScroll = entryCount > visibleCells;
         int maxScroll = Math.max(0, entryCount - visibleCells);
         scroll = Math.max(0, Math.min(scroll, maxScroll));
 
-        int panelW = PAD * 2 + gearReserve + visibleCells * cellW;
+        int panelW = PAD * 2 + gearReserve + visibleCells * cellW + plusW;
         int[] origin = resolveOrigin(w, panelW, panelH);
         int panelX = origin[0], panelY = origin[1];
         int contentX = panelX + PAD;
@@ -262,9 +314,10 @@ public final class TabBarWidget extends AbstractWidget {
             indices[i] = scroll + i;
             rects[i] = new int[]{cellsX + i * cellW, contentY, cellW, rowH};
         }
+        int[] plusRect = plus ? new int[]{cellsX + Math.max(0, cells) * cellW, contentY, cellW, rowH} : null;
         return new Layout(true, panelX, panelY, panelW, panelH, contentX, contentY, gearX, gearY,
                 rowH, iconCell, iconDraw, textScale, labels, gear, hasAll, cellW, false,
-                needScroll, maxScroll, 0, contentY, visibleCells, rects, indices);
+                needScroll, maxScroll, 0, contentY, visibleCells, rects, indices, plusRect);
     }
 
     private int[] resolveOrigin(FilterWindow w, int panelW, int panelH) {
@@ -297,7 +350,8 @@ public final class TabBarWidget extends AbstractWidget {
                           int rowH, int iconCell, int iconDraw, float textScale, boolean labels,
                           boolean gear, boolean hasAll, int cellMain, boolean hasTitle,
                           boolean needScroll, int maxScroll, int sbX, int listTop, int visible,
-                          int[][] entryRects, int[] entryIndices) {}
+                          int[][] entryRects, int[] entryIndices,
+                          @Nullable int[] plusRect) {}
 
     /** Maps a visible entry ordinal to a tab, or {@code null} for the "All" entry. */
     @Nullable
@@ -364,6 +418,13 @@ public final class TabBarWidget extends AbstractWidget {
             boolean hovered = !move && inRect(mouseX, mouseY, r[0], r[1], r[2], r[3]);
 
             RsStyle.bevelButton(graphics, r[0], r[1], r[2], r[3], active, hovered);
+            // While an item is carried, tabs are drop targets: tint the hovered one.
+            if (l.plusRect != null && hovered && !all) {
+                graphics.fill(r[0], r[1], r[0] + r[2], r[1] + r[3], 0x5040FF40);
+                if (tab != null) {
+                    hoverTip = Component.literal("Add item to \"" + tab.name() + "\"…");
+                }
+            }
             int off = active ? 1 : 0;
             if (!icon.isEmpty()) {
                 RsStyle.scaledItem(graphics, icon, r[0] + 2 + off,
@@ -374,9 +435,22 @@ public final class TabBarWidget extends AbstractWidget {
                 String text = font.plainSubstrByWidth(label.getString(), (int) (textW / l.textScale));
                 RsStyle.scaledText(graphics, font, text, r[0] + l.iconCell + 2 + off,
                         r[1] + (r[3] - Math.round(8 * l.textScale)) / 2 + off, theme.textColor(), l.textScale);
-            } else if (hovered) {
+            } else if (hovered && hoverTip == null) {
                 hoverTip = label;
             }
+        }
+
+        if (l.plusRect != null) {
+            int[] r = l.plusRect;
+            boolean hovered = inRect(mouseX, mouseY, r[0], r[1], r[2], r[3]);
+            RsStyle.bevelButton(graphics, r[0], r[1], r[2], r[3], false, hovered);
+            if (hovered) {
+                graphics.fill(r[0], r[1], r[0] + r[2], r[1] + r[3], 0x5040FF40);
+                hoverTip = Component.literal("New tab from this item");
+            }
+            int pw = font.width("+");
+            graphics.text(font, "+", r[0] + (r[2] - pw) / 2,
+                    r[1] + (r[3] - 8) / 2 + 1, theme.textColor(), false);
         }
 
         if (!l.horizontal && l.needScroll) {
@@ -431,6 +505,12 @@ public final class TabBarWidget extends AbstractWidget {
             scrollTo(mouseY, l);
             return true;
         }
+        // Drop mode: an item is carried on the cursor. The "+" cell seeds a new
+        // tab in the editor; an existing tab asks how to add the item. Any other
+        // click on the panel is swallowed so the carried stack can't be thrown.
+        if (l.plusRect != null) {
+            return handleDrop(l, mouseX, mouseY);
+        }
         List<Tab> tabs = windowTabs();
         for (int i = 0; i < l.entryRects.length; i++) {
             int[] r = l.entryRects[i];
@@ -454,6 +534,35 @@ public final class TabBarWidget extends AbstractWidget {
         return true;
     }
 
+    /**
+     * Right-click input. Right-clicking a tab opens the editor with that tab
+     * selected; every other right-click inside the panel is just consumed so the
+     * screen underneath doesn't act on it.
+     */
+    public boolean handleRightClick(double mouseX, double mouseY) {
+        Layout l = layout();
+        if (l == null || !inRect(mouseX, mouseY, l.panelX, l.panelY, l.panelW, l.panelH)) {
+            return false;
+        }
+        if (moveActive()) {
+            return true;
+        }
+        List<Tab> tabs = windowTabs();
+        for (int i = 0; i < l.entryRects.length; i++) {
+            int[] r = l.entryRects[i];
+            if (inRect(mouseX, mouseY, r[0], r[1], r[2], r[3])) {
+                Tab tab = tabForEntry(l.entryIndices[i], tabs, l.hasAll);
+                if (tab != null) {
+                    playClick();
+                    Minecraft.getInstance().setScreen(
+                            new TabEditorScreen(screen, terminalKey, store, theme, tab.id()));
+                }
+                return true;
+            }
+        }
+        return true;
+    }
+
     public boolean handleMouseDrag(double mouseX, double mouseY) {
         if (draggingPanel) {
             dragX = (int) mouseX - dragGrabX;
@@ -468,6 +577,62 @@ public final class TabBarWidget extends AbstractWidget {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Shared drop handling for a press or release while an item is carried:
+     * the "+" cell opens the editor seeded from the item; an existing tab opens
+     * the add-to-tab dialog; any other spot on the panel is consumed so the
+     * container screen can't treat the input as a click-outside throw.
+     */
+    private boolean handleDrop(Layout l, double mouseX, double mouseY) {
+        ItemStack carried = adapter.carried();
+        if (carried.isEmpty()) {
+            // Drop mode without a cursor stack (a JEI drag): JEI delivers the
+            // drop through its own targets; just consume the panel input.
+            return true;
+        }
+        if (l.plusRect != null && inRect(mouseX, mouseY, l.plusRect[0], l.plusRect[1], l.plusRect[2], l.plusRect[3])) {
+            playClick();
+            Minecraft.getInstance().setScreen(
+                    new TabEditorScreen(screen, terminalKey, store, theme, windowId, carried.copy()));
+            return true;
+        }
+        List<Tab> tabs = windowTabs();
+        for (int i = 0; i < l.entryRects.length; i++) {
+            int[] r = l.entryRects[i];
+            if (inRect(mouseX, mouseY, r[0], r[1], r[2], r[3])) {
+                Tab tab = tabForEntry(l.entryIndices[i], tabs, l.hasAll);
+                if (tab != null) {
+                    playClick();
+                    ClientEvents.openAddToTabDialog(adapter, store, theme, tab, carried.copy());
+                }
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Release-side input, called from {@code ClientEvents} on cancelable
+     * {@code MouseButtonReleased.Pre}. Completes a drag gesture: releasing a
+     * carried item over a tab or the "+" cell triggers the same drop actions as
+     * a press. Every release inside the panel is consumed (returns {@code true})
+     * — the container screen would otherwise treat a release outside its own
+     * bounds as "throw the carried stack on the ground".
+     */
+    public boolean handleMouseRelease(double mouseX, double mouseY) {
+        if (ClientEvents.hasExternalDrag()) {
+            return false;   // JEI owns this release: its drag manager delivers the drop
+        }
+        Layout l = layout();
+        if (l == null || !inRect(mouseX, mouseY, l.panelX, l.panelY, l.panelW, l.panelH)) {
+            return false;
+        }
+        if (l.plusRect != null) {
+            return handleDrop(l, mouseX, mouseY);
+        }
+        return true;
     }
 
     public void handleMouseUp() {

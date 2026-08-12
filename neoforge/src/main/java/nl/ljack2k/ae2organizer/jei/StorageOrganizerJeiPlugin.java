@@ -45,6 +45,22 @@ public class StorageOrganizerJeiPlugin implements IModPlugin {
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGhostIngredientHandler(TabEditorScreen.class, new EditorGhostHandler());
         registration.addGuiScreenHandler(TabEditorScreen.class, EditorGuiProperties::new);
+        // Drag-from-JEI onto the tab bars, on the storage screens themselves. One
+        // registration per present backend's screen class (the JEI registry keys
+        // by class but *combines* every handler matching the screen's hierarchy,
+        // so AE2's/RS's own ghost handlers are unaffected). BackendRegistry is
+        // populated at client setup, before JEI loads plugins.
+        BarGhostHandler barHandler = new BarGhostHandler();
+        for (nl.ljack2k.ae2organizer.backend.StorageBackend backend : nl.ljack2k.ae2organizer.backend.BackendRegistry.all()) {
+            registerBarHandler(registration, backend.screenClass(), barHandler);
+        }
+    }
+
+    /** Captures the backend's screen class as {@code T}; the handler itself is typed over plain {@code Screen}. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static <T extends net.minecraft.client.gui.screens.Screen> void registerBarHandler(
+            IGuiHandlerRegistration registration, Class<T> screenClass, BarGhostHandler handler) {
+        registration.addGhostIngredientHandler(screenClass, (mezz.jei.api.gui.handlers.IGhostIngredientHandler) handler);
         // Global (not per-screen): our panels can appear over any AE2 terminal or RS
         // grid, including addon terminals we never name. JEI adds these to whatever
         // the host mod already excludes and skips the item slots they cover, so the

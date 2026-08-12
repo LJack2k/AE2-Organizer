@@ -33,6 +33,11 @@ public final class Ae2Backend implements StorageBackend {
     }
 
     @Override
+    public Class<? extends Screen> screenClass() {
+        return MEStorageScreen.class;
+    }
+
+    @Override
     public ScreenAdapter adapt(Screen screen) {
         return new Ae2ScreenAdapter((MEStorageScreen<?>) screen);
     }

@@ -68,6 +68,11 @@ public final class RsScreenAdapter implements ScreenAdapter, SearchClearable {
     }
 
     @Override
+    public net.minecraft.world.item.ItemStack carried() {
+        return screen.getMenu().getCarried();
+    }
+
+    @Override
     public void refilter() {
         try {
             screen.getMenu().getRepository().sort();

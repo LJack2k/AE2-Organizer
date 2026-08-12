@@ -111,6 +111,42 @@ public final class TabEditorScreen extends Screen {
     private int condMaxScroll;
 
     public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store, Theme theme) {
+        this(parent, terminalKey, store, theme, null, null);
+    }
+
+    /**
+     * Opens the editor with the given tab selected (right-clicking a tab in the
+     * bar); its window is expanded so the selection is visible in the tree.
+     */
+    public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store, Theme theme,
+                           String selectTabId) {
+        this(parent, terminalKey, store, theme, null, null);
+        selectTabById(selectTabId);
+    }
+
+    private void selectTabById(String tabId) {
+        for (int wi = 0; wi < windows.size(); wi++) {
+            List<TabDraft> t = windows.get(wi).tabs;
+            for (int ti = 0; ti < t.size(); ti++) {
+                if (t.get(ti).id.equals(tabId)) {
+                    windows.get(wi).collapsed = false;
+                    selWindow = wi;
+                    selTab = ti;
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * As {@link #TabEditorScreen(Screen, String, TabManager.Store, Theme)}, but with
+     * a new tab pre-seeded from a dropped item: named and iconed after the item,
+     * with mod + name conditions (Match ALL), added to {@code seedWindowId}'s window
+     * and selected. Used by the tab bar's "+" drop cell; the tab only persists when
+     * the user saves.
+     */
+    public TabEditorScreen(Screen parent, String terminalKey, TabManager.Store store, Theme theme,
+                           @Nullable String seedWindowId, @Nullable ItemStack seedStack) {
         super(Component.translatable("ae2organizer.gui.editor.title"));
         this.parent = parent;
         this.terminalKey = terminalKey;
@@ -139,6 +175,32 @@ public final class TabEditorScreen extends Screen {
                 }
             }
         }
+        if (seedWindowId != null && seedStack != null && !seedStack.isEmpty()) {
+            seedNewTab(seedWindowId, seedStack);
+        }
+    }
+
+    /** Adds and selects a draft tab built from a dropped item (see the seeded constructor). */
+    private void seedNewTab(String windowId, ItemStack stack) {
+        int wi = 0;
+        for (int i = 0; i < windows.size(); i++) {
+            if (windows.get(i).id.equals(windowId)) {
+                wi = i;
+                break;
+            }
+        }
+        WindowDraft w = windows.get(wi);
+        w.collapsed = false;
+        String itemName = stack.getHoverName().getString();
+        String name = itemName.length() > 64 ? itemName.substring(0, 64) : itemName;
+        TabDraft draft = new TabDraft("tab-" + UUID.randomUUID().toString().substring(0, 8),
+                name, idOf(stack), MatchMode.ALL);
+        draft.conditions.add(new CondDraft(ConditionType.MOD,
+                BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace(), ComponentMatch.ENCHANTED, false));
+        draft.conditions.add(new CondDraft(ConditionType.TEXT, itemName, ComponentMatch.ENCHANTED, false));
+        w.tabs.add(draft);
+        selWindow = wi;
+        selTab = w.tabs.size() - 1;
     }
 
     @Override

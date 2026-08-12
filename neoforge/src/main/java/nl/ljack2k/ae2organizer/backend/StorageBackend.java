@@ -25,6 +25,14 @@ public interface StorageBackend {
     /** Whether this backend's terminal/grid screen is the given screen. */
     boolean handles(Screen screen);
 
+    /**
+     * The base class of this backend's storage screens (what {@link #handles}
+     * accepts), for integrations that register per-screen-class handlers — JEI's
+     * ghost-ingredient drops onto the tab bars. Called only when this backend is
+     * instantiated, so returning the mod's class literal is safe.
+     */
+    Class<? extends Screen> screenClass();
+
     /** A per-open adapter for a screen this backend {@link #handles}. */
     ScreenAdapter adapt(Screen screen);
 

@@ -190,6 +190,18 @@ public final class TabManager {
             }
         }
 
+        /** Replace one tab in place (matched by id), persist, and re-push the filter. */
+        public void updateTab(Tab updated) {
+            for (int i = 0; i < tabs.size(); i++) {
+                if (tabs.get(i).id().equals(updated.id())) {
+                    tabs.set(i, updated);
+                    persist();
+                    pushFilter();
+                    return;
+                }
+            }
+        }
+
         public void replaceAll(List<FilterWindow> newWindows, List<Tab> newTabs) {
             windows.clear();
             windows.addAll(newWindows);

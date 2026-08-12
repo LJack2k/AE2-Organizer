@@ -29,6 +29,11 @@ public final class RsBackend implements StorageBackend {
     }
 
     @Override
+    public Class<? extends Screen> screenClass() {
+        return AbstractGridScreen.class;
+    }
+
+    @Override
     public ScreenAdapter adapt(Screen screen) {
         return new RsScreenAdapter((AbstractGridScreen<?>) screen);
     }

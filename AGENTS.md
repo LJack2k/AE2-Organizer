@@ -202,6 +202,11 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - **Tab-bar offset:** anchor past the panel image *and* any real `menu.slots`, measured to the slot's
   **18px frame** (item is 16px + a 1px border). This clears terminals with extra card slots. Do **not**
   use `getExclusionZones()` — it includes the top-right help button and overshoots.
+- **Container screens throw the carried stack on the mouse RELEASE, not the press.** Cancelling
+  `MouseButtonPressed.Pre` over an overlay panel is not enough: the paired
+  `MouseButtonReleased.Pre` still reaches `AbstractContainerScreen`, which treats a release outside
+  its own bounds as click-outside → throw. Swallow the release too (see the tab bar's
+  `handleMouseRelease` / `ClientEvents.swallowNextRelease`).
 - **Tags use the `forge:` namespace** on Forge 1.20.1 (`forge:ingots`), not NeoForge's `c:`.
 - **The `Repo` filter funnel** is `addEntriesToView(Collection)` — both `updateView()` branches pass
   through it before sorting, so `@ModifyVariable` at HEAD there filters the whole view and AND-combines
@@ -229,7 +234,14 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
 - JEI: `IGhostIngredientHandler#getTargetsTyped(T, ITypedIngredient<I>, boolean)`,
   `ITypedIngredient#getItemStack(): Optional<ItemStack>`; `IGuiHandlerRegistration#addGhostIngredientHandler`
   and `#addGuiScreenHandler(Class<T>, IScreenHandler<T>)` where `IScreenHandler` returns an `IGuiProperties`
-  (panel bounds → lets JEI draw its overlay beside a non-container screen).
+  (panel bounds → lets JEI draw its overlay beside a non-container screen);
+  ghost handlers are a `ListMultiMap` and lookup **combines every handler whose registered class
+  `isInstance`s the screen** — so registering for `MEStorageScreen` coexists with AE2's own
+  `AEBaseScreen` handler (pattern-slot drags unaffected). `Screen.class` itself is blacklisted for
+  registration. `getTargetsTyped(..., doStart=false)` is the hover-hint query (fires while merely
+  hovering a JEI ingredient); return `List.of()` there to highlight targets only during a real drag —
+  mid-drag highlights draw from the `doStart=true` snapshot, so they survive. (Verified on this
+  line's pinned JEI file 8292131 as well as 1.21.1's 7420587 and 26.1's 8014757.)
 - NeoForge: `Screen.render` calls `renderBackground`; `ScreenEvent.Init.Post#addListener` adds a
   renderable widget; `ScreenEvent.Mouse{ButtonPressed,ButtonReleased,Dragged,Scrolled}.Pre` are cancelable.
 

@@ -34,6 +34,11 @@ public final class RsLegacyBackend implements StorageBackend {
     }
 
     @Override
+    public Class<? extends Screen> screenClass() {
+        return GridScreen.class;
+    }
+
+    @Override
     public ScreenAdapter adapt(Screen screen) {
         return new RsLegacyScreenAdapter((GridScreen) screen);
     }

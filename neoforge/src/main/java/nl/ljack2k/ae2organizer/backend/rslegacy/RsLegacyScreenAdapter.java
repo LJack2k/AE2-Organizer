@@ -67,6 +67,11 @@ public final class RsLegacyScreenAdapter implements ScreenAdapter, SearchClearab
         return screen.getTitle();
     }
 
+    @Override
+    public net.minecraft.world.item.ItemStack carried() {
+        return screen.getMenu().getCarried();
+    }
+
     /**
      * {@code forceSort()} rather than {@code sort()}: RS's {@code sort()} defers to
      * {@code GridScreen#canSort()} and does nothing while the player is, say, holding

@@ -72,6 +72,11 @@ public final class Ae2ScreenAdapter implements ScreenAdapter, SearchClearable {
     }
 
     @Override
+    public net.minecraft.world.item.ItemStack carried() {
+        return screen.getMenu().getCarried();
+    }
+
+    @Override
     public void refilter() {
         try {
             Repo repo = ((MEStorageScreenAccessor) screen).ae2organizer$getRepo();

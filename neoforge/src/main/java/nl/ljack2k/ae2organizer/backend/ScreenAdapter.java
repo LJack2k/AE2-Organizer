@@ -2,6 +2,7 @@ package nl.ljack2k.ae2organizer.backend;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
@@ -29,6 +30,12 @@ public interface ScreenAdapter {
 
     /** The screen title (for the visibility list / friendly names). */
     Component title();
+
+    /**
+     * The stack on the player's cursor (the menu's client-side carried stack), or
+     * {@link ItemStack#EMPTY}. Drives the tab bar's drag-and-drop affordances.
+     */
+    ItemStack carried();
 
     /**
      * Re-run the storage view's filter+sort so a tab change is reflected now.

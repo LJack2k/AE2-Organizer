@@ -9,11 +9,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraft.world.item.ItemStack;
 import nl.ljack2k.ae2organizer.backend.BackendRegistry;
 import nl.ljack2k.ae2organizer.backend.ScreenAdapter;
 import nl.ljack2k.ae2organizer.backend.StorageBackend;
+import nl.ljack2k.ae2organizer.backend.Theme;
+import nl.ljack2k.ae2organizer.client.gui.AddToTabDialog;
 import nl.ljack2k.ae2organizer.client.gui.TabBarWidget;
 import nl.ljack2k.ae2organizer.filter.FilterWindow;
+import nl.ljack2k.ae2organizer.filter.Tab;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -48,6 +52,23 @@ public final class ClientEvents {
     private static ScreenAdapter activeAdapter;
     @Nullable
     private static TabManager.Store activeStore;
+    /** Modal "add item to tab" dialog, drawn over the live terminal while open. */
+    @Nullable
+    private static AddToTabDialog addDialog;
+    /**
+     * Set when a press was consumed by the dialog: the paired release must be
+     * swallowed too, or the container screen treats it as its own click (e.g.
+     * depositing the carried stack into whatever slot sits under the dialog).
+     */
+    private static boolean swallowNextRelease;
+    /**
+     * The stack of an in-flight JEI ghost drag over a storage screen (set from
+     * {@code BarGhostHandler}, cleared when the drag completes). While set, the
+     * bars enter drop mode (grow the "+" cell) even though nothing is carried on
+     * the cursor, and they leave the release to JEI's drag manager.
+     */
+    @Nullable
+    private static ItemStack externalDragStack;
 
     /**
      * Ticks left during which reopening a terminal counts as a round trip rather
@@ -116,7 +137,47 @@ public final class ClientEvents {
         return sb.toString();
     }
 
+    /** Opens the drop dialog for an item carried onto an existing tab (from {@link TabBarWidget}). */
+    public static void openAddToTabDialog(ScreenAdapter adapter, TabManager.Store store,
+                                          Theme theme, Tab tab, ItemStack stack) {
+        addDialog = new AddToTabDialog(adapter, store, theme, tab, stack);
+    }
+
+    public static boolean hasExternalDrag() {
+        return externalDragStack != null;
+    }
+
+    /** Ends the JEI drag's drop mode (called from {@code BarGhostHandler.onComplete}). */
+    public static void clearExternalDrag() {
+        externalDragStack = null;
+    }
+
+    /**
+     * The bars' drop targets for a JEI ghost drag of {@code stack} over
+     * {@code screen}. Empty unless our bars are live on that exact screen. Sets
+     * the external-drag stack <em>before</em> asking the bars, so their layout
+     * already includes the "+" cell the targets point at; a hover-only query
+     * ({@code doStart == false}) clears it again on the way out.
+     */
+    public static List<TabBarWidget.DropTarget> ghostTargetsFor(Screen screen, ItemStack stack, boolean doStart) {
+        if (screen != activeBarScreen || BARS.isEmpty() || stack.isEmpty()) {
+            return List.of();
+        }
+        externalDragStack = stack;
+        List<TabBarWidget.DropTarget> targets = new ArrayList<>();
+        for (TabBarWidget bar : BARS) {
+            targets.addAll(bar.dropTargets(stack));
+        }
+        if (!doStart) {
+            externalDragStack = null;
+        }
+        return targets;
+    }
+
     private static void rebuild(StorageBackend backend, Screen screen, ScreenAdapter adapter, TabManager.Store store) {
+        addDialog = null;
+        swallowNextRelease = false;
+        externalDragStack = null;
         BARS.clear();
         for (FilterWindow w : store.visibleWindows(adapter.terminalKey())) {
             BARS.add(new TabBarWidget(screen, adapter, store, backend.theme(), w.id()));
@@ -156,6 +217,9 @@ public final class ClientEvents {
         }
         if (activeStore != null && activeStore.isMoveMode()) {
             renderMoveBanner(backend.theme(), event.getGuiGraphics(), event.getScreen(), event.getMouseX(), event.getMouseY());
+        }
+        if (addDialog != null) {
+            addDialog.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
         }
     }
 
@@ -234,7 +298,33 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void onMousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (event.getButton() != 0 || !isActive(event.getScreen())) {
+        if (!isActive(event.getScreen())) {
+            return;
+        }
+        // The drop dialog is modal: it takes every button so a stray right-click
+        // can't reach the terminal underneath while it is open.
+        if (addDialog != null) {
+            if (event.getButton() == 0 && addDialog.handleClick(event.getMouseX(), event.getMouseY())) {
+                addDialog = null;
+            }
+            swallowNextRelease = true;
+            event.setCanceled(true);
+            return;
+        }
+        // Right-click on a tab opens the editor on it; other panel right-clicks
+        // are consumed. The paired release is swallowed so the screen under the
+        // panel doesn't see a lone right-release.
+        if (event.getButton() == 1) {
+            for (int i = BARS.size() - 1; i >= 0; i--) {
+                if (BARS.get(i).handleRightClick(event.getMouseX(), event.getMouseY())) {
+                    swallowNextRelease = true;
+                    event.setCanceled(true);
+                    return;
+                }
+            }
+            return;
+        }
+        if (event.getButton() != 0) {
             return;
         }
         if (activeStore != null && activeStore.isMoveMode()) {
@@ -259,6 +349,10 @@ public final class ClientEvents {
         if (!isActive(event.getScreen())) {
             return;
         }
+        if (addDialog != null) {
+            event.setCanceled(true);
+            return;
+        }
         for (TabBarWidget bar : BARS) {
             if (bar.handleMouseDrag(event.getMouseX(), event.getMouseY())) {
                 event.setCanceled(true);
@@ -269,6 +363,26 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void onMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
+        // Always consume the flag, even off our screens — a press that opened the
+        // editor delivers its release to the editor, and a stale flag would
+        // swallow an unrelated release after returning to the terminal.
+        boolean swallow = swallowNextRelease;
+        swallowNextRelease = false;
+        if (isActive(event.getScreen())) {
+            if (addDialog != null || swallow) {
+                event.setCanceled(true);
+            } else {
+                // Releases over a panel complete drag-and-drop (and are always
+                // swallowed there — a release outside the terminal's own bounds
+                // would otherwise throw the carried stack on the ground).
+                for (int i = BARS.size() - 1; i >= 0; i--) {
+                    if (BARS.get(i).handleMouseRelease(event.getMouseX(), event.getMouseY())) {
+                        event.setCanceled(true);
+                        break;
+                    }
+                }
+            }
+        }
         for (TabBarWidget bar : BARS) {
             bar.handleMouseUp();
         }
@@ -277,6 +391,10 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onMouseScrolled(ScreenEvent.MouseScrolled.Pre event) {
         if (!isActive(event.getScreen())) {
+            return;
+        }
+        if (addDialog != null) {
+            event.setCanceled(true);
             return;
         }
         for (int i = BARS.size() - 1; i >= 0; i--) {

@@ -218,6 +218,42 @@ public final class ClientEvents {
         if (addDialog != null) {
             addDialog.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
         }
+        renderDraggedStack(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
+    }
+
+    /**
+     * The 26.x GUI pipeline layers our {@code Render.Post} panels above the
+     * screen's own carried-stack render, so a stack dragged over a filter window
+     * disappeared behind it. Re-submit the dragged stack after the panels — but
+     * only where our drawing is what hides it (over a panel, or anywhere while
+     * the drop dialog dims the screen); elsewhere the screen's own copy is the
+     * visible one and a second copy would double-blend translucent sprites.
+     */
+    private static void renderDraggedStack(net.minecraft.client.gui.GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        ItemStack stack = activeAdapter == null ? ItemStack.EMPTY : activeAdapter.carried();
+        if (stack.isEmpty() && externalDragStack != null) {
+            stack = externalDragStack;
+        }
+        if (stack.isEmpty()) {
+            return;
+        }
+        boolean hidden = addDialog != null;
+        if (!hidden) {
+            for (TabBarWidget bar : BARS) {
+                Rect2i r = bar.bounds();
+                if (r != null && mouseX >= r.getX() && mouseX < r.getX() + r.getWidth()
+                        && mouseY >= r.getY() && mouseY < r.getY() + r.getHeight()) {
+                    hidden = true;
+                    break;
+                }
+            }
+        }
+        if (!hidden) {
+            return;
+        }
+        var font = net.minecraft.client.Minecraft.getInstance().font;
+        g.item(stack, mouseX - 8, mouseY - 8);
+        g.itemDecorations(font, stack, mouseX - 8, mouseY - 8);
     }
 
     private static final String MOVE_MSG = "Move mode: drag panels (or hold Alt anytime) — click here when done";

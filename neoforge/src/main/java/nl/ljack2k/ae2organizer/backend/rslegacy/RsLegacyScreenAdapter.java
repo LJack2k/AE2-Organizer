@@ -72,6 +72,11 @@ public final class RsLegacyScreenAdapter implements ScreenAdapter, SearchClearab
         return screen.getMenu().getCarried();
     }
 
+    @Override
+    public void returnCarriedToInventory() {
+        ScreenAdapter.returnCarried(screen);
+    }
+
     /**
      * {@code forceSort()} rather than {@code sort()}: RS's {@code sort()} defers to
      * {@code GridScreen#canSort()} and does nothing while the player is, say, holding

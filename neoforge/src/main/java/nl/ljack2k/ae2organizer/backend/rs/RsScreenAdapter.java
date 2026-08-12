@@ -73,6 +73,11 @@ public final class RsScreenAdapter implements ScreenAdapter, SearchClearable {
     }
 
     @Override
+    public void returnCarriedToInventory() {
+        ScreenAdapter.returnCarried(screen);
+    }
+
+    @Override
     public void refilter() {
         try {
             screen.getMenu().getRepository().sort();

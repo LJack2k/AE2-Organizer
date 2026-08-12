@@ -578,7 +578,10 @@ public final class TabBarWidget extends AbstractWidget {
      * Shared drop handling for a press or release while an item is carried:
      * the "+" cell opens the editor seeded from the item; an existing tab opens
      * the add-to-tab dialog; any other spot on the panel is consumed so the
-     * container screen can't treat the input as a click-outside throw.
+     * container screen can't treat the input as a click-outside throw. A drop
+     * that lands on a target also banks the carried stack back into the player
+     * inventory — the drop is the end of the gesture, not a reason to keep
+     * holding the item.
      */
     private boolean handleDrop(Layout l, double mouseX, double mouseY) {
         ItemStack carried = adapter.carried();
@@ -588,9 +591,11 @@ public final class TabBarWidget extends AbstractWidget {
             return true;
         }
         if (l.plusRect != null && inRect(mouseX, mouseY, l.plusRect[0], l.plusRect[1], l.plusRect[2], l.plusRect[3])) {
+            ItemStack dropped = carried.copy();
             playClick();
+            adapter.returnCarriedToInventory();
             Minecraft.getInstance().setScreen(
-                    new TabEditorScreen(screen, terminalKey, store, theme, windowId, carried.copy()));
+                    new TabEditorScreen(screen, terminalKey, store, theme, windowId, dropped));
             return true;
         }
         List<Tab> tabs = windowTabs();
@@ -599,8 +604,10 @@ public final class TabBarWidget extends AbstractWidget {
             if (inRect(mouseX, mouseY, r[0], r[1], r[2], r[3])) {
                 Tab tab = tabForEntry(l.entryIndices[i], tabs, l.hasAll);
                 if (tab != null) {
+                    ItemStack dropped = carried.copy();
                     playClick();
-                    ClientEvents.openAddToTabDialog(adapter, store, theme, tab, carried.copy());
+                    adapter.returnCarriedToInventory();
+                    ClientEvents.openAddToTabDialog(adapter, store, theme, tab, dropped);
                 }
                 return true;
             }

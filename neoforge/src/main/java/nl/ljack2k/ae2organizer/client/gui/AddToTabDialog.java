@@ -81,8 +81,26 @@ public final class AddToTabDialog {
                 {bx + 2 * (BTN_W + GAP), by, BTN_W, BTN_H}};
     }
 
+    /**
+     * Drawing later is not enough to be on top — depth testing is on, so this modal
+     * must also be <em>nearer</em> than everything the container screen already
+     * drew, or it loses the depth test. The ceiling to clear (all verified against
+     * 1.20.1 bytecode): slot items z≈150, their count/damage decorations z=200,
+     * vanilla tooltips z=400, and the highest of all — the carried stack, which
+     * {@code AbstractContainerScreen#renderFloatingItem} draws at z=232 with its
+     * decorations nested inside that pose, i.e. z=432. Hence 500.
+     */
+    private static final int Z_ABOVE_SCREEN = 500;
+
     public void render(GuiGraphics graphics, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, Z_ABOVE_SCREEN);
+        renderContents(graphics, font, mouseX, mouseY);
+        graphics.pose().popPose();
+    }
+
+    private void renderContents(GuiGraphics graphics, net.minecraft.client.gui.Font font, int mouseX, int mouseY) {
         graphics.fill(0, 0, screenW(), screenH(), MODAL_DIM);
         int[] p = panelRect();
         theme.panel(graphics, p[0], p[1], p[2], p[3]);

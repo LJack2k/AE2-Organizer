@@ -36,6 +36,27 @@ jobs:
           echo "modver=$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
           echo "loaders=$(grep -E '^mod_loaders=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
+      # Gate the whole release on the notes being present and correctly styled.
+      # Both failures are otherwise silent and only visible once published: a
+      # missing file makes mc-publish substitute an auto-generated commit list,
+      # and an em dash is an easy habit to slip in. Publishing is chained off this
+      # workflow succeeding, so checking here covers CurseForge and Modrinth too.
+      - name: Check the release notes
+        run: |
+          FILE="changelogs/${{ steps.props.outputs.modver }}.md"
+          if [ ! -f "$FILE" ]; then
+            echo "::error::$FILE is missing. Write the release notes before tagging."
+            exit 1
+          fi
+          # Matched as raw UTF-8 bytes under LC_ALL=C rather than with grep -P:
+          # -P is unavailable in some locales and *silently finds nothing* there,
+          # which would turn this guard into a no-op that always passes.
+          if LC_ALL=C grep -n $'\xe2\x80\x94' "$FILE"; then
+            echo "::error::$FILE uses an em dash. Changelog files must use a plain hyphen '-'."
+            exit 1
+          fi
+          echo "OK: $FILE present, no em dashes."
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:

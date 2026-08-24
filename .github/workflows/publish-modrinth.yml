@@ -86,5 +86,7 @@ jobs:
             refined-storage(optional){modrinth:KDvYkUg3}
             jei(optional){modrinth:jei}
 
-          changelog: |
-            See the [release notes on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.tag }}).
+          # Same note the GitHub Release uses — read from the tagged commit that was
+          # checked out above, so the changelog shown on the version page is the real
+          # thing rather than a link back to GitHub.
+          changelog-file: changelogs/${{ steps.props.outputs.modver }}.md

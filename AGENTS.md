@@ -265,6 +265,9 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
   player-facing and MC-line-neutral (the release title already carries the line and loader); the same
   file ships on every branch. If it is missing, mc-publish silently falls back to an auto-generated
   commit list — which is how a release ends up with a developer changelog on the storefront.
+  **Style rule, no exceptions: never use an em dash (—) in a changelog file — use a plain hyphen `-`.**
+  (Maintainer's standing instruction. It applies to the changelog files themselves, not to this file
+  or the README.)
 - **Release tags carry the MC line:** `v<mod_version>-mc<mcline>` (e.g. `v1.2.0-mc1.21.1`,
   `v1.2.0-mc26.1`) so tags stay unique across branches. Only `v*` tag pushes publish; the version-aware
   workflows read `minecraft_version`/`java_version`/`mod_version` from `gradle.properties` (configure a

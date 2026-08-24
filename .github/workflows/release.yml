@@ -70,7 +70,10 @@ jobs:
           game-versions: ${{ steps.props.outputs.mc }}
           java: ${{ steps.props.outputs.java }}
 
-          changelog: |
-            See the [release notes on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}).
-
-            Full changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
+          # The release notes for THIS version, written before tagging. The path is
+          # built from mod_version, so it needs no per-line handling — every MC line
+          # ships the same note. This becomes the GitHub Release body, and the
+          # platform publishes read the same file (see publish-*.yml). Write
+          # changelogs/<mod_version>.md as part of cutting a release: mc-publish
+          # falls back to an auto-generated commit list if the file is missing.
+          changelog-file: changelogs/${{ steps.props.outputs.modver }}.md

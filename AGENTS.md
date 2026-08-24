@@ -100,6 +100,14 @@ JackItToMe (`D:/Projects/JackItToMe`) is the reference AE2 addon — copy its gr
   through cancelable **`ScreenEvent.Mouse*.Pre`** events (see `ClientEvents`); the widget only renders.
 - **Item icons render at a fixed 16px** (`GuiGraphics#renderItem`). To make them smaller, scale the
   pose (`RsStyle.scaledItem`). Don't enlarge the buttons to "fit" — the maintainer means smaller icons.
+- **An overlay drawn in `Render.Post` is NOT automatically on top — depth testing is on**, so it must
+  also be *nearer* in z than what the screen already drew, or items punch through it. Verified z
+  ceiling: slot items ≈150, their count/damage decorations 200, vanilla tooltips 400, and the highest
+  — the carried stack, which `AbstractContainerScreen#renderFloatingItem` draws at **232** with
+  `renderItemDecorations` nested inside that pose, i.e. **432**. So a modal must sit above 432
+  (`AddToTabDialog` uses 500). Symptom of getting this half-right: item *sprites* hide correctly but
+  their *count numbers* still float over the panel. `graphics.flush()` does **not** fix it — the
+  cause is depth, not text batching (that theory cost a cycle).
 - **Tab-bar offset:** anchor past the panel image *and* any real `menu.slots`, measured to the slot's
   **18px frame** (item is 16px + a 1px border). This clears terminals with extra card slots. Do **not**
   use `getExclusionZones()` — it includes the top-right help button and overshoots.

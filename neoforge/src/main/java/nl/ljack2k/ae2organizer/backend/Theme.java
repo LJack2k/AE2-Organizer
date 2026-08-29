@@ -26,4 +26,17 @@ public interface Theme {
 
     /** A 16x16 gear/wrench icon at {@code (x, y)} (the editor/settings button). */
     void settingsIcon(GuiGraphicsExtractor g, int x, int y);
+
+    /**
+     * Drops any palette/style a theme has cached, so the next draw re-reads it.
+     * Called on every client resource reload.
+     * <p>
+     * This matters because a player can enable an AE2 "dark mode" pack
+     * <em>mid-session</em>. Textures re-read themselves, but a cached palette does
+     * not: the panel would turn black while the text colour stayed at the light
+     * theme's near-black, leaving every label invisible. Themes that read nothing
+     * from resource packs can ignore this.
+     */
+    default void invalidate() {
+    }
 }

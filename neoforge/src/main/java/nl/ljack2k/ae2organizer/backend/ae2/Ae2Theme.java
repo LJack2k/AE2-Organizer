@@ -53,6 +53,18 @@ public final class Ae2Theme implements Theme {
         return cachedStyle;
     }
 
+    /**
+     * Drops the cached palette so the next draw re-reads it from the (possibly
+     * just-changed) resource packs. AE2's own {@code StyleManager} clears its
+     * {@code styleCache} on reload via {@code initialize(ResourceManager)}, so
+     * re-reading here picks up the new palette; only this local cache was stale.
+     */
+    @Override
+    public void invalidate() {
+        styleAttempted = false;
+        cachedStyle = null;
+    }
+
     @Override
     public void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         BackgroundGenerator.draw(w, h, g, x, y);

@@ -76,6 +76,8 @@ public final class WindowPickerScreen extends Screen {
     // 1.20.1's Screen.render does NOT call renderBackground for us.
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Publish this backend's palette to the theme-neutral widget helpers.
+        RsStyle.useTheme(theme);
         this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
     }

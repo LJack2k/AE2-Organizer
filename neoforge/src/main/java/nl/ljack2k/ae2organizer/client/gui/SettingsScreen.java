@@ -184,6 +184,8 @@ public final class SettingsScreen extends Screen {
      */
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Publish this backend's palette to the theme-neutral widget helpers.
+        RsStyle.useTheme(theme);
         this.renderBackground(graphics);
         if (pendingImportAll == null) {
             RsStyle.checkbox(graphics, this.font, Component.literal("Reset filter when opening a grid"),

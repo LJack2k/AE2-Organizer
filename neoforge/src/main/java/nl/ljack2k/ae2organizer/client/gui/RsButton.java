@@ -25,8 +25,11 @@ public final class RsButton extends Button {
         RsStyle.labelButton(graphics, Minecraft.getInstance().font, getMessage(),
                 getX(), getY(), getWidth(), getHeight(), hovered, false);
         if (!this.active) {
-            // Dim disabled buttons so they read as non-interactive.
-            graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0x66303030);
+            // Dim disabled buttons so they read as non-interactive. The wash has to go
+            // *towards* the panel, so it flips with the theme: a black wash on a dark
+            // (blackout-pack) panel buried the label instead of merely greying it.
+            graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(),
+                    RsStyle.darkTheme() ? 0x40000000 : 0x66303030);
         }
     }
 }

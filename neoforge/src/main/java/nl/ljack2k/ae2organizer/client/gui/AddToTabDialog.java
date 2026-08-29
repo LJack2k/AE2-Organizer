@@ -82,6 +82,8 @@ public final class AddToTabDialog {
     }
 
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        // Publish this backend's palette to the theme-neutral widget helpers.
+        RsStyle.useTheme(theme);
         var font = Minecraft.getInstance().font;
         graphics.fill(0, 0, screenW(), screenH(), MODAL_DIM);
         int[] p = panelRect();

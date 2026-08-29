@@ -2,6 +2,7 @@ package nl.ljack2k.ae2organizer.client;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 
 /**
  * Central client-side wiring, called once from the {@code @Mod} constructor on
@@ -18,5 +19,10 @@ public final class ClientBootstrap {
     public static void init(IEventBus modBus) {
         NeoForge.EVENT_BUS.register(ClientEvents.class);
         modBus.addListener(ClientSetup::onClientSetup);
+        // Re-read backend palettes when resource packs change, so toggling an AE2
+        // dark-mode pack mid-session re-themes our screens instead of leaving them
+        // with a black panel and near-black text.
+        modBus.addListener((RegisterClientReloadListenersEvent e) ->
+                e.registerReloadListener(ThemeReloadListener.INSTANCE));
     }
 }

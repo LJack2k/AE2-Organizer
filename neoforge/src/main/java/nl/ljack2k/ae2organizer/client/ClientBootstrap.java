@@ -1,6 +1,7 @@
 package nl.ljack2k.ae2organizer.client;
 
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 /**
@@ -17,6 +18,12 @@ public final class ClientBootstrap {
 
     public static void init() {
         MinecraftForge.EVENT_BUS.register(ClientEvents.class);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(ClientSetup::onClientSetup);
+        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modBus.addListener(ClientSetup::onClientSetup);
+        // Re-read backend palettes when resource packs change, so toggling an AE2
+        // dark-mode pack mid-session re-themes our screens instead of leaving them
+        // with a black panel and near-black text.
+        modBus.addListener((RegisterClientReloadListenersEvent e) ->
+                e.registerReloadListener(ThemeReloadListener.INSTANCE));
     }
 }

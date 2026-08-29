@@ -35,6 +35,7 @@ public final class DevClientSignalListener {
             case DevSignal.ACTION_SCREENSHOT -> ClientScreenshot.take();
             case DevSignal.ACTION_EDITOR -> DevClientActions.openEditor();
             case DevSignal.ACTION_SELECT_TAB -> DevClientActions.selectTab(arg);
+            case DevSignal.ACTION_SET_PACK -> DevClientActions.setResourcePack(arg);
             default -> {
                 // unknown action — swallowed, nothing to do
             }

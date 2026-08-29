@@ -25,6 +25,8 @@ public final class DevSignal {
     public static final String ACTION_SCREENSHOT = "screenshot";
     public static final String ACTION_EDITOR = "editor";
     public static final String ACTION_SELECT_TAB = "select_tab";
+    /** Dev-only: enable/disable a resource pack at runtime (arg = "<packId>" or "" to clear). */
+    public static final String ACTION_SET_PACK = "set_pack";
 
     private DevSignal() {
     }

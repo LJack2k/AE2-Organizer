@@ -61,4 +61,26 @@ public final class DevClientActions {
             ClientEvents.applyFilter(backend.adapt(screen), store);
         }
     }
+
+    /**
+     * Dev-only: enable exactly the named resource pack (or none when {@code id} is
+     * blank) and reload resources — the scripted equivalent of a player toggling a
+     * pack in the options screen mid-session. Exists so the harness can reproduce
+     * the "enable an AE2 dark-mode pack while the game is running" path, which is
+     * the only way the theme-palette cache goes stale.
+     */
+    public static void setResourcePack(@Nullable String id) {
+        Minecraft mc = Minecraft.getInstance();
+        var repo = mc.getResourcePackRepository();
+        repo.reload();
+        java.util.List<String> selected = new java.util.ArrayList<>(repo.getSelectedIds());
+        // Drop every file/ pack, then add back the requested one.
+        selected.removeIf(s -> s.startsWith("file/"));
+        if (id != null && !id.isBlank() && repo.getAvailableIds().contains(id)) {
+            selected.add(id);
+        }
+        repo.setSelected(selected);
+        mc.options.updateResourcePacks(repo);
+        mc.reloadResourcePacks();
+    }
 }

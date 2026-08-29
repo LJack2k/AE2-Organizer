@@ -87,6 +87,13 @@ public final class DevHarness {
                         .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SELECT_TAB, ""))
                         .then(Commands.argument("id", StringArgumentType.string())
                                 .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SELECT_TAB,
+                                        StringArgumentType.getString(ctx, "id")))))
+                // Toggle a resource pack at runtime, so the harness can reproduce a
+                // player enabling an AE2 dark-mode pack mid-session (no arg = none).
+                .then(Commands.literal("pack")
+                        .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SET_PACK, ""))
+                        .then(Commands.argument("id", StringArgumentType.string())
+                                .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SET_PACK,
                                         StringArgumentType.getString(ctx, "id")))));
         event.getDispatcher().register(test);
         event.getDispatcher().register(Commands.literal("rsorgshot")

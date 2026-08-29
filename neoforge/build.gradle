@@ -170,4 +170,20 @@ tasks.named('jar') {
     exclude 'nl/ljack2k/ae2organizer/dev/**'
     exclude 'nl/ljack2k/ae2organizer/client/ClientScreenshot*'
     exclude 'nl/ljack2k/ae2organizer/client/DevClientActions*'
+
+    // Forge 1.20.1 discovers mixin configs ONLY from this manifest attribute. The
+    // `[[mixins]]` blocks in mods.toml are a NeoForge feature (1.20.2+) and Forge 47
+    // ignores them SILENTLY — no warning, no mixin log line, nothing. Without this
+    // the configs never register, `AbstractContainerScreenAccessor` is never mixed
+    // into AbstractContainerScreen, and opening any AE2 terminal dies with
+    // `ClassCastException: ...Screen cannot be cast to ...AbstractContainerScreenAccessor`.
+    // The dev client hid this for a long time: `mixin { config ... }` above passes the
+    // same files as --mixin.config, so only the PRODUCTION jar was ever affected.
+    // AE2 itself ships `MixinConfigs: ae2.mixins.json` here — that is the tell.
+    // Keep this list in sync with the `mixin { config ... }` block above.
+    manifest {
+        attributes([
+                'MixinConfigs': 'ae2organizer.ae2.mixins.json,ae2organizer.rslegacy.mixins.json'
+        ])
+    }
 }

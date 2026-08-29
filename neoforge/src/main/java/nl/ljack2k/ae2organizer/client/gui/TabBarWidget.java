@@ -370,6 +370,8 @@ public final class TabBarWidget extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Publish this backend's palette to the theme-neutral widget helpers.
+        RsStyle.useTheme(theme);
         Layout l = layout();
         if (l == null) {
             return;

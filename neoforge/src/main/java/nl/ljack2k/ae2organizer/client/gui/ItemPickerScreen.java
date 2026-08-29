@@ -95,6 +95,8 @@ public final class ItemPickerScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Publish this backend's palette to the theme-neutral widget helpers.
+        RsStyle.useTheme(theme);
         graphics.fill(0, 0, this.width, this.height, RsStyle.DIM);
         theme.panel(graphics, left, top, panelW, panelH);
         graphics.drawString(this.font, getTitle(), left + 8, top + 7, theme.textColor(), false);

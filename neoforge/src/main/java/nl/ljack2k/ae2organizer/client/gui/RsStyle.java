@@ -6,6 +6,8 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import nl.ljack2k.ae2organizer.backend.Theme;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Theme-neutral drawing helpers shared by both backends' screens and the tab
@@ -26,12 +28,54 @@ public final class RsStyle {
 
 
     /**
-     * Dark label text baked into the vanilla-style {@link #labelButton} and
-     * {@link #checkbox} drop-ins. These widgets are deliberately theme-neutral
-     * (they read on the light bevelled faces they draw), so they carry their own
-     * fixed colour rather than a backend's {@code Theme.textColor()}.
+     * Label colour used before any screen has published a theme, and whenever a
+     * backend has none. Matches AE2's default palette {@code DEFAULT_TEXT_COLOR},
+     * so the unthemed look is unchanged.
      */
-    private static final int LABEL_TEXT = 0xFF404040;
+    private static final int LABEL_TEXT_FALLBACK = 0xFF404040;
+
+    /**
+     * Label colour for the vanilla-style {@link #labelButton} and {@link #checkbox}
+     * drop-ins. These widgets draw a translucent bevel over the backend's panel, so
+     * their text has to follow that panel: a fixed dark grey vanished on AE2
+     * "blackout" resource packs, which repaint the panel near-black and flip the
+     * palette's text colour to a light one. Published by {@link #useTheme} at the
+     * top of every one of our screens' {@code render}, mirroring how the rest of the
+     * GUI already reads {@code Theme.textColor()} directly. A static is safe here:
+     * exactly one screen renders at a time, and it republishes every frame.
+     */
+    private static int labelText = LABEL_TEXT_FALLBACK;
+
+    /**
+     * Points {@link #labelButton} / {@link #checkbox} at {@code theme}'s text colour.
+     * Call at the top of {@code render} before drawing any of them.
+     */
+    public static void useTheme(@Nullable Theme theme) {
+        int color = LABEL_TEXT_FALLBACK;
+        if (theme != null) {
+            try {
+                color = theme.textColor();
+            } catch (Throwable ignored) {
+                // a backend theme that can't resolve its palette keeps the fallback
+            }
+        }
+        // A fully transparent colour would draw nothing at all; treat it as unset.
+        labelText = (color >>> 24) == 0 ? LABEL_TEXT_FALLBACK : color;
+    }
+
+    /** The current {@link #useTheme} label colour, for widgets that draw their own text. */
+    public static int labelText() {
+        return labelText;
+    }
+
+    /**
+     * Whether the active theme's panel is dark (i.e. its text colour is light).
+     * Used to pick overlays that dim <em>towards</em> the panel on either theme.
+     */
+    public static boolean darkTheme() {
+        int r = (labelText >> 16) & 0xFF, g = (labelText >> 8) & 0xFF, b = labelText & 0xFF;
+        return (r * 299 + g * 587 + b * 114) / 1000 > 127;
+    }
 
     /**
      * A plain (vanilla) text box, readable on the light panel.
@@ -117,7 +161,7 @@ public final class RsStyle {
         bevelButton(graphics, x, y, w, h, active, hovered);
         int off = active ? 1 : 0;
         int tw = font.width(label);
-        graphics.drawString(font, label, x + (w - tw) / 2 + off, y + (h - 8) / 2 + off, LABEL_TEXT, false);
+        graphics.drawString(font, label, x + (w - tw) / 2 + off, y + (h - 8) / 2 + off, labelText, false);
     }
 
     /**
@@ -129,9 +173,9 @@ public final class RsStyle {
         int box = 11;
         bevelButton(graphics, x, y, box, box, true, hovered);
         if (checked) {
-            graphics.drawString(font, "✔", x + 2, y + 1, LABEL_TEXT, false);
+            graphics.drawString(font, "✔", x + 2, y + 1, labelText, false);
         }
-        graphics.drawString(font, label, x + box + 4, y + 2, LABEL_TEXT, false);
+        graphics.drawString(font, label, x + box + 4, y + 2, labelText, false);
     }
 
     /** Renders an item icon scaled to {@code size} pixels (vanilla renderItem is fixed 16px). */

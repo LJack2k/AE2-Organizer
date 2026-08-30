@@ -458,7 +458,7 @@ public final class TabEditorScreen extends Screen {
         addRenderableWidget(new RsButton(fX, rowY, fW, BTN_H,
                 Component.literal("Center here"),
                 b -> {
-                    w.placements.put(terminalKey, new Placement(PositionMode.CENTER, 0, 0));
+                    w.placements.put(terminalKey, Placement.anchored(PositionMode.CENTER, 0, 0));
                     if (w.baseTerminal.isEmpty()) {
                         w.baseTerminal = terminalKey;
                     }

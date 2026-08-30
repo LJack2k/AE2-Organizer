@@ -2,6 +2,7 @@ package nl.ljack2k.ae2organizer.filter;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,20 +75,32 @@ public record FilterWindow(String id, String name, Orientation orientation, bool
      * </ol>
      */
     public Placement resolve(String terminalKey) {
-        Placement own = placements.get(terminalKey);
-        if (own != null) {
-            return own;
+        String key = resolveKey(terminalKey);
+        Placement found = key == null ? null : placements.get(key);
+        return found != null ? found : Placement.absolute(position, x, y);
+    }
+
+    /**
+     * Which {@link #placements()} key {@link #resolve} would actually use, or
+     * {@code null} when it falls through to the window's global default.
+     * <p>
+     * Needed so a legacy placement is upgraded <em>under the key it came from</em>.
+     * Writing the upgrade under the terminal being viewed would turn an inherited
+     * placement into an own one and quietly break the inheritance this chain exists
+     * to provide.
+     */
+    @Nullable
+    public String resolveKey(String terminalKey) {
+        if (placements.containsKey(terminalKey)) {
+            return terminalKey;
         }
-        if (!baseTerminal.isEmpty()) {
-            Placement base = placements.get(baseTerminal);
-            if (base != null) {
-                return base;
-            }
+        if (!baseTerminal.isEmpty() && placements.containsKey(baseTerminal)) {
+            return baseTerminal;
         }
         if (!placements.isEmpty()) {
-            return placements.values().iterator().next();
+            return placements.keySet().iterator().next();
         }
-        return new Placement(position, x, y);
+        return null;
     }
 
     /**

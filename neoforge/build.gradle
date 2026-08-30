@@ -57,7 +57,14 @@ legacyForge {
             gameDirectory = file('run-client')
             systemProperty 'forge.logging.console.level', 'info'
             systemProperty 'ae2organizer.devHarness', 'true'
-            jvmArguments.addAll '-Xmx4G'
+            // Force IPv4. Minecraft's game port is bound by Netty, which on Windows
+            // creates a v6-ONLY socket for the wildcard bind (`::`), so the client's
+            // IPv4 connect to 127.0.0.1:25565 is never accepted and --quickPlayMultiplayer
+            // just sits there until the 30s login timeout. RCON is unaffected because it
+            // is a plain dual-stack ServerSocket, which is what made this look like
+            // "the join is flaky" rather than an address-family mismatch. Both sides
+            // must agree, hence the same flag on the server run below.
+            jvmArguments.addAll '-Xmx4G', '-Djava.net.preferIPv4Stack=true'
             programArguments.addAll '--width', '1920', '--height', '1000',
                     '--quickPlayMultiplayer', '127.0.0.1:25565'
         }
@@ -66,7 +73,9 @@ legacyForge {
             gameDirectory = file('run-server')
             systemProperty 'ae2organizer.devHarness', 'true'
             programArgument '--nogui'
-            jvmArguments.addAll '-Xmx4G'
+            // See the clientJoin note: without this the game port binds IPv6-only and
+            // the auto-joining client can never reach it over 127.0.0.1.
+            jvmArguments.addAll '-Xmx4G', '-Djava.net.preferIPv4Stack=true'
         }
     }
 

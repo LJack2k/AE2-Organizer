@@ -229,16 +229,36 @@ public final class TabManager {
             persist();
         }
 
+        /**
+         * Stores a placement anchored to the terminal's top-left, so it survives a
+         * GUI-scale change (see {@link Placement}).
+         */
         public void updateWindowPlacement(String windowId, String terminalKey,
-                                          PositionMode mode, int x, int y) {
+                                          PositionMode mode, int dx, int dy) {
+            setWindowPlacement(windowId, terminalKey, Placement.anchored(mode, dx, dy));
+        }
+
+        private void setWindowPlacement(String windowId, String terminalKey, Placement placement) {
             for (int i = 0; i < windows.size(); i++) {
                 FilterWindow w = windows.get(i);
                 if (w.id().equals(windowId)) {
-                    windows.set(i, w.withPlacement(terminalKey, new Placement(mode, x, y)));
+                    windows.set(i, w.withPlacement(terminalKey, placement));
                     persist();
                     return;
                 }
             }
+        }
+
+        /**
+         * One-time upgrade of a pre-anchor placement: the absolute screen coordinates
+         * it was saved with are converted to an offset from the terminal that is on
+         * screen right now. Called by the tab bar the first time it resolves a legacy
+         * placement, so a config written before the anchor change stops drifting as
+         * soon as it is opened once.
+         */
+        public void migrateWindowPlacement(String windowId, String terminalKey,
+                                           PositionMode mode, int dx, int dy) {
+            setWindowPlacement(windowId, terminalKey, Placement.anchored(mode, dx, dy));
         }
 
         public boolean isMoveMode() {

@@ -330,20 +330,42 @@ public final class TabBarWidget extends AbstractWidget {
             case DOCK -> new int[]{dockX(), adapter.guiTop()};
             case CENTER -> new int[]{(screenW() - panelW) / 2, (screenH() - panelH) / 2};
             case FREE -> {
-                // Recovery: a window dragged entirely off-screen snaps to center so
-                // it (and its gear) is always reachable.
-                if (fullyOffScreen(p.x(), p.y(), panelW, panelH)) {
-                    yield new int[]{(screenW() - panelW) / 2, (screenH() - panelH) / 2};
+                int px;
+                int py;
+                if (p.hasAnchor()) {
+                    // Offset from the terminal, so the pair survives a GUI-scale change:
+                    // the terminal and the panel are both a fixed size in scaled GUI
+                    // pixels, so their separation is too.
+                    px = adapter.guiLeft() + p.anchorX();
+                    py = adapter.guiTop() + p.anchorY();
+                } else {
+                    // Pre-anchor config: absolute screen coordinates. Honour them once
+                    // at the scale they are being read at, then rewrite as an anchor so
+                    // this window stops drifting from here on.
+                    px = p.x();
+                    py = p.y();
+                    // Rewrite under the key it was READ from, not the terminal being
+                    // viewed: an inherited placement must stay inherited (see
+                    // FilterWindow#resolveKey).
+                    String key = w.resolveKey(terminalKey);
+                    if (key != null) {
+                        store.migrateWindowPlacement(windowId, key, PositionMode.FREE,
+                                px - adapter.guiLeft(), py - adapter.guiTop());
+                    }
                 }
-                yield new int[]{p.x(), p.y()};
+                // Keep it on screen. The anchor is preserved exactly whenever it fits,
+                // but an offset that is comfortable at one GUI scale can be wider than
+                // the whole GUI at another -- 252px to the left of the terminal is fine
+                // in a 1920-wide GUI space and off the edge in a 640-wide one. Clamping
+                // slides it back to the nearest edge, which keeps the side the user put
+                // it on; centring instead would drop it on top of the terminal.
+                px = Math.max(0, Math.min(px, screenW() - panelW));
+                py = Math.max(0, Math.min(py, screenH() - panelH));
+                yield new int[]{px, py};
             }
         };
     }
 
-    private static boolean fullyOffScreen(int x, int y, int panelW, int panelH) {
-        int sw = screenW(), sh = screenH();
-        return x + panelW <= 0 || x >= sw || y + panelH <= 0 || y >= sh;
-    }
 
     private record Layout(boolean horizontal, int panelX, int panelY, int panelW, int panelH,
                           int contentX, int contentY, int gearX, int gearY,
@@ -647,8 +669,10 @@ public final class TabBarWidget extends AbstractWidget {
     public void handleMouseUp() {
         if (draggingPanel) {
             draggingPanel = false;
-            // Save the position for THIS screen only.
-            store.updateWindowPlacement(windowId, terminalKey, PositionMode.FREE, dragX, dragY);
+            // Save the position for THIS screen only, as an offset from the terminal
+            // rather than an absolute screen point, so it holds at any GUI scale.
+            store.updateWindowPlacement(windowId, terminalKey, PositionMode.FREE,
+                    dragX - adapter.guiLeft(), dragY - adapter.guiTop());
         }
         draggingScrollbar = false;
     }

@@ -69,6 +69,19 @@ public final class RsStyle {
     }
 
     /**
+     * A caution colour for "this still works, just not everywhere" notices -- yellow
+     * rather than red, which would read as an error.
+     * <p>
+     * Theme-aware because no single yellow is legible on both panels: a bright yellow
+     * disappears into AE2's light grey background, and a dark amber disappears into a
+     * blackout pack's near-black one. Picks the amber on light panels and the bright
+     * yellow on dark ones, so it stays readable either way.
+     */
+    public static int warningColor() {
+        return darkTheme() ? 0xFFFFD24A : 0xFF8A6A00;
+    }
+
+    /**
      * Whether the active theme's panel is dark (i.e. its text colour is light).
      * Used to pick overlays that dim <em>towards</em> the panel on either theme.
      */

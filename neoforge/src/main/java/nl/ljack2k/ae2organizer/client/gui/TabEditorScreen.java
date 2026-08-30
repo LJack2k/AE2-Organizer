@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.ljack2k.ae2organizer.backend.Theme;
 import nl.ljack2k.ae2organizer.client.TabManager;
+import nl.ljack2k.ae2organizer.client.ViewerFilterText;
 import nl.ljack2k.ae2organizer.filter.ComponentCondition;
 import nl.ljack2k.ae2organizer.filter.ComponentMatch;
 import nl.ljack2k.ae2organizer.filter.Condition;
@@ -66,6 +67,8 @@ public final class TabEditorScreen extends Screen {
     private static final int NOT_W = 30;
     private static final int TAB_INDENT = 12;    // tab rows are inset under their window
     private static final int CARET_W = 12;       // width reserved for the window chevron
+    /** U+26A0 WARNING SIGN, via the font's unicode fallback (same path as ▲ ▼ ✔). */
+    private static final String WARN_GLYPH = "⚠";
 
     private final Screen parent;
     private final String terminalKey;
@@ -107,6 +110,8 @@ public final class TabEditorScreen extends Screen {
     private int propsHeaderY, propsInsetY, propsInsetH, nameRowY, iconRowY, iconX, iconY;
     private int condHeaderY, condInsetY, condInsetH, condRowsTop, condVisible, condSbX, condContentR;
     private int ctrlRowY, ctrlDivY, modeBtnX, modeBtnW, addBtnX, addBtnW;
+    // Hit rect of the "too long to sync" warning glyph, so render() can tooltip it.
+    private int warnX, warnY, warnW;
     private boolean condNeedScroll;
     private int condMaxScroll;
 
@@ -241,6 +246,53 @@ public final class TabEditorScreen extends Screen {
     }
 
     @Nullable
+    /**
+     * A short warning beside the "Conditions" header when this tab's conditions
+     * compose a viewer search longer than the viewer can hold, so it gets trimmed.
+     * Shown only while viewer sync is actually on -- otherwise the trimming has no
+     * effect and the warning would be noise. Drawn here, at the point the conditions
+     * are being edited, because a single condition can be short while the combination
+     * of several is not.
+     */
+    private void drawViewerSyncWarning(GuiGraphicsExtractor graphics, int rightX, int condHeaderY) {
+        warnW = 0;
+        if (!store.getSettings().syncViewerOnTabSelect()) {
+            return;
+        }
+        TabDraft draft = selTabDraft();
+        WindowDraft window = selWindowDraft();
+        if (draft == null || window == null
+                || !ViewerFilterText.exceedsLimit(draft.toTab(window.id))) {
+            return;
+        }
+        // Right-aligned on the header row, so it reads as a note about the section
+        // rather than as part of the "Conditions" heading. AE2's Icon sheet has no
+        // warning glyph (INVALID is an error X, which would contradict the yellow),
+        // so this uses the font's own U+26A0.
+        int w = this.font.width(WARN_GLYPH);
+        warnX = rightX + rightW - w;
+        warnY = condHeaderY;
+        warnW = w;
+        graphics.text(this.font, WARN_GLYPH, warnX, warnY, RsStyle.warningColor(), false);
+    }
+
+    /**
+     * The warning's tooltip, drawn from the render pass because the background pass
+     * has no mouse coordinates, and after the widgets so it sits on top.
+     */
+    private void drawViewerSyncTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (warnW <= 0) {
+            return;
+        }
+        // Padded: the glyph is only ~7px wide, which is a mean thing to ask a mouse to hit.
+        int pad = 3;
+        if (mouseX >= warnX - pad && mouseX < warnX + warnW + pad
+                && mouseY >= warnY - pad && mouseY < warnY + HEADER_H) {
+            graphics.setTooltipForNextFrame(this.font,
+                    Component.literal("Too long to sync with JEI"), mouseX, mouseY);
+        }
+    }
+
     private WindowDraft selWindowDraft() {
         return (selWindow >= 0 && selWindow < windows.size()) ? windows.get(selWindow) : null;
     }
@@ -673,6 +725,7 @@ public final class TabEditorScreen extends Screen {
             graphics.text(this.font, "Properties", rightX, propsHeaderY, tc, false);
             RsStyle.inset(graphics, rightX, propsInsetY, rightW, propsInsetH);
             graphics.text(this.font, "Conditions", rightX, condHeaderY, tc, false);
+            drawViewerSyncWarning(graphics, rightX, condHeaderY);
             RsStyle.inset(graphics, rightX, condInsetY, rightW, condInsetH);
             RsStyle.divider(graphics, rightX + 4, ctrlDivY, rightW - 8);
             graphics.text(this.font, "Inventory — drag onto the icon or a condition", invPanelX, invPanelY, tc, false);
@@ -692,6 +745,7 @@ public final class TabEditorScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         drawTree(graphics, mouseX, mouseY);
+        drawViewerSyncTooltip(graphics, mouseX, mouseY);
 
         if (!editingWindow() && pendingDeleteWindow < 0) {
             TabDraft draft = selTabDraft();

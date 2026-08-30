@@ -61,4 +61,52 @@ public final class DevClientActions {
             ClientEvents.applyFilter(backend.adapt(screen), store);
         }
     }
+
+    /**
+     * Dev-only: enable exactly the named resource pack (or none when {@code id} is
+     * blank) and reload resources - the scripted equivalent of a player toggling a
+     * pack in the options screen mid-session. Exists so the harness can reproduce
+     * the "enable an AE2 dark-mode pack while the game is running" path, which is
+     * the only way the theme-palette cache goes stale.
+     */
+    public static void setResourcePack(@Nullable String id) {
+        Minecraft mc = Minecraft.getInstance();
+        var repo = mc.getResourcePackRepository();
+        repo.reload();
+        java.util.List<String> selected = new java.util.ArrayList<>(repo.getSelectedIds());
+        // Drop every file/ pack, then add back the requested one.
+        selected.removeIf(s -> s.startsWith("file/"));
+        if (id != null && !id.isBlank() && repo.getAvailableIds().contains(id)) {
+            selected.add(id);
+        }
+        repo.setSelected(selected);
+        mc.options.updateResourcePacks(repo);
+        mc.reloadResourcePacks();
+    }
+
+    /**
+     * Dev-only: change the GUI scale at runtime, the scripted equivalent of editing
+     * it in Video Settings. Vanilla has no keybind for this, and restarting the
+     * client between scales only exercises the load path - an in-game change instead
+     * re-inits the open screen through {@code resize()}, which is the path a player
+     * actually hits. {@code 0} means auto.
+     * <p>
+     * The value is not clamped here: the resize call runs it through
+     * {@code Window#calculateScale}, which already bounds it to what the window can take.
+     */
+    public static void setGuiScale(@Nullable String arg) {
+        if (arg == null || arg.isBlank()) {
+            return;
+        }
+        int scale;
+        try {
+            scale = Integer.parseInt(arg.trim());
+        } catch (NumberFormatException e) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.options.guiScale().set(scale);
+        mc.resizeDisplay();
+        mc.options.save();
+    }
 }

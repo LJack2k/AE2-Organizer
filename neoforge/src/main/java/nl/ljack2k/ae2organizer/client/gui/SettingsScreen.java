@@ -176,13 +176,19 @@ public final class SettingsScreen extends Screen {
         RsStyle.checkbox(graphics, this.font, Component.literal("Sync JEI search bar when selecting a tab"),
                 left + 10, row3Y, syncViewerOnTabSelect, inRow(mouseX, mouseY, row3Y));
 
-        RsStyle.divider(graphics, left + 10, top + 100, panelW - 20);
+        // These two notes belong to the viewer-sync checkbox above them, so they sit
+        // ABOVE the divider -- below it they read as part of the import/export block.
         RsStyle.scaledText(graphics, this.font,
                 "Viewer sync supports: mod (@mod), tag (#tag), name; Not → exclude (-).",
-                left + 10, top + 108, noteColor, 0.75f);
+                left + 10, top + 93, noteColor, 0.75f);
+        RsStyle.scaledText(graphics, this.font,
+                "Filters over 128 characters are shortened to fit the viewer's search box.",
+                left + 10, top + 103, noteColor, 0.75f);
+
+        RsStyle.divider(graphics, left + 10, top + 114, panelW - 20);
         RsStyle.scaledText(graphics, this.font,
                 "Window size, labels, orientation & position: edit per window.",
-                left + 10, top + 118, noteColor, 0.75f);
+                left + 10, top + 119, noteColor, 0.75f);
         graphics.text(this.font, "Import / export all windows + tabs (clipboard):",
                 left + 10, top + 128, tc, false);
         if (!status.isEmpty()) {

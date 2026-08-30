@@ -2,6 +2,7 @@ package nl.ljack2k.ae2organizer.dev;
 
 import appeng.blockentity.storage.ChestBlockEntity;
 import appeng.items.storage.CreativeCellItem;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.refinedmods.refinedstorage.apiimpl.API;
@@ -18,6 +19,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import nl.ljack2k.ae2organizer.StorageOrganizer;
@@ -70,9 +72,36 @@ public final class DevHarness {
         if (FMLEnvironment.dist.isClient()) {
             // Client only needs the signal listener; the commands are server-side.
             MinecraftForge.EVENT_BUS.register(DevClientSignalListener.class);
+            MinecraftForge.EVENT_BUS.register(DevKeybinds.class);
             return;
         }
         MinecraftForge.EVENT_BUS.addListener(DevHarness::registerCommands);
+        MinecraftForge.EVENT_BUS.addListener(DevHarness::onServerStarted);
+    }
+
+    /**
+     * Pins the harness world to clear noon and stops both cycles.
+     * <p>
+     * This world exists purely to screenshot GUIs, and rain/night change the colour
+     * of every pixel behind the panel -- which makes two screenshots of the same
+     * screen impossible to compare, and repeatedly cost time re-shooting. Dev-only,
+     * behind the same {@code ae2organizer.devHarness} gate as the rest of this class.
+     * <p>
+     * Driven through vanilla commands rather than the level API because that API is
+     * not stable across the three MC lines (26.1 moved GameRules and reworked weather
+     * into WeatherData), and this way all three carry the same implementation.
+     */
+    private static void onServerStarted(ServerStartedEvent event) {
+        var server = event.getServer();
+        var src = server.createCommandSourceStack();
+        for (String cmd : new String[]{
+                "gamerule doWeatherCycle false",
+                "gamerule doDaylightCycle false",
+                "weather clear 1000000",
+                "time set noon"}) {
+            server.getCommands().performPrefixedCommand(src, cmd);
+        }
+        StorageOrganizer.LOGGER.info("[StorageOrganizer] Dev harness: weather cleared, cycles off, time pinned to noon.");
     }
 
     private static void registerCommands(RegisterCommandsEvent event) {
@@ -94,7 +123,14 @@ public final class DevHarness {
                         .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SET_PACK, ""))
                         .then(Commands.argument("id", StringArgumentType.string())
                                 .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SET_PACK,
-                                        StringArgumentType.getString(ctx, "id")))));
+                                        StringArgumentType.getString(ctx, "id")))))
+                // Change the GUI scale without restarting, so a scale change can be
+                // tested the way a player makes it: live, with the screen re-inited
+                // rather than constructed fresh. 0 = auto.
+                .then(Commands.literal("guiscale")
+                        .then(Commands.argument("scale", IntegerArgumentType.integer(0, 8))
+                                .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SET_GUI_SCALE,
+                                        String.valueOf(IntegerArgumentType.getInteger(ctx, "scale"))))));
         event.getDispatcher().register(test);
         event.getDispatcher().register(Commands.literal("rsorgshot")
                 .executes(ctx -> send(ctx.getSource(), DevSignal.ACTION_SCREENSHOT, "")));

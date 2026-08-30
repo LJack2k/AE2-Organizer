@@ -36,6 +36,7 @@ public final class DevClientSignalListener {
             case DevSignal.ACTION_EDITOR -> DevClientActions.openEditor();
             case DevSignal.ACTION_SELECT_TAB -> DevClientActions.selectTab(arg);
             case DevSignal.ACTION_SET_PACK -> DevClientActions.setResourcePack(arg);
+            case DevSignal.ACTION_SET_GUI_SCALE -> DevClientActions.setGuiScale(arg);
             default -> {
                 // unknown action — swallowed, nothing to do
             }

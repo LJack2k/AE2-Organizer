@@ -83,4 +83,31 @@ public final class DevClientActions {
         mc.options.updateResourcePacks(repo);
         mc.reloadResourcePacks();
     }
+
+    /**
+     * Dev-only: change the GUI scale at runtime, the scripted equivalent of editing
+     * it in Video Settings. Vanilla has no keybind for this, and restarting the
+     * client between scales only exercises the load path -- an in-game change instead
+     * re-inits the open screen through {@code resize()}, which is the path a player
+     * actually hits. {@code 0} means auto.
+     * <p>
+     * The value is not clamped here: {@code Minecraft#resizeDisplay} runs it through
+     * {@code Window#calculateScale}, which already bounds it to what the window can
+     * take.
+     */
+    public static void setGuiScale(@Nullable String arg) {
+        if (arg == null || arg.isBlank()) {
+            return;
+        }
+        int scale;
+        try {
+            scale = Integer.parseInt(arg.trim());
+        } catch (NumberFormatException e) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.options.guiScale().set(scale);
+        mc.resizeDisplay();
+        mc.options.save();
+    }
 }

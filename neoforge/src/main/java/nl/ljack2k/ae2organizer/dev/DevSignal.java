@@ -27,6 +27,8 @@ public final class DevSignal {
     public static final String ACTION_SELECT_TAB = "select_tab";
     /** Dev-only: enable/disable a resource pack at runtime (arg = "<packId>" or "" to clear). */
     public static final String ACTION_SET_PACK = "set_pack";
+    /** Dev-only: change the GUI scale at runtime (arg = the scale, 0 for auto). */
+    public static final String ACTION_SET_GUI_SCALE = "set_gui_scale";
 
     private DevSignal() {
     }
